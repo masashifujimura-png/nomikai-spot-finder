@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: nomikai-spot-finder
+    runtime: docker
+    dockerfilePath: ./Dockerfile.nomikai
+    plan: free
+    envVars:
+      - key: STREAMLIT_SERVER_PORT
+        value: 8501

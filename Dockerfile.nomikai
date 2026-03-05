@@ -1,0 +1,16 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY requirements-nomikai.txt .
+RUN pip install --no-cache-dir -r requirements-nomikai.txt
+
+COPY nomikai_spot.py .
+COPY statione.csv join.csv line.csv ./
+COPY .streamlit/ .streamlit/
+
+EXPOSE 8501
+
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+
+ENTRYPOINT ["streamlit", "run", "nomikai_spot.py", "--server.port=8501", "--server.address=0.0.0.0"]
