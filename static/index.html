@@ -234,7 +234,7 @@ td { white-space: nowrap; }
     <h2>新しい飲み会を作成</h2>
     <div style="display:flex;gap:8px;max-width:500px;" class="form-row">
       <input type="text" id="event-title" placeholder="例: 歓迎会、忘年会" style="flex:2;">
-      <button class="btn btn-primary" onclick="createEvent()" id="btn-create">作成</button>
+      <button class="btn btn-primary" onclick="createNomikai()" id="btn-create">作成</button>
     </div>
   </div>
 
@@ -465,7 +465,7 @@ function escHtml(s) {
 // ---------------------------------------------------------------------------
 // Event management
 // ---------------------------------------------------------------------------
-async function createEvent() {
+async function createNomikai() {
   const title = document.getElementById('event-title').value.trim() || '飲み会';
   const btn = document.getElementById('btn-create');
   btn.disabled = true; btn.textContent = '作成中...';
