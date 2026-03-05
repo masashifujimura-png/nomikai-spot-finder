@@ -7,6 +7,26 @@ from math import radians, sin, cos, sqrt, atan2
 import heapq
 import time
 import os
+import string
+import random
+
+# ---------------------------------------------------------------------------
+# Supabase
+# ---------------------------------------------------------------------------
+from supabase import create_client
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+
+def _get_supabase():
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        st.error("Supabase の設定がありません。環境変数 SUPABASE_URL / SUPABASE_KEY を設定してください。")
+        st.stop()
+    return create_client(SUPABASE_URL, SUPABASE_KEY)
+
+def _generate_code(length=6):
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choices(chars, k=length))
 
 # ---------------------------------------------------------------------------
 # 設定
@@ -15,9 +35,9 @@ st.set_page_config(page_title="飲み会スポットファインダー", layout=
 
 GSI_GEOCODE_URL = "https://msearch.gsi.go.jp/address-search/AddressSearch"
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-TRAIN_SPEED_KMH = 30  # 駅間移動の概算速度（グラフ未対応時のフォールバック）
-WALKING_SPEED_KMH = 4  # 徒歩速度
-AVG_TRAIN_SPEED_KMH = 35  # 隣接駅間の平均速度（所要時間推定用）
+TRAIN_SPEED_KMH = 30
+WALKING_SPEED_KMH = 4
+AVG_TRAIN_SPEED_KMH = 35
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -40,31 +60,25 @@ def _load_ekidata():
     join_file = os.path.join(_DATA_DIR, "join.csv")
     line_file = os.path.join(_DATA_DIR, "line.csv")
 
-    # --- 路線データ読み込み ---
     ldf = pd.read_csv(line_file, dtype={"line_cd": int, "line_name": str, "e_status": int})
     ldf = ldf[ldf["e_status"] == 0]
     line_cd_to_name = dict(zip(ldf["line_cd"], ldf["line_name"]))
 
-    # --- 駅データ読み込み ---
     sdf = pd.read_csv(station_file, dtype={"station_cd": int, "station_name": str,
                                             "lat": float, "lon": float, "e_status": int,
                                             "line_cd": int})
-    # 運用中のみ
     sdf = sdf[sdf["e_status"] == 0].copy()
 
-    # station_cd → (name, lat, lon) のマップ
     cd_to_info = {}
     for _, r in sdf.iterrows():
         cd_to_info[int(r["station_cd"])] = (r["station_name"], float(r["lat"]), float(r["lon"]))
 
-    # 駅名 → (lat, lon) 辞書（同名駅は最初のものを採用）
     station_db = {}
     for _, r in sdf.iterrows():
         name = r["station_name"]
         if name not in station_db:
             station_db[name] = (float(r["lat"]), float(r["lon"]))
 
-    # 駅名 → 路線名リスト
     station_lines: dict[str, list[str]] = {}
     for _, r in sdf.iterrows():
         name = r["station_name"]
@@ -73,7 +87,6 @@ def _load_ekidata():
         if ln and ln not in station_lines.get(name, []):
             station_lines.setdefault(name, []).append(ln)
 
-    # --- 接続データ読み込み → グラフ構築 ---
     jdf = pd.read_csv(join_file, dtype={"line_cd": int, "station_cd1": int, "station_cd2": int})
 
     graph: dict[str, list[tuple[str, float]]] = {}
@@ -85,13 +98,11 @@ def _load_ekidata():
         name2, lat2, lon2 = cd_to_info[cd2]
         if name1 == name2:
             continue
-        # 所要時間推定: 距離 ÷ 平均速度
         dist = _haversine(lat1, lon1, lat2, lon2)
         time_min = max(round(dist / AVG_TRAIN_SPEED_KMH * 60, 1), 1)
         graph.setdefault(name1, []).append((name2, time_min))
         graph.setdefault(name2, []).append((name1, time_min))
 
-    # 同名駅（乗換）: station_g_cd が同じ駅同士を乗換時間5分で接続
     if "station_g_cd" in sdf.columns:
         groups = sdf.groupby("station_g_cd")["station_name"].apply(set)
         for names in groups:
@@ -111,10 +122,7 @@ STATION_DB, _GRAPH, STATION_LINES = _load_ekidata()
 # ---------------------------------------------------------------------------
 # グラフ経路探索
 # ---------------------------------------------------------------------------
-
-
 def _dijkstra(start: str, end: str) -> int | None:
-    """start→end の最短所要時間（分）を返す。到達不可なら None。"""
     if start == end:
         return 0
     if start not in _GRAPH or end not in _GRAPH:
@@ -136,10 +144,8 @@ def _dijkstra(start: str, end: str) -> int | None:
 
 
 def _find_nearest_graph_station(lat: float, lon: float) -> tuple[str | None, float]:
-    """座標から最も近い駅名と距離(km)を返す。"""
     best_name, best_dist = None, float("inf")
     for name, (slat, slon) in STATION_DB.items():
-        # 緯度差で粗いフィルタ（約0.09度 ≈ 10km）
         if abs(slat - lat) > 0.5:
             continue
         d = haversine(lat, lon, slat, slon)
@@ -151,7 +157,6 @@ def _find_nearest_graph_station(lat: float, lon: float) -> tuple[str | None, flo
 
 def estimate_travel_time(from_lat: float, from_lon: float,
                          to_lat: float, to_lon: float) -> float:
-    """2地点間の推定移動時間（分）。路線グラフ優先、フォールバックで直線距離÷30km/h。"""
     from_st, from_walk_km = _find_nearest_graph_station(from_lat, from_lon)
     to_st, to_walk_km = _find_nearest_graph_station(to_lat, to_lon)
 
@@ -161,7 +166,6 @@ def estimate_travel_time(from_lat: float, from_lon: float,
             walk_min = (from_walk_km + to_walk_km) / WALKING_SPEED_KMH * 60
             return round(walk_min + train_time, 1)
 
-    # フォールバック
     dist = haversine(from_lat, from_lon, to_lat, to_lon)
     return round(dist / TRAIN_SPEED_KMH * 60, 1)
 
@@ -170,7 +174,6 @@ def estimate_travel_time(from_lat: float, from_lon: float,
 # 距離計算（Haversine）
 # ---------------------------------------------------------------------------
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """2点間の距離(km)を計算。"""
     R = 6371
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
@@ -179,10 +182,9 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 
 # ---------------------------------------------------------------------------
-# ジオコーディング（国土地理院 + Overpass 駅名検索）
+# ジオコーディング
 # ---------------------------------------------------------------------------
 def _geocode_gsi(query: str) -> tuple[float | None, float | None, str]:
-    """国土地理院 API で住所/地名を座標に変換。"""
     try:
         resp = requests.get(GSI_GEOCODE_URL, params={"q": query}, timeout=10)
         resp.raise_for_status()
@@ -190,24 +192,21 @@ def _geocode_gsi(query: str) -> tuple[float | None, float | None, str]:
         if data:
             coords = data[0]["geometry"]["coordinates"]
             title = data[0]["properties"].get("title", "")
-            return float(coords[1]), float(coords[0]), title  # lon,lat → lat,lon
+            return float(coords[1]), float(coords[0]), title
     except Exception:
         pass
     return None, None, ""
 
 
 def _geocode_station(station_name: str) -> tuple[float | None, float | None, str]:
-    """ビルトインDB → Overpass API の順で駅名を検索。"""
     name = station_name.rstrip("駅").strip()
     if not name:
         return None, None, ""
 
-    # 1) ビルトインDB
     if name in STATION_DB:
         lat, lon = STATION_DB[name]
         return lat, lon, f"{name}駅"
 
-    # 2) Overpass API フォールバック
     query = f'[out:json][timeout:10];node["railway"="station"]["name"~"^{name}$"];out body 1;'
     try:
         resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=15)
@@ -222,32 +221,26 @@ def _geocode_station(station_name: str) -> tuple[float | None, float | None, str
 
 
 def geocode(address: str) -> tuple[float | None, float | None, str]:
-    """住所/駅名を座標に変換。複数の方法を試して最適な結果を返す。"""
     if not address or not address.strip():
         return None, None, ""
     address = address.strip()
 
-    # 明らかな住所パターン（区、市、町、丁目、番地を含む）
     is_address = any(k in address for k in ["区", "市", "町", "丁目", "番地", "都", "府", "県"])
 
-    # 「駅」を含む場合は駅名として検索
     if "駅" in address:
         lat, lon, label = _geocode_station(address)
         if lat is not None:
             return lat, lon, label
 
-    # 住所っぽい場合は国土地理院を優先
     if is_address:
         lat, lon, label = _geocode_gsi(address)
         if lat is not None:
             return lat, lon, label
 
-    # 短い地名は駅名の可能性が高い → 先に駅検索
     lat, lon, label = _geocode_station(address + "駅")
     if lat is not None:
         return lat, lon, label
 
-    # 最後に国土地理院で地名検索
     lat, lon, label = _geocode_gsi(address)
     if lat is not None:
         return lat, lon, label
@@ -256,12 +249,9 @@ def geocode(address: str) -> tuple[float | None, float | None, str]:
 
 
 # ---------------------------------------------------------------------------
-# 参加者を囲む円の算出 & 候補駅フィルタ
+# 候補駅検索 & スコアリング
 # ---------------------------------------------------------------------------
-def compute_bounding_circle(
-    participants: list[dict],
-) -> tuple[float, float, float]:
-    """全参加者の職場・自宅を囲む最小円（中心lat, lon, 半径km）を返す。"""
+def compute_bounding_circle(participants: list[dict]) -> tuple[float, float, float]:
     all_lats, all_lons = [], []
     for p in participants:
         if p.get("work_lat") is not None:
@@ -280,19 +270,13 @@ def compute_bounding_circle(
     return center_lat, center_lon, max_radius
 
 
-def find_candidate_stations(
-    participants: list[dict], margin: float = 1.2,
-) -> list[dict]:
-    """参加者を囲む円の内側（+margin）にある駅を候補として返す。
-    margin=1.2 なら円の半径を20%拡大して少し余裕を持たせる。
-    """
+def find_candidate_stations(participants: list[dict], margin: float = 1.2) -> list[dict]:
     center_lat, center_lon, radius = compute_bounding_circle(participants)
-    search_radius = max(radius * margin, 3.0)  # 最低3km
+    search_radius = max(radius * margin, 3.0)
 
     stations = []
     seen = set()
 
-    # 1) ビルトインDBから円内の駅
     for name, (slat, slon) in STATION_DB.items():
         dist = haversine(center_lat, center_lon, slat, slon)
         if dist <= search_radius:
@@ -303,7 +287,6 @@ def find_candidate_stations(
                 "operator": "", "line": "・".join(lines),
             })
 
-    # 2) Overpass API で補完（ビルトインDBだけでは足りない場合）
     if len(stations) < 5:
         radius_m = int(search_radius * 1000)
         query = f'[out:json][timeout:20];node["railway"="station"]["name"](around:{radius_m},{center_lat},{center_lon});out body;'
@@ -314,7 +297,6 @@ def find_candidate_stations(
                     name = elem.get("tags", {}).get("name")
                     if not name or name in seen:
                         continue
-                    # 円内チェック
                     dist = haversine(center_lat, center_lon, elem["lat"], elem["lon"])
                     if dist <= search_radius:
                         seen.add(name)
@@ -329,13 +311,7 @@ def find_candidate_stations(
     return stations
 
 
-# ---------------------------------------------------------------------------
-# 駅スコアリング
-# ---------------------------------------------------------------------------
-def _station_travel_time(from_name: str | None, to_name: str | None,
-                         from_lat: float | None, from_lon: float | None,
-                         to_lat: float | None, to_lon: float | None) -> float:
-    """駅名ベースでDijkstra探索。グラフに無い場合は直線距離フォールバック。"""
+def _station_travel_time(from_name, to_name, from_lat, from_lon, to_lat, to_lon) -> float:
     if from_name is None or to_name is None:
         return 0.0
     if from_name == to_name:
@@ -349,19 +325,8 @@ def _station_travel_time(from_name: str | None, to_name: str | None,
     return 0.0
 
 
-def score_stations(
-    stations: list[dict],
-    participants: list[dict],
-    work_weight: float,
-    home_weight: float,
-    fairness_weight: float = 0.0,
-    mode: str = "train",
-) -> list[dict]:
-    """各駅について参加者全員の移動コストを計算しスコアリング。
-    mode="train": 路線グラフベースの所要時間（分）
-    mode="distance": 直線距離（km）
-    fairness_weight: 0=効率重視 ～ 1=公平重視（標準偏差へのペナルティ係数）
-    """
+def score_stations(stations, participants, work_weight, home_weight,
+                   fairness_weight=0.0, mode="train") -> list[dict]:
     scored = []
     for st_info in stations:
         total_cost = 0
@@ -401,8 +366,6 @@ def score_stations(
         all_vals = [d["total_val"] for d in details]
         std_dev = float(np.std(all_vals)) if len(all_vals) > 1 else 0.0
         avg_val = sum(all_vals) / len(all_vals)
-        # 最終スコア = 効率コスト + 公平性ペナルティ
-        # fairness_weight=1 のとき標準偏差を平均と同等の重みで加算
         final_cost = total_cost + fairness_weight * std_dev * len(details)
 
         scored.append({
@@ -427,17 +390,9 @@ _RANK_COLORS = [
 ]
 
 
-def make_result_map(
-    participants: list[dict],
-    top_stations: list[dict],
-    center_lat: float,
-    center_lon: float,
-    mode: str = "train",
-) -> go.Figure:
-    """参加者の位置と推薦駅を地図上に表示。"""
+def make_result_map(participants, top_stations, center_lat, center_lon, mode="train") -> go.Figure:
     fig = go.Figure()
 
-    # 職場マーカー（自宅往復の人はスキップ）
     for p in participants:
         is_hr = p.get("pattern", "").startswith("自宅")
         if not is_hr and p.get("work_lat") is not None:
@@ -445,23 +400,20 @@ def make_result_map(
             fig.add_trace(go.Scattermapbox(
                 lat=[p["work_lat"]], lon=[p["work_lon"]],
                 mode="markers+text",
-                marker=dict(size=14, color="#1565c0",
-                            opacity=0.9),
+                marker=dict(size=14, color="#1565c0", opacity=0.9),
                 text=[f"{p['name']}({label})"],
                 textposition="top center",
                 textfont=dict(size=11, color="#0d47a1"),
                 name=f"{p['name']} 職場",
                 showlegend=False,
             ))
-    # 自宅マーカー
     for p in participants:
         if p.get("home_lat") is not None:
             label = p.get("home_station") or p.get("home_label") or "自宅"
             fig.add_trace(go.Scattermapbox(
                 lat=[p["home_lat"]], lon=[p["home_lon"]],
                 mode="markers+text",
-                marker=dict(size=14, color="#2e7d32",
-                            opacity=0.9),
+                marker=dict(size=14, color="#2e7d32", opacity=0.9),
                 text=[f"{p['name']}({label})"],
                 textposition="top center",
                 textfont=dict(size=11, color="#1b5e20"),
@@ -469,11 +421,9 @@ def make_result_map(
                 showlegend=False,
             ))
 
-    # 推薦駅マーカー（白縁 → 色付き の二重マーカーで視認性UP）
     unit = "分" if mode == "train" else "km"
     for i, s in enumerate(top_stations[:10]):
         color = _RANK_COLORS[i] if i < len(_RANK_COLORS) else "#888888"
-        # 白い縁取り（少し大きめ）
         fig.add_trace(go.Scattermapbox(
             lat=[s["lat"]], lon=[s["lon"]],
             mode="markers",
@@ -481,7 +431,6 @@ def make_result_map(
                         color="white", opacity=0.95),
             showlegend=False, hoverinfo="skip",
         ))
-        # 色付きマーカー
         fig.add_trace(go.Scattermapbox(
             lat=[s["lat"]], lon=[s["lon"]],
             mode="markers+text",
@@ -514,11 +463,164 @@ def make_result_map(
 
 
 # ---------------------------------------------------------------------------
-# メイン
+# DB操作
 # ---------------------------------------------------------------------------
-def main():
+TRIP_PATTERNS = ["職場→飲み会→自宅", "自宅→飲み会→自宅"]
+
+
+def create_event(title: str) -> str:
+    sb = _get_supabase()
+    code = _generate_code()
+    sb.table("events").insert({"event_code": code, "title": title}).execute()
+    return code
+
+
+def get_event(code: str) -> dict | None:
+    sb = _get_supabase()
+    res = sb.table("events").select("*").eq("event_code", code).execute()
+    if res.data:
+        return res.data[0]
+    return None
+
+
+def get_participants(event_id: str) -> list[dict]:
+    sb = _get_supabase()
+    res = sb.table("participants").select("*").eq("event_id", event_id).order("created_at").execute()
+    return res.data or []
+
+
+def add_participant(event_id: str, name: str, pattern: str, work: str, home: str) -> None:
+    sb = _get_supabase()
+    sb.table("participants").insert({
+        "event_id": event_id,
+        "name": name,
+        "pattern": pattern,
+        "work_location": work,
+        "home_location": home,
+    }).execute()
+
+
+def delete_participant(participant_id: str) -> None:
+    sb = _get_supabase()
+    sb.table("participants").delete().eq("id", participant_id).execute()
+
+
+# ---------------------------------------------------------------------------
+# ジオコード参加者
+# ---------------------------------------------------------------------------
+def geocode_participant(p: dict, is_train: bool) -> dict:
+    entry = {
+        "name": p["name"],
+        "pattern": p.get("pattern", TRIP_PATTERNS[0]),
+        "work_station": None, "work_lat": None, "work_lon": None, "work_label": None,
+        "home_station": None, "home_lat": None, "home_lon": None, "home_label": None,
+    }
+    is_home_round = entry["pattern"] == TRIP_PATTERNS[1]
+
+    # 職場
+    work_loc = p.get("work_location", "").strip()
+    if not is_home_round and work_loc:
+        if is_train:
+            lat, lon, label = _geocode_station(work_loc)
+            if lat is not None:
+                entry["work_station"] = label.rstrip("駅")
+        else:
+            lat, lon, label = geocode(work_loc)
+        if lat is not None:
+            entry["work_lat"] = lat
+            entry["work_lon"] = lon
+            entry["work_label"] = label
+            if entry["work_station"] is None:
+                nearest, _ = _find_nearest_graph_station(lat, lon)
+                entry["work_station"] = nearest
+
+    # 自宅
+    home_loc = p.get("home_location", "").strip()
+    if home_loc:
+        if is_train:
+            lat, lon, label = _geocode_station(home_loc)
+            if lat is not None:
+                entry["home_station"] = label.rstrip("駅")
+        else:
+            lat, lon, label = geocode(home_loc)
+        if lat is not None:
+            entry["home_lat"] = lat
+            entry["home_lon"] = lon
+            entry["home_label"] = label
+            if entry["home_station"] is None:
+                nearest, _ = _find_nearest_graph_station(lat, lon)
+                entry["home_station"] = nearest
+
+    # 自宅往復
+    if is_home_round and entry["home_lat"] is not None:
+        entry["work_lat"] = entry["home_lat"]
+        entry["work_lon"] = entry["home_lon"]
+        entry["work_station"] = entry["home_station"]
+        entry["work_label"] = entry["home_label"]
+
+    return entry
+
+
+# ---------------------------------------------------------------------------
+# UI: トップページ（イベント作成）
+# ---------------------------------------------------------------------------
+def page_top():
     st.title("飲み会スポットファインダー")
     st.caption("参加者の職場と自宅から、最も集まりやすく帰りやすい駅を見つけます")
+
+    st.markdown("---")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("新しい飲み会を作成")
+        title = st.text_input("飲み会の名前", value="飲み会", placeholder="例: 歓迎会、忘年会")
+        if st.button("作成してURLを発行", type="primary", use_container_width=True):
+            code = create_event(title)
+            st.session_state["created_code"] = code
+
+        if "created_code" in st.session_state:
+            code = st.session_state["created_code"]
+            base_url = os.environ.get("APP_URL", st.context.headers.get("Origin", ""))
+            share_url = f"{base_url}/?event={code}" if base_url else f"?event={code}"
+            st.success("飲み会を作成しました！")
+            st.markdown("#### 共有URL")
+            st.code(share_url, language=None)
+            st.caption("このURLを参加者に共有してください")
+
+    with col2:
+        st.subheader("既存の飲み会に参加")
+        join_code = st.text_input("イベントコードを入力", placeholder="例: Xk9mZ3")
+        if st.button("参加する", use_container_width=True):
+            if join_code.strip():
+                event = get_event(join_code.strip())
+                if event:
+                    st.query_params["event"] = join_code.strip()
+                    st.rerun()
+                else:
+                    st.error("イベントが見つかりません。コードを確認してください。")
+
+
+# ---------------------------------------------------------------------------
+# UI: イベントページ（参加者入力 & 結果表示）
+# ---------------------------------------------------------------------------
+def page_event(event_code: str):
+    event = get_event(event_code)
+    if not event:
+        st.error("イベントが見つかりません。URLを確認してください。")
+        if st.button("トップに戻る"):
+            del st.query_params["event"]
+            st.rerun()
+        return
+
+    st.title(f"{event['title']} - 飲み会スポットファインダー")
+
+    # 共有URL表示
+    base_url = os.environ.get("APP_URL", st.context.headers.get("Origin", ""))
+    share_url = f"{base_url}/?event={event_code}" if base_url else f"?event={event_code}"
+    with st.expander("共有URL"):
+        st.code(share_url, language=None)
+        st.caption("このURLを参加者に共有してください")
 
     # --- モード選択 ---
     mode = st.radio(
@@ -529,210 +631,130 @@ def main():
     )
     is_train = mode.startswith("電車")
 
-    TRIP_PATTERNS = ["職場→飲み会→自宅", "自宅→飲み会→自宅"]
-
-    # --- セッションステート初期化 ---
-    if "participants" not in st.session_state:
-        st.session_state.participants = [
-            {"name": "Aさん", "work": "", "home": "", "pattern": TRIP_PATTERNS[0]},
-            {"name": "Bさん", "work": "", "home": "", "pattern": TRIP_PATTERNS[0]},
-            {"name": "Cさん", "work": "", "home": "", "pattern": TRIP_PATTERNS[0]},
-        ]
-
-    # --- 参加者入力 ---
-    st.subheader("参加者情報を入力")
     if is_train:
         st.caption("最寄駅名を入力してください（例: 東京、渋谷、新宿）")
         work_ph, home_ph = "職場最寄駅（例: 東京）", "自宅最寄駅（例: 吉祥寺）"
     else:
-        st.caption("駅名、地名、住所のいずれかを入力してください（例: 渋谷、新宿区西新宿2丁目）")
+        st.caption("駅名、地名、住所のいずれかを入力してください")
         work_ph, home_ph = "職場（駅名 or 住所）", "自宅（駅名 or 住所）"
 
-    for i, p in enumerate(st.session_state.participants):
-        cols = st.columns([1, 1.5, 1.8, 1.8, 0.4])
-        with cols[0]:
-            st.session_state.participants[i]["name"] = st.text_input(
-                "名前", value=p["name"], key=f"name_{i}", label_visibility="collapsed",
-                placeholder="名前",
-            )
-        with cols[1]:
-            cur_pattern = st.selectbox(
-                "移動パターン", TRIP_PATTERNS, key=f"pattern_{i}",
-                index=TRIP_PATTERNS.index(p.get("pattern", TRIP_PATTERNS[0])),
-                label_visibility="collapsed",
-            )
-            st.session_state.participants[i]["pattern"] = cur_pattern
-        is_home_round = cur_pattern == TRIP_PATTERNS[1]
-        with cols[2]:
-            st.session_state.participants[i]["home"] = st.text_input(
-                "自宅", value=p["home"], key=f"home_{i}", label_visibility="collapsed",
-                placeholder=home_ph,
-            )
-        with cols[3]:
-            if is_home_round:
-                st.markdown("<div style='line-height:2.4;color:#999;font-size:0.9em'>← 自宅のみで計算</div>",
-                            unsafe_allow_html=True)
-            else:
-                st.session_state.participants[i]["work"] = st.text_input(
-                    "職場", value=p["work"], key=f"work_{i}", label_visibility="collapsed",
-                    placeholder=work_ph,
-                )
-        with cols[4]:
-            if st.button("✕", key=f"del_{i}", help="削除"):
-                st.session_state.participants.pop(i)
-                st.rerun()
+    # --- 参加者一覧（DB） ---
+    st.subheader("参加者一覧")
+    db_participants = get_participants(event["id"])
 
-    btn_cols = st.columns([1, 1.5, 4])
-    with btn_cols[0]:
-        if st.button("＋ 参加者を追加"):
-            n = len(st.session_state.participants) + 1
-            st.session_state.participants.append(
-                {"name": f"{chr(64+n)}さん", "work": "", "home": "", "pattern": TRIP_PATTERNS[0]}
-            )
-            st.rerun()
+    if db_participants:
+        for p in db_participants:
+            is_hr = p["pattern"] == TRIP_PATTERNS[1]
+            cols = st.columns([1.5, 2, 2, 2, 0.5])
+            with cols[0]:
+                st.text(p["name"])
+            with cols[1]:
+                st.text(p["pattern"])
+            with cols[2]:
+                st.text(p["home_location"] or "-")
+            with cols[3]:
+                st.text("(自宅のみ)" if is_hr else (p["work_location"] or "-"))
+            with cols[4]:
+                if st.button("✕", key=f"del_{p['id']}", help="削除"):
+                    delete_participant(p["id"])
+                    st.rerun()
+    else:
+        st.info("まだ参加者がいません。下のフォームから追加してください。")
+
+    # --- 参加者追加フォーム ---
+    st.markdown("---")
+    st.subheader("自分の情報を追加")
+
+    with st.form("add_participant", clear_on_submit=True):
+        fc = st.columns([1.5, 2, 2, 2])
+        with fc[0]:
+            new_name = st.text_input("名前", placeholder="名前")
+        with fc[1]:
+            new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS)
+        with fc[2]:
+            new_home = st.text_input("自宅", placeholder=home_ph)
+        with fc[3]:
+            new_work = st.text_input("職場", placeholder=work_ph)
+
+        submitted = st.form_submit_button("追加", type="primary", use_container_width=True)
+        if submitted:
+            if not new_name.strip():
+                st.error("名前を入力してください。")
+            elif not new_home.strip():
+                st.error("自宅の最寄駅を入力してください。")
+            elif new_pattern == TRIP_PATTERNS[0] and not new_work.strip():
+                st.error("職場の最寄駅を入力してください。")
+            else:
+                work_val = "" if new_pattern == TRIP_PATTERNS[1] else new_work.strip()
+                add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home.strip())
+                st.rerun()
 
     # --- 重み設定 ---
     st.sidebar.header("検索設定")
     balance = st.sidebar.slider(
         "職場↔自宅 重視バランス",
         0.0, 1.0, 0.5, 0.05,
-        help="左: 職場からの近さ重視（行きやすさ）/ 右: 自宅への近さ重視（帰りやすさ）",
+        help="左: 職場からの近さ重視 / 右: 自宅への近さ重視",
     )
     work_weight = 1.0 - balance
     home_weight = balance
-    st.sidebar.caption(f"職場重視: {work_weight:.0%}　|　自宅重視: {home_weight:.0%}")
+    st.sidebar.caption(f"職場重視: {work_weight:.0%} | 自宅重視: {home_weight:.0%}")
 
     fairness_weight = st.sidebar.slider(
         "効率↔公平 バランス",
         0.0, 1.0, 0.3, 0.05,
-        help="左: 全員の合計移動コスト最小（効率重視）/ 右: 参加者間の移動差を小さく（公平重視）",
+        help="左: 合計移動コスト最小 / 右: 参加者間の差を小さく",
     )
-    if fairness_weight < 0.2:
-        st.sidebar.caption("⚡ 効率重視: 合計コスト最小の駅を優先")
-    elif fairness_weight > 0.8:
-        st.sidebar.caption("⚖️ 公平重視: 参加者間の差が小さい駅を優先")
-    else:
-        st.sidebar.caption("⚡⚖️ 効率と公平のバランス")
 
     # --- 検索実行 ---
-    with btn_cols[1]:
-        search_clicked = st.button("最適スポットを検索", type="primary", use_container_width=True)
+    st.markdown("---")
+    search_clicked = st.button("最適スポットを検索", type="primary", use_container_width=True)
 
     if not search_clicked:
-        st.info("参加者情報を入力して「最適スポットを検索」を押してください。")
         return
 
-    # 入力バリデーション
-    valid_participants = []
-    for p in st.session_state.participants:
-        if not p["name"].strip():
-            continue
-        is_home_round = p.get("pattern", "") == TRIP_PATTERNS[1]
-        if is_home_round:
-            if p["home"].strip():
-                valid_participants.append(p)
-        else:
-            if p["work"].strip() or p["home"].strip():
-                valid_participants.append(p)
-    if len(valid_participants) < 2:
-        st.error("2人以上の参加者情報を入力してください。")
+    # 最新の参加者データ取得
+    db_participants = get_participants(event["id"])
+    if len(db_participants) < 2:
+        st.error("2人以上の参加者を追加してください。")
         return
 
-    # --- 場所解決 ---
+    # --- ジオコーディング ---
     progress = st.progress(0)
     status = st.empty()
     geocoded = []
-    total_queries = sum(
-        (0 if p.get("pattern", "") == TRIP_PATTERNS[1] else (1 if p["work"].strip() else 0))
-        + (1 if p["home"].strip() else 0)
-        for p in valid_participants
-    )
-    done = 0
 
-    for p in valid_participants:
-        is_home_round = p.get("pattern", "") == TRIP_PATTERNS[1]
-        entry = {
-            "name": p["name"],
-            "pattern": p.get("pattern", TRIP_PATTERNS[0]),
-            "work_station": None, "work_lat": None, "work_lon": None, "work_label": None,
-            "home_station": None, "home_lat": None, "home_lon": None, "home_label": None,
-        }
+    for i, p in enumerate(db_participants):
+        status.text(f"検索中... {p['name']}")
+        entry = geocode_participant(p, is_train)
+        if entry["work_lat"] is not None or entry["home_lat"] is not None:
+            geocoded.append(entry)
+        else:
+            st.warning(f"{p['name']} の場所が特定できませんでした。")
+        progress.progress((i + 1) / (len(db_participants) + 2))
+        time.sleep(0.3)
 
-        # 職場（自宅往復の場合はスキップ）
-        if not is_home_round and p["work"].strip():
-            status.text(f"検索中… {p['name']}の職場")
-            if is_train:
-                lat, lon, label = _geocode_station(p["work"])
-                if lat is not None:
-                    entry["work_station"] = label.rstrip("駅")
-            else:
-                lat, lon, label = geocode(p["work"])
-            if lat is not None:
-                entry["work_lat"] = lat
-                entry["work_lon"] = lon
-                entry["work_label"] = label
-                if entry["work_station"] is None:
-                    nearest, _ = _find_nearest_graph_station(lat, lon)
-                    entry["work_station"] = nearest
-            else:
-                st.warning(f"⚠ {p['name']}の職場「{p['work']}」が見つかりませんでした。")
-            done += 1
-            progress.progress(done / (total_queries + 2))
-            time.sleep(0.5)
-
-        # 自宅
-        if p["home"].strip():
-            status.text(f"検索中… {p['name']}の自宅")
-            if is_train:
-                lat, lon, label = _geocode_station(p["home"])
-                if lat is not None:
-                    entry["home_station"] = label.rstrip("駅")
-            else:
-                lat, lon, label = geocode(p["home"])
-            if lat is not None:
-                entry["home_lat"] = lat
-                entry["home_lon"] = lon
-                entry["home_label"] = label
-                if entry["home_station"] is None:
-                    nearest, _ = _find_nearest_graph_station(lat, lon)
-                    entry["home_station"] = nearest
-            else:
-                st.warning(f"⚠ {p['name']}の自宅「{p['home']}」が見つかりませんでした。")
-            done += 1
-            progress.progress(done / (total_queries + 2))
-            time.sleep(0.5)
-
-        # 自宅往復の場合: 出発地も自宅
-        if is_home_round and entry["home_lat"] is not None:
-            entry["work_lat"] = entry["home_lat"]
-            entry["work_lon"] = entry["home_lon"]
-            entry["work_station"] = entry["home_station"]
-            entry["work_label"] = entry["home_label"]
-
-        geocoded.append(entry)
-
-    geocoded = [g for g in geocoded if g["work_lat"] is not None or g["home_lat"] is not None]
     if len(geocoded) < 2:
         st.error("場所を特定できた参加者が2人未満です。入力内容を確認してください。")
         progress.empty()
         status.empty()
         return
 
-    # --- 候補駅検索（参加者を囲む円の内側） ---
-    status.text("候補駅を検索中…")
-    center_lat, center_lon, _radius = compute_bounding_circle(geocoded)
+    # --- 候補駅検索 ---
+    status.text("候補駅を検索中...")
+    center_lat, center_lon, _ = compute_bounding_circle(geocoded)
     stations = find_candidate_stations(geocoded)
     progress.progress(0.9)
 
     if not stations:
-        st.error("周辺に駅が見つかりませんでした。参加者の場所を確認してください。")
+        st.error("周辺に駅が見つかりませんでした。")
         progress.empty()
         status.empty()
         return
 
     # --- スコアリング ---
     score_mode = "train" if is_train else "distance"
-    status.text("各駅のスコアを計算中…")
+    status.text("各駅のスコアを計算中...")
     scored = score_stations(stations, geocoded, work_weight, home_weight,
                             fairness_weight=fairness_weight, mode=score_mode)
     progress.progress(1.0)
@@ -750,7 +772,6 @@ def main():
     top_n = min(10, len(scored))
     top_stations = scored[:top_n]
 
-    # KPI
     best = top_stations[0]
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("おすすめ1位", best["name"])
@@ -758,16 +779,13 @@ def main():
     k3.metric("最大移動者", f"{best['max_person_val']:.1f} {unit}")
     k4.metric("候補駅数", f"{len(stations)} 駅")
 
-    # タブ
     tab_map, tab_ranking, tab_detail = st.tabs(["地図", "ランキング", "詳細比較"])
 
-    # --- 地図 ---
     with tab_map:
         fig = make_result_map(geocoded, top_stations, center_lat, center_lon, mode=score_mode)
         st.plotly_chart(fig, use_container_width=True)
         st.caption("青丸: 職場 / 緑丸: 自宅 / 色付き丸: おすすめ駅（順位順）")
 
-    # --- ランキング ---
     with tab_ranking:
         ranking_rows = []
         for i, s in enumerate(top_stations):
@@ -794,7 +812,6 @@ def main():
         else:
             st.caption("※直線距離での概算です。実際の移動距離・時間は路線や経路により異なります。")
 
-    # --- 詳細比較 ---
     with tab_detail:
         st.markdown(f"### 上位3駅の参加者別移動{'時間' if is_train else '距離'}")
 
@@ -806,7 +823,6 @@ def main():
                 detail_df.columns = ["名前", f"出発→駅({unit})", f"駅→自宅({unit})", f"合計({unit})"]
                 st.dataframe(detail_df, use_container_width=True, hide_index=True)
 
-                # 棒グラフ
                 fig_bar = go.Figure()
                 names = [d["name"] for d in s["details"]]
                 work_vals = [d["work_val"] for d in s["details"]]
@@ -828,7 +844,6 @@ def main():
                 )
                 st.plotly_chart(fig_bar, use_container_width=True)
 
-        # 公平性分析
         st.markdown("### 公平性分析")
         st.caption(f"各駅で最も移動{'時間' if is_train else '距離'}が長い人と短い人の差（小さいほど公平）")
 
@@ -844,6 +859,17 @@ def main():
                 "標準偏差": s["std_dev"],
             })
         st.dataframe(pd.DataFrame(fairness_data), use_container_width=True, hide_index=True)
+
+
+# ---------------------------------------------------------------------------
+# メイン
+# ---------------------------------------------------------------------------
+def main():
+    event_code = st.query_params.get("event")
+    if event_code:
+        page_event(event_code)
+    else:
+        page_top()
 
 
 if __name__ == "__main__":
