@@ -654,9 +654,9 @@ def page_top():
 
     with col1:
         st.subheader("新しい飲み会を作成")
-        title = st.text_input("飲み会の名前", value="飲み会", placeholder="例: 歓迎会、忘年会")
+        title = st.text_input("飲み会の名前", placeholder="例: 歓迎会、忘年会")
         if st.button("作成してURLを発行", type="primary", use_container_width=True):
-            code = create_event(title)
+            code = create_event(title.strip() or "飲み会")
             st.session_state["_redirect_event"] = code
             st.rerun()
 
