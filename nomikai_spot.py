@@ -388,25 +388,58 @@ def geocode_participant(p: dict) -> dict:
 # 駅名検索ウィジェット
 # ---------------------------------------------------------------------------
 def _station_picker(label, key, default=""):
-    search = st.text_input(label, value=default, placeholder="駅名を入力（例: 新宿）", key=f"{key}_q")
+    confirmed_key = f"{key}_confirmed"
+    search_mode_key = f"{key}_search"
+
+    # 編集時: デフォルト値を初回のみ自動確定
+    if default and confirmed_key not in st.session_state and not st.session_state.get(search_mode_key):
+        name = default.rstrip("駅").strip()
+        if name and name in _station_db():
+            st.session_state[confirmed_key] = name
+
+    # 確定済み → 表示 + 変更ボタン
+    if confirmed_key in st.session_state:
+        confirmed = st.session_state[confirmed_key]
+        col1, col2 = st.columns([5, 1])
+        with col1:
+            st.markdown(f"**{label}**: ✅ {confirmed}駅")
+        with col2:
+            if st.button("変更", key=f"{key}_change", use_container_width=True):
+                del st.session_state[confirmed_key]
+                st.session_state[search_mode_key] = True
+                st.rerun(scope="fragment")
+        return confirmed
+
+    # 未確定 → 検索入力 + 候補ボタン
+    search = st.text_input(label, placeholder="駅名を入力（例: 新宿、しぶ…）", key=f"{key}_q")
     if not search:
         return None
     name = search.rstrip("駅").strip()
     if not name:
         return None
+
     sdb = _station_db()
-    if name in sdb:
-        st.caption(f"✅ {name}駅")
-        return name
     names = _sorted_station_names()
     matches = [n for n in names if name in n]
+    # 完全一致を先頭に
+    if name in sdb and name in matches:
+        matches.remove(name)
+        matches.insert(0, name)
+
     if not matches:
-        st.caption("❌ 該当する駅がありません")
+        st.caption("該当する駅がありません")
         return None
-    if len(matches) <= 8:
-        st.caption(f"もしかして: {' / '.join(matches)}")
-    else:
-        st.caption(f"{len(matches)}件ヒット（例: {' / '.join(matches[:5])}…）もう少し絞り込んでください")
+
+    displayed = matches[:8]
+    cols = st.columns(min(len(displayed), 4))
+    for i, m in enumerate(displayed):
+        with cols[i % 4]:
+            if st.button(m, key=f"{key}_sug_{i}", use_container_width=True):
+                st.session_state[confirmed_key] = m
+                st.session_state.pop(search_mode_key, None)
+                st.rerun(scope="fragment")
+    if len(matches) > 8:
+        st.caption(f"他 {len(matches) - 8}件")
     return None
 
 
