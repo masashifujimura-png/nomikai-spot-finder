@@ -732,8 +732,9 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     </div>
     """, unsafe_allow_html=True)
 
-    # 共有URL（目立つように表示）
-    st.info(f"**このURLを参加者に共有してください**\n\n`{share_url}`", icon="🔗")
+    # 共有URL（コピーボタン付き）
+    st.markdown("**このURLを参加者に共有してください**（右のボタンでコピー）")
+    st.code(share_url, language=None)
 
     st.markdown("---")
 
