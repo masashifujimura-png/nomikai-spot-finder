@@ -412,22 +412,16 @@ def geocode_participant(p: dict) -> dict:
 # 駅名検索ウィジェット
 # ---------------------------------------------------------------------------
 def _station_picker(label, key, default=""):
-    search = st.text_input(label, value=default, placeholder="駅名を入力して絞り込み", key=f"{key}_q")
-    if not search:
-        return None
     names = _sorted_station_names()
-    matches = [n for n in names if search in n]
-    if not matches:
-        st.caption("該当する駅がありません")
+    options = ["（未選択）"] + names
+    if default and default in names:
+        idx = names.index(default) + 1
+    else:
+        idx = 0
+    selected = st.selectbox(label, options, index=idx, key=f"{key}_s")
+    if selected == "（未選択）":
         return None
-    if len(matches) > 50:
-        st.caption(f"{len(matches)}件ヒット - もう少し絞り込んでください")
-        return None
-    idx = matches.index(search) if search in matches else 0
-    return st.selectbox(
-        "選択", matches, index=idx, key=f"{key}_s",
-        label_visibility="collapsed",
-    )
+    return selected
 
 
 # ---------------------------------------------------------------------------
@@ -506,10 +500,9 @@ def _render_map(top_stations, geocoded):
     """Leaflet.js で上位駅・参加者の職場/自宅を凡例付きで表示。"""
     marker_data = []
     all_points = []
-    for i, s in enumerate(top_stations[:10]):
-        color = _STATION_COLORS[i] if i < 3 else "#757575"
+    for i, s in enumerate(top_stations[:3]):
         marker_data.append({
-            "lat": s["lat"], "lon": s["lon"], "color": color,
+            "lat": s["lat"], "lon": s["lon"], "color": _STATION_COLORS[i],
             "label": f"{i+1}位: {s['name']}", "radius": 8,
         })
         all_points.append([s["lat"], s["lon"]])
@@ -887,11 +880,10 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     top_stations = scored[:top_n]
 
     best = top_stations[0]
-    k1, k2, k3, k4 = st.columns(4)
+    k1, k2, k3 = st.columns(3)
     k1.metric("おすすめ1位", best["name"])
     k2.metric("平均移動時間", f"{best['avg_total_val']:.1f} {unit}")
     k3.metric("最大移動者", f"{best['max_person_val']:.1f} {unit}")
-    k4.metric("候補駅数", f"{len(stations)} 駅")
 
     tab_ranking, tab_map, tab_detail = st.tabs(["ランキング", "地図", "詳細比較"])
 
