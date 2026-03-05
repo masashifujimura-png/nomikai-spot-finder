@@ -656,15 +656,15 @@ def page_top():
         title = st.text_input("飲み会の名前", placeholder="例: 歓迎会、忘年会", label_visibility="collapsed")
     with col_btn:
         if st.button("作成", type="primary", use_container_width=True):
-            event = create_event(title.strip() or "飲み会")
+            with st.spinner("作成中..."):
+                event = create_event(title.strip() or "飲み会")
             code = event["event_code"]
             # キャッシュを事前設定して再フェッチを回避
-            cache_key = f"_event_cache_{code}"
-            st.session_state[cache_key] = {
+            st.session_state[f"_event_cache_{code}"] = {
                 "event": event,
                 "participants": [],
             }
-            st.session_state["_redirect_event"] = code
+            st.query_params["event"] = code
             st.rerun()
 
 
@@ -811,7 +811,7 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     k3.metric("最大移動者", f"{best['max_person_val']:.1f} {unit}")
     k4.metric("候補駅数", f"{len(stations)} 駅")
 
-    tab_ranking, tab_detail = st.tabs(["ランキング", "詳細比較"])
+    tab_ranking, tab_map, tab_detail = st.tabs(["ランキング", "地図", "詳細比較"])
 
     with tab_ranking:
         ranking_rows = []
@@ -834,6 +834,31 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
         ranking_df = pd.DataFrame(ranking_rows)
         st.dataframe(ranking_df, use_container_width=True, hide_index=True)
         st.caption("※移動時間は主要路線の駅間所要時間をベースに推定。乗換待ち時間等により実際とは異なる場合があります。")
+
+    with tab_map:
+        map_rows = []
+        # 上位駅（1位: 赤大, 2-5位: オレンジ）
+        for i, s in enumerate(top_stations[:5]):
+            map_rows.append({
+                "lat": s["lat"], "lon": s["lon"],
+                "color": "#e53935" if i == 0 else "#ff9800",
+                "size": 600 if i == 0 else 300,
+            })
+        # 参加者の出発地（青）・自宅（緑）
+        for g in geocoded:
+            if g.get("work_lat") is not None:
+                map_rows.append({
+                    "lat": g["work_lat"], "lon": g["work_lon"],
+                    "color": "#1e88e5", "size": 200,
+                })
+            if g.get("home_lat") is not None:
+                map_rows.append({
+                    "lat": g["home_lat"], "lon": g["home_lon"],
+                    "color": "#43a047", "size": 200,
+                })
+        map_df = pd.DataFrame(map_rows)
+        st.map(map_df, latitude="lat", longitude="lon", color="color", size="size")
+        st.caption("🔴 おすすめ駅（1位は大）  🟠 候補駅  🔵 出発地  🟢 自宅")
 
     with tab_detail:
         st.markdown("### 上位3駅の参加者別移動時間")
@@ -873,11 +898,6 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
 # メイン
 # ---------------------------------------------------------------------------
 def main():
-    if "_redirect_event" in st.session_state:
-        code = st.session_state.pop("_redirect_event")
-        st.query_params["event"] = code
-        st.rerun()
-
     event_code = st.query_params.get("event")
 
     if event_code:
