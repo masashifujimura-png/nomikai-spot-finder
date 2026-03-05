@@ -390,9 +390,13 @@ _RANK_COLORS = [
 ]
 
 
+_RANK_MARKER_COLORS = ["#d50000", "#e65100", "#f57f17"]
+
+
 def make_result_map(participants, top_stations, center_lat, center_lon, mode="train") -> go.Figure:
     fig = go.Figure()
 
+    # 職場マーカー
     for p in participants:
         is_hr = p.get("pattern", "").startswith("自宅")
         if not is_hr and p.get("work_lat") is not None:
@@ -400,59 +404,62 @@ def make_result_map(participants, top_stations, center_lat, center_lon, mode="tr
             fig.add_trace(go.Scattermapbox(
                 lat=[p["work_lat"]], lon=[p["work_lon"]],
                 mode="markers+text",
-                marker=dict(size=14, color="#1565c0", opacity=0.9),
+                marker=dict(size=18, color="#1565c0", opacity=1.0,
+                            symbol="circle"),
                 text=[f"{p['name']}({label})"],
                 textposition="top center",
-                textfont=dict(size=11, color="#0d47a1"),
+                textfont=dict(size=13, color="#0d47a1", family="Arial Black"),
                 name=f"{p['name']} 職場",
                 showlegend=False,
             ))
+
+    # 自宅マーカー
     for p in participants:
         if p.get("home_lat") is not None:
             label = p.get("home_station") or p.get("home_label") or "自宅"
             fig.add_trace(go.Scattermapbox(
                 lat=[p["home_lat"]], lon=[p["home_lon"]],
                 mode="markers+text",
-                marker=dict(size=14, color="#2e7d32", opacity=0.9),
+                marker=dict(size=18, color="#2e7d32", opacity=1.0,
+                            symbol="circle"),
                 text=[f"{p['name']}({label})"],
                 textposition="top center",
-                textfont=dict(size=11, color="#1b5e20"),
+                textfont=dict(size=13, color="#1b5e20", family="Arial Black"),
                 name=f"{p['name']} 自宅",
                 showlegend=False,
             ))
 
-    unit = "分" if mode == "train" else "km"
-    for i, s in enumerate(top_stations[:10]):
-        color = _RANK_COLORS[i] if i < len(_RANK_COLORS) else "#888888"
+    # おすすめ駅マーカー（上位3駅のみ）
+    unit = "分"
+    for i, s in enumerate(top_stations[:3]):
+        color = _RANK_MARKER_COLORS[i]
+        rank_label = ["1位", "2位", "3位"][i]
+        # 白縁
         fig.add_trace(go.Scattermapbox(
             lat=[s["lat"]], lon=[s["lon"]],
             mode="markers",
-            marker=dict(size=28 if i == 0 else 22 if i < 3 else 18,
-                        color="white", opacity=0.95),
+            marker=dict(size=32 if i == 0 else 26, color="white", opacity=1.0),
             showlegend=False, hoverinfo="skip",
         ))
+        # 色付きマーカー
         fig.add_trace(go.Scattermapbox(
             lat=[s["lat"]], lon=[s["lon"]],
             mode="markers+text",
-            marker=dict(size=22 if i == 0 else 17 if i < 3 else 13,
-                        color=color, opacity=0.95),
-            text=[f"{'★' if i == 0 else str(i+1)} {s['name']} ({s['avg_total_val']:.1f}{unit})"
-                  + (f"<br>{s['line']}" if s.get('line') and i < 3 else "")],
+            marker=dict(size=26 if i == 0 else 20, color=color, opacity=1.0),
+            text=[f"{rank_label} {s['name']}（平均{s['avg_total_val']:.0f}{unit}）"],
             textposition="top center",
-            textfont=dict(
-                size=14 if i == 0 else 12 if i < 3 else 10,
-                color="#212121",
-            ),
-            name=f"{i+1}位: {s['name']}",
+            textfont=dict(size=15 if i == 0 else 13, color="#212121",
+                          family="Arial Black"),
+            name=f"{rank_label}: {s['name']}",
         ))
 
     fig.update_layout(
         mapbox=dict(
-            style="open-street-map",
+            style="carto-positron",
             center=dict(lat=center_lat, lon=center_lon),
             zoom=10,
         ),
-        height=600,
+        height=550,
         margin=dict(l=0, r=0, t=0, b=0),
         legend=dict(
             yanchor="top", y=0.99, xanchor="left", x=0.01,
@@ -900,9 +907,17 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     tab_map, tab_ranking, tab_detail = st.tabs(["地図", "ランキング", "詳細比較"])
 
     with tab_map:
+        st.markdown("""
+        <div style="display:flex; gap:24px; margin-bottom:8px; font-size:14px; font-weight:600;">
+            <span><span style="color:#1565c0;">●</span> 職場</span>
+            <span><span style="color:#2e7d32;">●</span> 自宅</span>
+            <span><span style="color:#d50000;">●</span> 1位</span>
+            <span><span style="color:#e65100;">●</span> 2位</span>
+            <span><span style="color:#f57f17;">●</span> 3位</span>
+        </div>
+        """, unsafe_allow_html=True)
         fig = make_result_map(geocoded, top_stations, center_lat, center_lon, mode="train")
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("青丸: 職場 / 緑丸: 自宅 / 色付き丸: おすすめ駅（順位順）")
 
     with tab_ranking:
         ranking_rows = []
