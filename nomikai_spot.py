@@ -562,35 +562,108 @@ def geocode_participant(p: dict, is_train: bool) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# カスタムCSS
+# ---------------------------------------------------------------------------
+def _inject_custom_css():
+    st.markdown("""
+    <style>
+    /* プライマリボタン（作成・検索） */
+    div[data-testid="stForm"] button[kind="secondaryFormSubmit"],
+    button[kind="primary"] {
+        font-weight: bold;
+    }
+
+    /* 参加者追加フォームのボタン */
+    div[data-testid="stForm"] button[kind="secondaryFormSubmit"] {
+        background-color: #1a73e8 !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    /* 削除ボタン */
+    button[kind="secondary"]:has(> div > p:only-child) {
+        color: #d32f2f !important;
+        border-color: #d32f2f !important;
+    }
+
+    /* ステップ番号のスタイル */
+    .step-badge {
+        display: inline-block;
+        background: #1a73e8;
+        color: white;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        margin-right: 8px;
+    }
+    .step-badge-muted {
+        display: inline-block;
+        background: #e0e0e0;
+        color: #616161;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        line-height: 28px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        margin-right: 8px;
+    }
+    .step-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #212121;
+    }
+    .step-title-muted {
+        font-size: 18px;
+        font-weight: 600;
+        color: #9e9e9e;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
 # UI: トップページ（イベント作成）
 # ---------------------------------------------------------------------------
 def page_top():
+    _inject_custom_css()
     st.title("飲み会スポットファインダー")
     st.caption("参加者の職場と自宅から、最も集まりやすく帰りやすい駅を見つけます")
 
     st.markdown("---")
 
-    col1, col2 = st.columns(2)
+    # ステップ表示
+    st.markdown("""
+    <div style="display:flex; gap:32px; margin-bottom:24px; align-items:center;">
+        <div><span class="step-badge">1</span><span class="step-title">飲み会を作成</span></div>
+        <div style="color:#bdbdbd; font-size:20px;">→</div>
+        <div><span class="step-badge-muted">2</span><span class="step-title-muted">URLを共有</span></div>
+        <div style="color:#bdbdbd; font-size:20px;">→</div>
+        <div><span class="step-badge-muted">3</span><span class="step-title-muted">みんなで入力</span></div>
+        <div style="color:#bdbdbd; font-size:20px;">→</div>
+        <div><span class="step-badge-muted">4</span><span class="step-title-muted">最適スポット発見</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns([3, 2])
 
     with col1:
         st.subheader("新しい飲み会を作成")
         title = st.text_input("飲み会の名前", value="飲み会", placeholder="例: 歓迎会、忘年会")
         if st.button("作成してURLを発行", type="primary", use_container_width=True):
             code = create_event(title)
-            st.session_state["created_code"] = code
-
-        if "created_code" in st.session_state:
-            code = st.session_state["created_code"]
-            base_url = os.environ.get("APP_URL", st.context.headers.get("Origin", ""))
-            share_url = f"{base_url}/?event={code}" if base_url else f"?event={code}"
-            st.success("飲み会を作成しました！")
-            st.markdown("#### 共有URL")
-            st.code(share_url, language=None)
-            st.caption("このURLを参加者に共有してください")
+            st.query_params["event"] = code
+            st.rerun()
 
     with col2:
-        st.subheader("既存の飲み会に参加")
-        join_code = st.text_input("イベントコードを入力", placeholder="例: Xk9mZ3")
+        st.subheader("コードで参加")
+        st.caption("幹事から共有されたコードを入力")
+        join_code = st.text_input("イベントコード", placeholder="例: Xk9mZ3", label_visibility="collapsed")
         if st.button("参加する", use_container_width=True):
             if join_code.strip():
                 event = get_event(join_code.strip())
@@ -605,6 +678,7 @@ def page_top():
 # UI: イベントページ（参加者入力 & 結果表示）
 # ---------------------------------------------------------------------------
 def page_event(event_code: str):
+    _inject_custom_css()
     event = get_event(event_code)
     if not event:
         st.error("イベントが見つかりません。URLを確認してください。")
@@ -613,14 +687,43 @@ def page_event(event_code: str):
             st.rerun()
         return
 
-    st.title(f"{event['title']} - 飲み会スポットファインダー")
+    st.title(f"{event['title']}")
+    st.caption("飲み会スポットファインダー")
 
     # 共有URL表示
     base_url = os.environ.get("APP_URL", st.context.headers.get("Origin", ""))
     share_url = f"{base_url}/?event={event_code}" if base_url else f"?event={event_code}"
-    with st.expander("共有URL"):
-        st.code(share_url, language=None)
-        st.caption("このURLを参加者に共有してください")
+
+    # 参加者数を取得
+    db_participants = get_participants(event["id"])
+    participant_count = len(db_participants)
+
+    # ステップ表示（現在の進行状況に応じてハイライト）
+    step2_active = participant_count == 0
+    step3_active = 0 < participant_count < 2
+    step4_active = participant_count >= 2
+
+    def _badge(n, active):
+        return "step-badge" if active else "step-badge-muted"
+    def _title(active):
+        return "step-title" if active else "step-title-muted"
+
+    st.markdown(f"""
+    <div style="display:flex; gap:24px; margin-bottom:16px; align-items:center; flex-wrap:wrap;">
+        <div><span class="step-badge" style="background:#4caf50;">✓</span><span class="step-title" style="color:#4caf50;">作成済み</span></div>
+        <div style="color:#bdbdbd; font-size:20px;">→</div>
+        <div><span class="{_badge(2, step2_active)}">2</span><span class="{_title(step2_active)}">URLを共有</span></div>
+        <div style="color:#bdbdbd; font-size:20px;">→</div>
+        <div><span class="{_badge(3, step3_active or step4_active)}">3</span><span class="{_title(step3_active or step4_active)}">みんなで入力（現在 {participant_count}人）</span></div>
+        <div style="color:#bdbdbd; font-size:20px;">→</div>
+        <div><span class="{_badge(4, step4_active)}">4</span><span class="{_title(step4_active)}">最適スポット発見</span></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 共有URL（目立つように表示）
+    st.info(f"**このURLを参加者に共有してください**\n\n`{share_url}`", icon="🔗")
+
+    st.markdown("---")
 
     # --- モード選択 ---
     mode = st.radio(
@@ -632,17 +735,57 @@ def page_event(event_code: str):
     is_train = mode.startswith("電車")
 
     if is_train:
-        st.caption("最寄駅名を入力してください（例: 東京、渋谷、新宿）")
         work_ph, home_ph = "職場最寄駅（例: 東京）", "自宅最寄駅（例: 吉祥寺）"
     else:
-        st.caption("駅名、地名、住所のいずれかを入力してください")
         work_ph, home_ph = "職場（駅名 or 住所）", "自宅（駅名 or 住所）"
 
+    # --- 参加者追加フォーム（先に表示） ---
+    st.subheader("自分の情報を入力")
+    if is_train:
+        st.caption("最寄駅名を入力してください（例: 東京、渋谷、新宿）")
+    else:
+        st.caption("駅名、地名、住所のいずれかを入力してください")
+
+    with st.form("add_participant", clear_on_submit=True):
+        fc = st.columns([1.5, 2, 2, 2])
+        with fc[0]:
+            new_name = st.text_input("名前", placeholder="あなたの名前")
+        with fc[1]:
+            new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS)
+        with fc[2]:
+            new_home = st.text_input("自宅最寄駅", placeholder=home_ph)
+        with fc[3]:
+            new_work = st.text_input("職場最寄駅", placeholder=work_ph)
+
+        submitted = st.form_submit_button("参加者を追加", type="primary", use_container_width=True)
+        if submitted:
+            if not new_name.strip():
+                st.error("名前を入力してください。")
+            elif not new_home.strip():
+                st.error("自宅の最寄駅を入力してください。")
+            elif new_pattern == TRIP_PATTERNS[0] and not new_work.strip():
+                st.error("職場の最寄駅を入力してください。")
+            else:
+                work_val = "" if new_pattern == TRIP_PATTERNS[1] else new_work.strip()
+                add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home.strip())
+                st.rerun()
+
     # --- 参加者一覧（DB） ---
-    st.subheader("参加者一覧")
-    db_participants = get_participants(event["id"])
+    st.markdown("---")
+    st.subheader(f"参加者一覧（{participant_count}人）")
 
     if db_participants:
+        # ヘッダー行
+        hcols = st.columns([1.5, 2, 2, 2, 0.5])
+        with hcols[0]:
+            st.markdown("**名前**")
+        with hcols[1]:
+            st.markdown("**パターン**")
+        with hcols[2]:
+            st.markdown("**自宅**")
+        with hcols[3]:
+            st.markdown("**職場**")
+
         for p in db_participants:
             is_hr = p["pattern"] == TRIP_PATTERNS[1]
             cols = st.columns([1.5, 2, 2, 2, 0.5])
@@ -659,35 +802,7 @@ def page_event(event_code: str):
                     delete_participant(p["id"])
                     st.rerun()
     else:
-        st.info("まだ参加者がいません。下のフォームから追加してください。")
-
-    # --- 参加者追加フォーム ---
-    st.markdown("---")
-    st.subheader("自分の情報を追加")
-
-    with st.form("add_participant", clear_on_submit=True):
-        fc = st.columns([1.5, 2, 2, 2])
-        with fc[0]:
-            new_name = st.text_input("名前", placeholder="名前")
-        with fc[1]:
-            new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS)
-        with fc[2]:
-            new_home = st.text_input("自宅", placeholder=home_ph)
-        with fc[3]:
-            new_work = st.text_input("職場", placeholder=work_ph)
-
-        submitted = st.form_submit_button("追加", type="primary", use_container_width=True)
-        if submitted:
-            if not new_name.strip():
-                st.error("名前を入力してください。")
-            elif not new_home.strip():
-                st.error("自宅の最寄駅を入力してください。")
-            elif new_pattern == TRIP_PATTERNS[0] and not new_work.strip():
-                st.error("職場の最寄駅を入力してください。")
-            else:
-                work_val = "" if new_pattern == TRIP_PATTERNS[1] else new_work.strip()
-                add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home.strip())
-                st.rerun()
+        st.warning("まだ参加者がいません。上のフォームから追加してください。", icon="👆")
 
     # --- 重み設定 ---
     st.sidebar.header("検索設定")
@@ -708,7 +823,13 @@ def page_event(event_code: str):
 
     # --- 検索実行 ---
     st.markdown("---")
-    search_clicked = st.button("最適スポットを検索", type="primary", use_container_width=True)
+    if participant_count < 2:
+        st.button("最適スポットを検索", disabled=True, use_container_width=True,
+                  help="2人以上の参加者が必要です")
+        st.caption(f"あと{2 - participant_count}人追加すると検索できます")
+        search_clicked = False
+    else:
+        search_clicked = st.button("最適スポットを検索", type="primary", use_container_width=True)
 
     if not search_clicked:
         return
