@@ -1186,8 +1186,8 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
         else:
             st.markdown("### 上位駅の周辺でお店を探す")
             # 駅選択
-            station_options = [f"{i+1}位: {s['name']}" for i, s in enumerate(top_stations[:3])]
-            selected_station_label = st.radio("駅を選択", station_options, horizontal=True)
+            station_options = [f"{i+1}位: {s['name']}" for i, s in enumerate(top_stations)]
+            selected_station_label = st.selectbox("駅を選択", station_options, key="hp_station_select")
             selected_idx = station_options.index(selected_station_label)
             sel_station = top_stations[selected_idx]
 
