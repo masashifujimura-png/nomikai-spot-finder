@@ -12,21 +12,28 @@ import urllib.request
 import urllib.parse
 
 # ---------------------------------------------------------------------------
-# Supabase
+# Supabase (REST API direct — no SDK for faster import)
 # ---------------------------------------------------------------------------
-from supabase import create_client
-
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 HOTPEPPER_API_KEY = os.environ.get("HOTPEPPER_API_KEY", "")
 
 
-@st.cache_resource
-def _get_supabase():
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        st.error("Supabase の設定がありません。環境変数 SUPABASE_URL / SUPABASE_KEY を設定してください。")
-        st.stop()
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+def _sb_request(method, path, body=None, params=None):
+    """Supabase REST API を直接呼び出す。"""
+    base = SUPABASE_URL.rstrip("/") + "/rest/v1/" + path
+    if params:
+        base += "?" + urllib.parse.urlencode(params, doseq=True)
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    data = json.dumps(body).encode() if body else None
+    req = urllib.request.Request(base, data=data, headers=headers, method=method)
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read())
 
 
 def _generate_code(length=6):
@@ -420,50 +427,45 @@ TRIP_PATTERNS = ["職場→飲み会→自宅", "自宅→飲み会→自宅"]
 
 
 def create_event(title: str) -> dict:
-    sb = _get_supabase()
     code = _generate_code()
-    res = sb.table("events").insert({"event_code": code, "title": title}).execute()
-    return res.data[0]
+    rows = _sb_request("POST", "events", body={"event_code": code, "title": title})
+    return rows[0]
 
 
 def get_event(code: str) -> dict | None:
-    sb = _get_supabase()
-    res = sb.table("events").select("*").eq("event_code", code).execute()
-    if res.data:
-        return res.data[0]
-    return None
+    rows = _sb_request("GET", "events", params={
+        "select": "*", "event_code": f"eq.{code}", "limit": "1",
+    })
+    return rows[0] if rows else None
 
 
 def get_participants(event_id: str) -> list[dict]:
-    sb = _get_supabase()
-    res = sb.table("participants").select("*").eq("event_id", event_id).order("created_at").execute()
-    return res.data or []
+    return _sb_request("GET", "participants", params={
+        "select": "*", "event_id": f"eq.{event_id}", "order": "created_at",
+    })
 
 
 def add_participant(event_id: str, name: str, pattern: str, work: str, home: str) -> None:
-    sb = _get_supabase()
-    sb.table("participants").insert({
+    _sb_request("POST", "participants", body={
         "event_id": event_id,
         "name": name,
         "pattern": pattern,
         "work_location": work,
         "home_location": home,
-    }).execute()
+    })
 
 
 def update_participant(participant_id: str, name: str, pattern: str, work: str, home: str) -> None:
-    sb = _get_supabase()
-    sb.table("participants").update({
+    _sb_request("PATCH", f"participants?id=eq.{participant_id}", body={
         "name": name,
         "pattern": pattern,
         "work_location": work,
         "home_location": home,
-    }).eq("id", participant_id).execute()
+    })
 
 
 def delete_participant(participant_id: str) -> None:
-    sb = _get_supabase()
-    sb.table("participants").delete().eq("id", participant_id).execute()
+    _sb_request("DELETE", f"participants?id=eq.{participant_id}")
 
 
 # ---------------------------------------------------------------------------
