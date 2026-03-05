@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>飲み会スポットファインダー</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root {
   --primary: #1a73e8;
@@ -475,7 +475,9 @@ async function createEvent() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({title}),
     });
+    if (!r.ok) throw new Error('API error: ' + r.status);
     const ev = await r.json();
+    if (!ev.event_code) throw new Error('No event_code in response');
     history.pushState(null, '', `/?event=${ev.event_code}`);
     await loadEvent(ev.event_code);
   } catch(e) {
@@ -845,6 +847,11 @@ const PERSON_COLORS = ["#1e88e5", "#43a047", "#f4511e", "#8e24aa", "#00acc1", "#
 
 function renderMap(scored, geocoded) {
   document.getElementById('tab-map').innerHTML = '<div id="map-container"></div>';
+
+  if (typeof L === 'undefined') {
+    document.getElementById('tab-map').innerHTML = '<div class="msg msg-warn">地図ライブラリを読み込み中です。しばらくしてから「地図」タブを再度クリックしてください。</div>';
+    return;
+  }
 
   if (mapInstance) { mapInstance.remove(); mapInstance = null; }
 
