@@ -1236,14 +1236,19 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
             sel_station = top_stations[selected_idx]
 
             # 検索条件
-            col_f1, col_f2, col_f3 = st.columns(3)
+            col_f1, col_f2 = st.columns(2)
             with col_f1:
                 want_free_drink = st.checkbox("飲み放題あり", value=True)
             with col_f2:
                 want_private_room = st.checkbox("個室あり")
+            col_f3, col_f4 = st.columns(2)
             with col_f3:
                 num_people = st.number_input("人数", min_value=0, value=len(geocoded), step=1,
                                              help="0で人数条件なし")
+            with col_f4:
+                from datetime import date, timedelta
+                hp_date = st.date_input("希望日", value=date.today() + timedelta(days=7),
+                                        min_value=date.today(), key="hp_date")
             keyword = st.text_input("キーワード（任意）", placeholder="例: 焼き鳥、イタリアン", key="hp_keyword")
 
             if st.button("お店を検索", type="primary", use_container_width=True, key="hp_search"):
@@ -1251,27 +1256,34 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                     shops = _search_hotpepper(
                         sel_station["lat"], sel_station["lon"],
                         keyword=keyword,
+                        count=30,
                         free_drink=1 if want_free_drink else 0,
                         private_room=1 if want_private_room else 0,
                         party_capacity=num_people if num_people > 0 else 0,
                     )
                 st.session_state["_hp_results"] = shops
                 st.session_state["_hp_station"] = sel_station["name"]
+                st.session_state["_hp_date"] = hp_date
 
             # 結果表示
             if "_hp_results" in st.session_state:
                 shops = st.session_state["_hp_results"]
                 station_name = st.session_state.get("_hp_station", "")
+                saved_date = st.session_state.get("_hp_date")
                 if not shops:
                     st.warning("条件に合うお店が見つかりませんでした。条件を変えて再検索してください。")
                 else:
                     st.markdown(f"**{station_name}駅**周辺で **{len(shops)}件** 見つかりました")
                     for shop in shops:
                         with st.container(border=True):
-                            col_img, col_info = st.columns([1, 2])
+                            col_img, col_info = st.columns([1, 3])
                             with col_img:
                                 if shop["photo"]:
-                                    st.image(shop["photo"], use_container_width=True)
+                                    st.markdown(
+                                        f'<div style="width:100%;height:100px;overflow:hidden;border-radius:6px;">'
+                                        f'<img src="{shop["photo"]}" style="width:100%;height:100%;object-fit:cover;"></div>',
+                                        unsafe_allow_html=True,
+                                    )
                             with col_info:
                                 st.markdown(f"**{shop['name']}**")
                                 st.caption(shop["catch"] if shop["catch"] else "")
@@ -1290,7 +1302,13 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                                     st.markdown(" ｜ ".join(tags))
                                 st.caption(f"📍 {shop['access']}")
                                 if shop["url"]:
-                                    st.link_button("ホットペッパーで予約", shop["url"],
+                                    # 日付パラメータ付きリンク
+                                    reserve_url = shop["url"]
+                                    if saved_date:
+                                        date_str = saved_date.strftime("%Y-%m-%d")
+                                        sep = "&" if "?" in reserve_url else "?"
+                                        reserve_url += f"{sep}date={date_str}"
+                                    st.link_button("ホットペッパーで予約", reserve_url,
                                                    use_container_width=False)
                     st.caption("powered by ホットペッパーグルメ Webサービス")
 
