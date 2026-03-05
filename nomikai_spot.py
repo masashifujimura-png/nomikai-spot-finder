@@ -18,6 +18,7 @@ from supabase import create_client
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
+@st.cache_resource
 def _get_supabase():
     if not SUPABASE_URL or not SUPABASE_KEY:
         st.error("Supabase の設定がありません。環境変数 SUPABASE_URL / SUPABASE_KEY を設定してください。")
@@ -117,6 +118,7 @@ def _load_ekidata():
 
 
 STATION_DB, _GRAPH, STATION_LINES = _load_ekidata()
+STATION_NAMES_SET = frozenset(STATION_DB.keys())
 
 
 # ---------------------------------------------------------------------------
@@ -738,9 +740,6 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
 
     st.markdown("---")
 
-    # 駅名リスト（レコメンド用）
-    station_names = sorted(STATION_DB.keys())
-
     # --- 参加者追加フォーム ---
     st.subheader("参加者を追加")
     st.caption("自分の情報を入力、または幹事がまとめて全員分を追加できます")
@@ -750,26 +749,40 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     is_home_round_form = new_pattern == TRIP_PATTERNS[1]
 
     new_name = st.text_input("名前", placeholder="あなたの名前", key="add_name")
-    new_home = st.selectbox("自宅最寄駅", options=station_names,
-                            index=None, key="add_home",
-                            placeholder="駅名を入力...")
+    new_home = st.text_input("自宅最寄駅", placeholder="駅名を入力（例: 渋谷）", key="add_home")
+    # 入力中のヒント表示
+    if new_home and new_home not in STATION_NAMES_SET:
+        matches = [s for s in STATION_NAMES_SET if new_home in s][:5]
+        if matches:
+            st.caption(f"もしかして: {', '.join(matches)}")
+        else:
+            st.caption("該当する駅が見つかりません")
+
     if is_home_round_form:
-        new_work = None
+        new_work = ""
     else:
-        new_work = st.selectbox("職場最寄駅", options=station_names,
-                                index=None, key="add_work",
-                                placeholder="駅名を入力...")
+        new_work = st.text_input("職場最寄駅", placeholder="駅名を入力（例: 東京）", key="add_work")
+        if new_work and new_work not in STATION_NAMES_SET:
+            matches = [s for s in STATION_NAMES_SET if new_work in s][:5]
+            if matches:
+                st.caption(f"もしかして: {', '.join(matches)}")
+            else:
+                st.caption("該当する駅が見つかりません")
 
     if st.button("参加者を追加", type="primary", use_container_width=True):
         if not new_name.strip():
             st.error("名前を入力してください。")
-        elif not new_home:
+        elif not new_home.strip():
             st.error("自宅の最寄駅を入力してください。")
-        elif not is_home_round_form and not new_work:
+        elif new_home.strip() not in STATION_NAMES_SET:
+            st.error(f"「{new_home}」は駅データに見つかりません。正しい駅名を入力してください。")
+        elif not is_home_round_form and not new_work.strip():
             st.error("職場の最寄駅を入力してください。")
+        elif not is_home_round_form and new_work.strip() not in STATION_NAMES_SET:
+            st.error(f"「{new_work}」は駅データに見つかりません。正しい駅名を入力してください。")
         else:
-            work_val = "" if is_home_round_form else (new_work or "")
-            add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home)
+            work_val = "" if is_home_round_form else new_work.strip()
+            add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home.strip())
             # 入力をリセット
             for k in ["add_name", "add_home", "add_work", "add_pattern"]:
                 if k in st.session_state:
