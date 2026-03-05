@@ -12,6 +12,11 @@ COPY .streamlit/ .streamlit/
 # Pre-compute station data pickle at build time (faster cold start)
 RUN python precompute.py
 
+# AdSense スクリプトを Streamlit の index.html の <head> に直接注入
+RUN ADSENSE_ID="ca-pub-1228050934779173" && \
+    INDEX=$(python -c "import streamlit, os; print(os.path.join(os.path.dirname(streamlit.__file__), 'static', 'index.html'))") && \
+    sed -i "s|</head>|<script async src=\"https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}\" crossorigin=\"anonymous\"></script></head>|" "$INDEX"
+
 EXPOSE 8501
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
