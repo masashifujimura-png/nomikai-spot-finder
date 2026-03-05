@@ -52,9 +52,11 @@ def _load_ekidata():
     if os.path.exists(pickle_file):
         with open(pickle_file, 'rb') as f:
             data = pickle.load(f)
-        # 4-tuple: (station_db, graph, sorted_names, coords)
+        # 5-tuple: (station_db, graph, sorted_names, coords, edge_lines)
+        if isinstance(data, tuple) and len(data) >= 5:
+            return data[:5]
         if isinstance(data, tuple) and len(data) >= 4:
-            return data[:4]
+            return data[:4] + ({},)
     raise RuntimeError("ekidata_cache.pkl not found or outdated. Run precompute.py first.")
 
 
@@ -76,6 +78,10 @@ def _station_names_arr():
 
 def _station_coords():
     return _get_ekidata()[3]
+
+
+def _edge_lines():
+    return _get_ekidata()[4]
 
 
 @st.cache_data(show_spinner=False)
@@ -107,6 +113,71 @@ def _dijkstra(graph, start, targets=None):
                 dist[v] = nd
                 heapq.heappush(heap, (nd, v))
     return dist
+
+
+def _dijkstra_with_path(graph, start, target):
+    """Single-source Dijkstra returning shortest path to target."""
+    dist = {start: 0.0}
+    prev = {start: None}
+    heap = [(0.0, start)]
+    while heap:
+        d, u = heapq.heappop(heap)
+        if d > dist.get(u, float("inf")):
+            continue
+        if u == target:
+            break
+        for v, w in graph.get(u, []):
+            nd = d + w
+            if nd < dist.get(v, float("inf")):
+                dist[v] = nd
+                prev[v] = u
+                heapq.heappush(heap, (nd, v))
+    if target not in dist:
+        return None, None
+    path = []
+    node = target
+    while node is not None:
+        path.append(node)
+        node = prev.get(node)
+    path.reverse()
+    return path, round(dist[target], 1)
+
+
+@st.cache_data(show_spinner=False)
+def _find_route(source, target):
+    """経路探索（キャッシュ付き）。(path_list, time_min) を返す。"""
+    if not source or not target or source == target:
+        return None, 0.0
+    graph = _graph()
+    if source not in graph:
+        return None, None
+    return _dijkstra_with_path(graph, source, target)
+
+
+def _format_route(path):
+    """経路を路線名・乗換駅付きでフォーマット。"""
+    if not path or len(path) < 2:
+        return path[0] if path else ""
+    el = _edge_lines()
+    # 連続する同一路線をまとめてセグメント化
+    segments = []  # [(start, end, line_name)]
+    current_line = el.get((path[0], path[1]), "")
+    seg_start = path[0]
+    for j in range(1, len(path) - 1):
+        next_line = el.get((path[j], path[j + 1]), "")
+        if next_line != current_line:
+            segments.append((seg_start, path[j], current_line))
+            seg_start = path[j]
+            current_line = next_line
+    segments.append((seg_start, path[-1], current_line))
+    # フォーマット: 新宿 →[中央線]→ 四ツ谷 →[丸ノ内線]→ 池袋
+    parts = [segments[0][0]]
+    for _start, end, line in segments:
+        if line:
+            parts.append(f" →[{line}]→ {end}")
+        else:
+            parts.append(f" → {end}")
+    return "".join(parts)
 
 
 @st.cache_data(show_spinner=False)
@@ -939,7 +1010,7 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
         _render_map(top_stations, geocoded)
 
     with tab_detail:
-        st.markdown("### 上位3駅の参加者別移動時間")
+        st.markdown("### 上位3駅の参加者別移動時間・経路")
 
         for i, s in enumerate(top_stations[:3]):
             medal = ["1位", "2位", "3位"][i]
@@ -954,6 +1025,38 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                     f"駅→自宅({unit})": [d["home_val"] for d in s["details"]],
                 }).set_index("名前")
                 st.bar_chart(chart_df)
+
+                # --- 経路詳細 ---
+                sn = s["name"]
+                st.markdown("#### 経路")
+                for d, g in zip(s["details"], geocoded):
+                    is_hr = g.get("pattern", "").startswith("自宅")
+                    from_label = "自宅" if is_hr else "職場"
+
+                    # 出発 → 飲み会駅
+                    ws = g.get("work_station")
+                    if ws and ws != sn:
+                        path_to, time_to = _find_route(ws, sn)
+                        if path_to:
+                            route_str = _format_route(path_to)
+                            st.markdown(f"**{d['name']}**（{from_label}→飲み会）{route_str}（{time_to}{unit}）")
+                        else:
+                            st.markdown(f"**{d['name']}**（{from_label}→飲み会）{ws} → {sn}（{d['work_val']:.1f}{unit}）")
+                    elif ws == sn:
+                        st.markdown(f"**{d['name']}**（{from_label}→飲み会）{sn}駅（0{unit}）")
+
+                    # 飲み会駅 → 自宅
+                    hs = g.get("home_station")
+                    if hs and hs != sn:
+                        path_home, time_home = _find_route(sn, hs)
+                        if path_home:
+                            route_str = _format_route(path_home)
+                            st.markdown(f"**{d['name']}**（飲み会→自宅）{route_str}（{time_home}{unit}）")
+                        else:
+                            st.markdown(f"**{d['name']}**（飲み会→自宅）{sn} → {hs}（{d['home_val']:.1f}{unit}）")
+                    elif hs == sn:
+                        st.markdown(f"**{d['name']}**（飲み会→自宅）{sn}駅（0{unit}）")
+                    st.markdown("---")
 
         st.markdown("### 公平性分析")
         st.caption("各駅で最も移動時間が長い人と短い人の差（小さいほど公平）")

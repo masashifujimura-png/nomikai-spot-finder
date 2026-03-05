@@ -49,9 +49,17 @@ def main():
 
     print(f"Loaded {len(station_db)} stations")
 
+    # 路線名マッピング
+    line_names = dict(zip(ldf["line_cd"].astype(int), ldf["line_name"]))
+
     jdf = pd.read_csv(join_file, dtype={"line_cd": int, "station_cd1": int, "station_cd2": int})
     graph = {}
-    for cd1, cd2 in zip(jdf["station_cd1"].astype(int).values, jdf["station_cd2"].astype(int).values):
+    edge_lines = {}  # (駅名1, 駅名2) -> 路線名
+    for cd1, cd2, lc in zip(
+        jdf["station_cd1"].astype(int).values,
+        jdf["station_cd2"].astype(int).values,
+        jdf["line_cd"].astype(int).values,
+    ):
         if cd1 not in cd_to_info or cd2 not in cd_to_info:
             continue
         name1, lat1, lon1 = cd_to_info[cd1]
@@ -62,6 +70,10 @@ def main():
         time_min = max(round(dist / AVG_TRAIN_SPEED_KMH * 60, 1), 1)
         graph.setdefault(name1, []).append((name2, time_min))
         graph.setdefault(name2, []).append((name1, time_min))
+        ln = line_names.get(lc, "")
+        if ln:
+            edge_lines[(name1, name2)] = ln
+            edge_lines[(name2, name1)] = ln
 
     if "station_g_cd" in sdf.columns:
         groups = sdf.groupby("station_g_cd")["station_name"].apply(set)
@@ -72,15 +84,17 @@ def main():
                     n1, n2 = name_list[j], name_list[k]
                     graph.setdefault(n1, []).append((n2, 5))
                     graph.setdefault(n2, []).append((n1, 5))
+                    edge_lines[(n1, n2)] = "乗換"
+                    edge_lines[(n2, n1)] = "乗換"
 
-    print(f"Built graph with {len(graph)} nodes")
+    print(f"Built graph with {len(graph)} nodes, {len(edge_lines)} edge-line mappings")
 
     sorted_names = sorted(station_db.keys())
     coords = np.array([(station_db[n][0], station_db[n][1]) for n in sorted_names])
 
     pickle_file = os.path.join(DATA_DIR, "ekidata_cache.pkl")
     with open(pickle_file, "wb") as f:
-        pickle.dump((station_db, graph, sorted_names, coords), f)
+        pickle.dump((station_db, graph, sorted_names, coords, edge_lines), f)
 
     size_mb = os.path.getsize(pickle_file) / 1024 / 1024
     print(f"Saved {pickle_file} ({size_mb:.1f} MB)")
