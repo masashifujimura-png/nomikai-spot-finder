@@ -434,41 +434,54 @@ _RANK_COLORS = [
 
 _RANK_MARKER_COLORS = ["#d50000", "#e65100", "#f57f17"]
 
+# 参加者ごとの色パレット（職場・自宅ペアで同系色）
+_PERSON_COLORS = [
+    {"work": "#1565c0", "home": "#42a5f5"},  # 青系
+    {"work": "#c62828", "home": "#ef5350"},  # 赤系
+    {"work": "#2e7d32", "home": "#66bb6a"},  # 緑系
+    {"work": "#6a1b9a", "home": "#ab47bc"},  # 紫系
+    {"work": "#e65100", "home": "#ff9800"},  # オレンジ系
+    {"work": "#00838f", "home": "#26c6da"},  # シアン系
+    {"work": "#4e342e", "home": "#8d6e63"},  # 茶系
+    {"work": "#37474f", "home": "#78909c"},  # グレー系
+]
+
 
 def make_result_map(participants, top_stations, center_lat, center_lon, mode="train") -> go.Figure:
     fig = go.Figure()
 
-    # 職場マーカー
-    for p in participants:
+    for i, p in enumerate(participants):
+        colors = _PERSON_COLORS[i % len(_PERSON_COLORS)]
         is_hr = p.get("pattern", "").startswith("自宅")
+
+        # 職場マーカー
         if not is_hr and p.get("work_lat") is not None:
-            label = p.get("work_station") or p.get("work_label") or "職場"
+            station = p.get("work_station") or p.get("work_label") or ""
             fig.add_trace(go.Scattermapbox(
                 lat=[p["work_lat"]], lon=[p["work_lon"]],
                 mode="markers+text",
-                marker=dict(size=18, color="#1565c0", opacity=1.0,
-                            symbol="circle"),
-                text=[f"{p['name']}({label})"],
+                marker=dict(size=16, color=colors["work"], opacity=1.0),
+                text=[f"{p['name']} 職場"],
                 textposition="top center",
-                textfont=dict(size=13, color="#0d47a1", family="Arial Black"),
-                name=f"{p['name']} 職場",
-                showlegend=False,
+                textfont=dict(size=12, color=colors["work"]),
+                name=f"{p['name']} 職場（{station}）",
+                showlegend=True,
+                hovertext=f"{p['name']} 職場: {station}",
             ))
 
-    # 自宅マーカー
-    for p in participants:
+        # 自宅マーカー
         if p.get("home_lat") is not None:
-            label = p.get("home_station") or p.get("home_label") or "自宅"
+            station = p.get("home_station") or p.get("home_label") or ""
             fig.add_trace(go.Scattermapbox(
                 lat=[p["home_lat"]], lon=[p["home_lon"]],
                 mode="markers+text",
-                marker=dict(size=18, color="#2e7d32", opacity=1.0,
-                            symbol="circle"),
-                text=[f"{p['name']}({label})"],
+                marker=dict(size=16, color=colors["home"], opacity=1.0),
+                text=[f"{p['name']} 自宅"],
                 textposition="top center",
-                textfont=dict(size=13, color="#1b5e20", family="Arial Black"),
-                name=f"{p['name']} 自宅",
-                showlegend=False,
+                textfont=dict(size=12, color=colors["home"]),
+                name=f"{p['name']} 自宅（{station}）",
+                showlegend=True,
+                hovertext=f"{p['name']} 自宅: {station}",
             ))
 
     # おすすめ駅マーカー（上位3駅のみ）
@@ -946,15 +959,26 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     tab_map, tab_ranking, tab_detail = st.tabs(["地図", "ランキング", "詳細比較"])
 
     with tab_map:
-        st.markdown("""
-        <div style="display:flex; gap:24px; margin-bottom:8px; font-size:14px; font-weight:600;">
-            <span><span style="color:#1565c0;">●</span> 職場</span>
-            <span><span style="color:#2e7d32;">●</span> 自宅</span>
-            <span><span style="color:#d50000;">●</span> 1位</span>
-            <span><span style="color:#e65100;">●</span> 2位</span>
-            <span><span style="color:#f57f17;">●</span> 3位</span>
-        </div>
-        """, unsafe_allow_html=True)
+        # 参加者ごとの色凡例を動的生成
+        person_legend = ""
+        for i, g in enumerate(geocoded):
+            colors = _PERSON_COLORS[i % len(_PERSON_COLORS)]
+            is_hr = g.get("pattern", "").startswith("自宅")
+            if is_hr:
+                person_legend += f'<span><span style="color:{colors["home"]};">●</span> {g["name"]}(自宅)</span> '
+            else:
+                person_legend += f'<span><span style="color:{colors["work"]};">■</span><span style="color:{colors["home"]};">●</span> {g["name"]}</span> '
+        rank_legend = (
+            f'<span style="margin-left:12px;"><span style="color:#d50000;">★</span> 1位</span> '
+            f'<span><span style="color:#e65100;">★</span> 2位</span> '
+            f'<span><span style="color:#f57f17;">★</span> 3位</span>'
+        )
+        st.markdown(
+            f'<div style="display:flex; gap:16px; margin-bottom:8px; font-size:14px; font-weight:600; flex-wrap:wrap;">'
+            f'{person_legend}{rank_legend}</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption("■ 職場 / ● 自宅 / ★ おすすめ駅　※地図上のマーカーにカーソルを合わせると詳細が表示されます")
         fig = make_result_map(geocoded, top_stations, center_lat, center_lon, mode="train")
         st.plotly_chart(fig, use_container_width=True)
 
