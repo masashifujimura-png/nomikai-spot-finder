@@ -750,25 +750,25 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     is_home_round_form = new_pattern == TRIP_PATTERNS[1]
 
     new_name = st.text_input("名前", placeholder="あなたの名前", key="add_name")
-    new_home = st.selectbox("自宅最寄駅", options=[""] + station_names,
-                            index=0, key="add_home",
-                            format_func=lambda x: "駅を選択..." if x == "" else x)
+    new_home = st.selectbox("自宅最寄駅", options=station_names,
+                            index=None, key="add_home",
+                            placeholder="駅名を入力...")
     if is_home_round_form:
-        new_work = ""
+        new_work = None
     else:
-        new_work = st.selectbox("職場最寄駅", options=[""] + station_names,
-                                index=0, key="add_work",
-                                format_func=lambda x: "駅を選択..." if x == "" else x)
+        new_work = st.selectbox("職場最寄駅", options=station_names,
+                                index=None, key="add_work",
+                                placeholder="駅名を入力...")
 
     if st.button("参加者を追加", type="primary", use_container_width=True):
         if not new_name.strip():
             st.error("名前を入力してください。")
         elif not new_home:
-            st.error("自宅の最寄駅を選択してください。")
+            st.error("自宅の最寄駅を入力してください。")
         elif not is_home_round_form and not new_work:
-            st.error("職場の最寄駅を選択してください。")
+            st.error("職場の最寄駅を入力してください。")
         else:
-            work_val = "" if is_home_round_form else new_work
+            work_val = "" if is_home_round_form else (new_work or "")
             add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home)
             # 入力をリセット
             for k in ["add_name", "add_home", "add_work", "add_pattern"]:
