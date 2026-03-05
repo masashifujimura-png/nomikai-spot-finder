@@ -906,8 +906,21 @@ function renderMap(scored, geocoded) {
   };
   legend.addTo(map);
 
-  if (allPoints.length > 1) map.fitBounds(allPoints, {padding: [40, 40]});
-  else if (allPoints.length === 1) map.setView(allPoints[0], 13);
+  if (allPoints.length > 1 && scored.length) {
+    // 1位の駅を中心に、全マーカーが収まる最大縮尺にする
+    const c = [scored[0].lat, scored[0].lon];
+    // 1位からの最大距離(緯度・経度差)を求め、対称なバウンドを作る
+    let maxDlat = 0, maxDlon = 0;
+    for (const p of allPoints) {
+      maxDlat = Math.max(maxDlat, Math.abs(p[0] - c[0]));
+      maxDlon = Math.max(maxDlon, Math.abs(p[1] - c[1]));
+    }
+    const bounds = L.latLngBounds(
+      [c[0] - maxDlat, c[1] - maxDlon],
+      [c[0] + maxDlat, c[1] + maxDlon]
+    );
+    map.fitBounds(bounds, {padding: [40, 40]});
+  } else if (allPoints.length === 1) map.setView(allPoints[0], 13);
 }
 
 function addMarker(map, lat, lon, color, label, radius, placed) {
