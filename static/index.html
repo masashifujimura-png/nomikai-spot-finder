@@ -292,16 +292,19 @@ td { white-space: nowrap; }
     <!-- Settings -->
     <div class="settings-panel">
       <h3>検索設定</h3>
+      <p class="caption" style="margin-bottom:8px;">駅の候補を選ぶときに、何を重視するかを調整できます</p>
       <div class="range-row">
         <label>職場 ↔ 自宅 重視</label>
         <input type="range" id="balance" min="0" max="1" step="0.05" value="0.5">
         <span class="range-val" id="balance-val">50%/50%</span>
       </div>
+      <p class="caption">職場からの近さと、自宅への帰りやすさのどちらを重視するか</p>
       <div class="range-row">
         <label>効率 ↔ 公平</label>
         <input type="range" id="fairness" min="0" max="1" step="0.05" value="0.3">
         <span class="range-val" id="fairness-val">0.30</span>
       </div>
+      <p class="caption">全員の合計時間が最短の駅を選ぶか、特定の人だけ遠くならないよう公平さを重視するか</p>
     </div>
 
     <hr class="divider">
