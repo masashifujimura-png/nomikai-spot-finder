@@ -5,21 +5,15 @@ WORKDIR /app
 COPY requirements-nomikai.txt .
 RUN pip install --no-cache-dir -r requirements-nomikai.txt
 
-COPY nomikai_spot.py precompute.py ./
+COPY nomikai_api.py precompute.py ./
 COPY statione.csv join.csv line.csv ./
-COPY .streamlit/ .streamlit/
+COPY static/ static/
 
 # Pre-compute station data pickle at build time (faster cold start)
 RUN python precompute.py
 
-# AdSense スクリプトを Streamlit の index.html の <head> に直接注入
-RUN ADSENSE_ID="ca-pub-1228050934779173" && \
-    GA_ID="G-ZWMQ8ZLG6H" && \
-    INDEX=$(python -c "import streamlit, os; print(os.path.join(os.path.dirname(streamlit.__file__), 'static', 'index.html'))") && \
-    sed -i "s|</head>|<script async src=\"https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}\" crossorigin=\"anonymous\"></script><script async src=\"https://www.googletagmanager.com/gtag/js?id=${GA_ID}\"></script><script>window.dataLayer=window.dataLayer\|\|[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');</script></head>|" "$INDEX"
-
 EXPOSE 8501
 
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:8501/api/config || exit 1
 
-ENTRYPOINT ["streamlit", "run", "nomikai_spot.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["uvicorn", "nomikai_api:app", "--host", "0.0.0.0", "--port", "8501"]

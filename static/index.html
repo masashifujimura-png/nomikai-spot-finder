@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飲み会スポットファインダー</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --primary: #1a73e8;
+  --primary-dark: #1557b0;
+  --success: #4caf50;
+  --danger: #e53935;
+  --warn: #ff9800;
+  --bg: #ffffff;
+  --bg-secondary: #f0f2f6;
+  --text: #262730;
+  --text-muted: #6b7280;
+  --border: #e0e0e0;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.6;
+}
+.container { max-width: 960px; margin: 0 auto; padding: 16px 20px; }
+h1 { font-size: 1.8rem; margin-bottom: 4px; }
+h2 { font-size: 1.3rem; margin: 20px 0 12px; }
+h3 { font-size: 1.1rem; margin: 16px 0 8px; }
+.caption { color: var(--text-muted); font-size: 0.85rem; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* Steps */
+.steps { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 12px 0 16px; }
+.step-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-weight: bold; font-size: 14px; color: white; background: var(--primary);
+  margin-right: 6px;
+}
+.step-badge.muted { background: #e0e0e0; color: #616161; }
+.step-badge.done { background: var(--success); }
+.step-title { font-weight: 600; font-size: 15px; }
+.step-title.muted { color: #9e9e9e; }
+.step-arrow { color: #bdbdbd; font-size: 18px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 8px 20px; border: none; border-radius: var(--radius);
+  font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+.btn-sm { padding: 4px 12px; font-size: 13px; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { background: var(--bg-secondary); }
+.btn-full { width: 100%; }
+
+/* Forms */
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); }
+input[type="text"], input[type="number"], select {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 14px; outline: none;
+}
+input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+
+/* Station autocomplete */
+.autocomplete-wrap { position: relative; }
+.autocomplete-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+  background: white; border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius);
+  max-height: 200px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.autocomplete-list div {
+  padding: 8px 12px; cursor: pointer; font-size: 14px;
+}
+.autocomplete-list div:hover, .autocomplete-list div.highlighted { background: var(--bg-secondary); }
+
+/* Cards */
+.card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 16px; margin-bottom: 8px; background: white;
+}
+.card-row { display: flex; align-items: center; gap: 12px; }
+.card-row .info { flex: 1; }
+.card-row .actions { display: flex; gap: 6px; }
+
+/* Tabs */
+.tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 16px; }
+.tab {
+  padding: 10px 20px; cursor: pointer; font-weight: 600; font-size: 14px;
+  border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-muted);
+}
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Metrics */
+.metrics { display: flex; gap: 16px; margin: 12px 0; flex-wrap: wrap; }
+.metric { background: var(--bg-secondary); border-radius: var(--radius); padding: 12px 16px; flex: 1; min-width: 140px; }
+.metric-label { font-size: 12px; color: var(--text-muted); }
+.metric-value { font-size: 1.3rem; font-weight: 700; }
+
+/* Table */
+.table-wrap { overflow-x: auto; margin: 8px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+th { background: var(--bg-secondary); font-weight: 600; white-space: nowrap; }
+td { white-space: nowrap; }
+
+/* Expander */
+.expander-header {
+  padding: 10px 16px; cursor: pointer; font-weight: 600;
+  background: var(--bg-secondary); border-radius: var(--radius);
+  display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+}
+.expander-body { padding: 12px 16px; display: none; }
+.expander-body.open { display: block; }
+
+/* Shop card */
+.shop-card { display: flex; gap: 12px; }
+.shop-img { width: 120px; height: 90px; object-fit: cover; border-radius: var(--radius); flex-shrink: 0; }
+.shop-info { flex: 1; }
+.shop-tags { font-size: 12px; color: var(--text-muted); margin: 4px 0; }
+.shop-link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 13px; }
+
+/* Pagination */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 16px 0; }
+.page-btn {
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: white; cursor: pointer; font-size: 13px;
+}
+.page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.page-btn:hover:not(.active) { background: var(--bg-secondary); }
+
+/* Sidebar (settings panel) */
+.settings-panel {
+  background: var(--bg-secondary); border-radius: var(--radius);
+  padding: 16px; margin: 12px 0;
+}
+.settings-panel label { font-size: 13px; }
+.range-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.range-row input[type="range"] { flex: 1; }
+.range-val { font-size: 13px; width: 50px; text-align: right; }
+
+/* Map */
+#map-container { height: 440px; border-radius: var(--radius); margin: 8px 0; }
+
+/* Route display */
+.route-text { font-size: 13px; padding: 4px 0; }
+.route-label { font-weight: 600; }
+
+/* Messages */
+.msg { padding: 10px 14px; border-radius: var(--radius); margin: 8px 0; font-size: 14px; }
+.msg-success { background: #e8f5e9; color: #2e7d32; }
+.msg-error { background: #ffebee; color: #c62828; }
+.msg-info { background: #e3f2fd; color: #1565c0; }
+.msg-warn { background: #fff3e0; color: #e65100; }
+
+/* Code block for URL */
+.code-block {
+  background: var(--bg-secondary); padding: 10px 14px; border-radius: var(--radius);
+  font-family: monospace; font-size: 13px; word-break: break-all;
+  display: flex; align-items: center; gap: 8px;
+}
+.code-block .text { flex: 1; }
+
+/* Loading spinner */
+.spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 3px solid var(--border); border-top-color: var(--primary);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading { display: flex; align-items: center; gap: 8px; padding: 16px; color: var(--text-muted); }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .container { padding: 12px; }
+  h1 { font-size: 1.4rem; }
+  .shop-img { width: 80px; height: 60px; }
+  .metrics { flex-direction: column; }
+  .form-row { flex-direction: column !important; }
+}
+
+/* Bar chart */
+.bar-chart { margin: 8px 0; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 13px; }
+.bar-name { width: 60px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { flex: 1; display: flex; height: 20px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden; }
+.bar-seg { height: 100%; }
+.bar-val { width: 50px; font-size: 12px; color: var(--text-muted); }
+
+/* Fairness */
+.fairness-table td:first-child { font-weight: 600; }
+
+/* Hidden */
+.hidden { display: none !important; }
+
+/* Link button style */
+.link-btn {
+  display: inline-block; padding: 6px 14px; background: var(--primary);
+  color: white; text-decoration: none; border-radius: var(--radius);
+  font-size: 13px; font-weight: 600;
+}
+.link-btn:hover { background: var(--primary-dark); }
+
+/* ad placeholder */
+.ad-slot { min-height: 50px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <!-- Top page (create event) -->
+  <div id="page-top">
+    <h1>飲み会スポットファインダー</h1>
+    <p class="caption">参加者の職場と自宅から、最も集まりやすく帰りやすい駅を見つけます</p>
+    <hr class="divider">
+    <div class="steps">
+      <div><span class="step-badge">1</span><span class="step-title">飲み会を作成</span></div>
+      <span class="step-arrow">→</span>
+      <div><span class="step-badge muted">2</span><span class="step-title muted">URLを共有</span></div>
+      <span class="step-arrow">→</span>
+      <div><span class="step-badge muted">3</span><span class="step-title muted">みんなで入力</span></div>
+      <span class="step-arrow">→</span>
+      <div><span class="step-badge muted">4</span><span class="step-title muted">最適スポット発見</span></div>
+    </div>
+    <h2>新しい飲み会を作成</h2>
+    <div style="display:flex;gap:8px;max-width:500px;" class="form-row">
+      <input type="text" id="event-title" placeholder="例: 歓迎会、忘年会" style="flex:2;">
+      <button class="btn btn-primary" onclick="createEvent()" id="btn-create">作成</button>
+    </div>
+  </div>
+
+  <!-- Event page -->
+  <div id="page-event" class="hidden">
+    <h1 id="event-title-display"></h1>
+    <p class="caption">飲み会スポットファインダー</p>
+    <div class="steps" id="event-steps"></div>
+
+    <p style="font-weight:600;margin-top:8px;">この飲み会の共有用URL（右のボタンでコピー）</p>
+    <div class="code-block">
+      <span class="text" id="share-url"></span>
+      <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
+    </div>
+
+    <hr class="divider">
+    <div id="success-msg" class="msg msg-success hidden"></div>
+
+    <!-- Add participant form -->
+    <h2>参加者を追加</h2>
+    <p class="caption">自分の情報を入力、または幹事がまとめて全員分を追加できます</p>
+    <div id="add-form">
+      <div class="form-group">
+        <label>移動パターン</label>
+        <select id="add-pattern" onchange="toggleWorkField()">
+          <option value="職場→飲み会→自宅">職場→飲み会→自宅</option>
+          <option value="自宅→飲み会→自宅">自宅→飲み会→自宅</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>名前</label>
+        <input type="text" id="add-name" placeholder="参加者の名前">
+      </div>
+      <div class="form-group">
+        <label>自宅最寄駅</label>
+        <div class="autocomplete-wrap">
+          <input type="text" id="add-home" placeholder="駅名を入力して選択" autocomplete="off">
+          <div class="autocomplete-list hidden" id="add-home-list"></div>
+        </div>
+      </div>
+      <div class="form-group" id="add-work-group">
+        <label>職場最寄駅</label>
+        <div class="autocomplete-wrap">
+          <input type="text" id="add-work" placeholder="駅名を入力して選択" autocomplete="off">
+          <div class="autocomplete-list hidden" id="add-work-list"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="addParticipant()">参加者を追加</button>
+    </div>
+
+    <hr class="divider">
+    <h2>参加者一覧（<span id="participant-count">0</span>人）</h2>
+    <div id="participant-list"></div>
+
+    <!-- Settings -->
+    <div class="settings-panel">
+      <h3>検索設定</h3>
+      <div class="range-row">
+        <label>職場 ↔ 自宅 重視</label>
+        <input type="range" id="balance" min="0" max="1" step="0.05" value="0.5">
+        <span class="range-val" id="balance-val">50%/50%</span>
+      </div>
+      <div class="range-row">
+        <label>効率 ↔ 公平</label>
+        <input type="range" id="fairness" min="0" max="1" step="0.05" value="0.3">
+        <span class="range-val" id="fairness-val">0.30</span>
+      </div>
+    </div>
+
+    <hr class="divider">
+    <button class="btn btn-primary btn-full" id="btn-search" onclick="searchSpots()" disabled>
+      最適スポットを検索
+    </button>
+    <p class="caption" id="search-hint"></p>
+
+    <!-- Results -->
+    <div id="results" class="hidden">
+      <hr class="divider">
+      <h2>検索結果</h2>
+      <div class="metrics" id="metrics"></div>
+
+      <div class="tabs" id="result-tabs">
+        <div class="tab active" data-tab="ranking" onclick="switchTab('ranking')">ランキング</div>
+        <div class="tab" data-tab="map" onclick="switchTab('map')">地図</div>
+        <div class="tab" data-tab="detail" onclick="switchTab('detail')">詳細比較</div>
+        <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant')">お店を探す</div>
+      </div>
+
+      <div id="tab-ranking"></div>
+      <div id="tab-map" class="hidden"></div>
+      <div id="tab-detail" class="hidden"></div>
+      <div id="tab-restaurant" class="hidden"></div>
+    </div>
+
+    <hr class="divider">
+    <div class="ad-slot" id="ad-footer"></div>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+let currentEvent = null;
+let participants = [];
+let searchResults = null;
+let hpResults = null;
+let hpPage = 0;
+let mapInstance = null;
+let appConfig = {};
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+(async function init() {
+  try {
+    const r = await fetch('/api/config');
+    appConfig = await r.json();
+    injectAdsAndAnalytics();
+  } catch(e) {}
+
+  const params = new URLSearchParams(location.search);
+  const code = params.get('event');
+  if (code) {
+    await loadEvent(code);
+  }
+
+  document.getElementById('balance').addEventListener('input', updateBalanceLabel);
+  document.getElementById('fairness').addEventListener('input', updateFairnessLabel);
+  updateBalanceLabel();
+  updateFairnessLabel();
+
+  setupAutocomplete('add-home', 'add-home-list');
+  setupAutocomplete('add-work', 'add-work-list');
+})();
+
+function injectAdsAndAnalytics() {
+  if (appConfig.ga_id) {
+    const s1 = document.createElement('script');
+    s1.async = true;
+    s1.src = `https://www.googletagmanager.com/gtag/js?id=${appConfig.ga_id}`;
+    document.head.appendChild(s1);
+    const s2 = document.createElement('script');
+    s2.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${appConfig.ga_id}');`;
+    document.head.appendChild(s2);
+  }
+  if (appConfig.adsense_client) {
+    const s = document.createElement('script');
+    s.async = true;
+    s.crossOrigin = 'anonymous';
+    s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${appConfig.adsense_client}`;
+    document.head.appendChild(s);
+  }
+}
+
+function renderAd(containerId) {
+  if (!appConfig.adsense_client) return;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <ins class="adsbygoogle" style="display:block"
+      data-ad-client="${appConfig.adsense_client}"
+      data-ad-slot="${containerId}"
+      data-ad-format="auto"
+      data-full-width-responsive="true"></ins>`;
+  try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+}
+
+// ---------------------------------------------------------------------------
+// Station autocomplete
+// ---------------------------------------------------------------------------
+let acTimers = {};
+let acSelectedValues = {};
+
+function setupAutocomplete(inputId, listId) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  let highlighted = -1;
+
+  input.addEventListener('input', () => {
+    acSelectedValues[inputId] = '';
+    clearTimeout(acTimers[inputId]);
+    const q = input.value.trim();
+    if (q.length < 1) { list.classList.add('hidden'); return; }
+    acTimers[inputId] = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/stations?q=${encodeURIComponent(q)}`);
+        const names = await r.json();
+        if (!names.length) { list.classList.add('hidden'); return; }
+        highlighted = -1;
+        list.innerHTML = names.map((n, i) =>
+          `<div data-idx="${i}" onmousedown="selectStation('${inputId}','${listId}','${escHtml(n)}')">${escHtml(n)}</div>`
+        ).join('');
+        list.classList.remove('hidden');
+      } catch(e) { list.classList.add('hidden'); }
+    }, 200);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    const items = list.querySelectorAll('div');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlighted = Math.min(highlighted + 1, items.length - 1); updateHighlight(items, highlighted); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlighted = Math.max(highlighted - 1, 0); updateHighlight(items, highlighted); }
+    else if (e.key === 'Enter' && highlighted >= 0) { e.preventDefault(); items[highlighted].onmousedown(); }
+  });
+
+  input.addEventListener('blur', () => { setTimeout(() => list.classList.add('hidden'), 150); });
+}
+
+function updateHighlight(items, idx) {
+  items.forEach((el, i) => el.classList.toggle('highlighted', i === idx));
+}
+
+function selectStation(inputId, listId, name) {
+  document.getElementById(inputId).value = name;
+  document.getElementById(listId).classList.add('hidden');
+  acSelectedValues[inputId] = name;
+}
+
+function getStationValue(inputId) {
+  return acSelectedValues[inputId] || '';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ---------------------------------------------------------------------------
+// Event management
+// ---------------------------------------------------------------------------
+async function createEvent() {
+  const title = document.getElementById('event-title').value.trim() || '飲み会';
+  const btn = document.getElementById('btn-create');
+  btn.disabled = true; btn.textContent = '作成中...';
+  try {
+    const r = await fetch('/api/events', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title}),
+    });
+    const ev = await r.json();
+    history.pushState(null, '', `/?event=${ev.event_code}`);
+    await loadEvent(ev.event_code);
+  } catch(e) {
+    alert('エラーが発生しました');
+  }
+  btn.disabled = false; btn.textContent = '作成';
+}
+
+async function loadEvent(code) {
+  document.getElementById('page-top').classList.add('hidden');
+  document.getElementById('page-event').classList.remove('hidden');
+  try {
+    const r = await fetch(`/api/events/${code}`);
+    if (!r.ok) throw new Error('Not found');
+    const data = await r.json();
+    currentEvent = data.event;
+    currentEvent._code = code;
+    participants = data.participants;
+    renderEvent();
+  } catch(e) {
+    document.getElementById('page-event').innerHTML =
+      '<div class="msg msg-error">イベントが見つかりません。URLを確認してください。</div>' +
+      '<button class="btn btn-outline" onclick="location.href=\'/\'">トップに戻る</button>';
+  }
+}
+
+function renderEvent() {
+  const ev = currentEvent;
+  const code = ev._code;
+  const count = participants.length;
+
+  document.getElementById('event-title-display').textContent = ev.title;
+
+  // Steps
+  const s2 = count === 0, s3 = count > 0, s4 = count >= 2;
+  document.getElementById('event-steps').innerHTML = `
+    <div><span class="step-badge done">✓</span><span class="step-title" style="color:var(--success)">作成済み</span></div>
+    <span class="step-arrow">→</span>
+    <div><span class="step-badge ${s2?'':'muted'}">2</span><span class="step-title ${s2?'':'muted'}">URLを共有</span></div>
+    <span class="step-arrow">→</span>
+    <div><span class="step-badge ${s3?'':'muted'}">3</span><span class="step-title ${s3?'':'muted'}">みんなで入力（現在 ${count}人）</span></div>
+    <span class="step-arrow">→</span>
+    <div><span class="step-badge ${s4?'':'muted'}">4</span><span class="step-title ${s4?'':'muted'}">最適スポット発見</span></div>`;
+
+  // Share URL
+  const baseUrl = location.origin;
+  document.getElementById('share-url').textContent = `${baseUrl}/?event=${code}`;
+
+  // Participant count
+  document.getElementById('participant-count').textContent = count;
+
+  // Participant list
+  const listEl = document.getElementById('participant-list');
+  if (!count) {
+    listEl.innerHTML = '<div class="msg msg-info">まだ参加者がいません。上のフォームから追加してください。</div>';
+  } else {
+    listEl.innerHTML = participants.map(p => {
+      const isHr = p.pattern === '自宅→飲み会→自宅';
+      const workDisp = isHr ? '(自宅から)' : (p.work_location || '-');
+      return `<div class="card"><div class="card-row">
+        <div class="info"><strong>${escHtml(p.name)}</strong><br>
+        <span class="caption">自宅: ${escHtml(p.home_location||'-')} / 職場: ${escHtml(workDisp)}</span></div>
+        <div class="actions">
+          <button class="btn btn-outline btn-sm" onclick="editParticipant('${p.id}')">編集</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteParticipant('${p.id}')">削除</button>
+        </div></div></div>`;
+    }).join('');
+  }
+
+  // Search button
+  const btnSearch = document.getElementById('btn-search');
+  const hint = document.getElementById('search-hint');
+  if (count < 2) {
+    btnSearch.disabled = true;
+    hint.textContent = `あと${2 - count}人追加すると検索できます`;
+  } else {
+    btnSearch.disabled = false;
+    hint.textContent = '';
+  }
+
+  renderAd('ad-footer');
+}
+
+function copyShareUrl() {
+  const text = document.getElementById('share-url').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    showSuccess('URLをコピーしました');
+  });
+}
+
+function showSuccess(msg) {
+  const el = document.getElementById('success-msg');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 4000);
+}
+
+// ---------------------------------------------------------------------------
+// Toggle work field
+// ---------------------------------------------------------------------------
+function toggleWorkField() {
+  const pattern = document.getElementById('add-pattern').value;
+  document.getElementById('add-work-group').classList.toggle('hidden', pattern === '自宅→飲み会→自宅');
+}
+
+// ---------------------------------------------------------------------------
+// Participants CRUD
+// ---------------------------------------------------------------------------
+async function addParticipant() {
+  const pattern = document.getElementById('add-pattern').value;
+  const name = document.getElementById('add-name').value.trim();
+  const home = getStationValue('add-home');
+  const work = getStationValue('add-work');
+  const isHr = pattern === '自宅→飲み会→自宅';
+
+  if (!name) return alert('名前を入力してください。');
+  if (!home) return alert('自宅の最寄駅を選択してください。');
+  if (!isHr && !work) return alert('職場の最寄駅を選択してください。');
+
+  try {
+    await fetch('/api/participants', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        event_id: currentEvent.id,
+        name, pattern,
+        work_location: isHr ? '' : work,
+        home_location: home,
+      }),
+    });
+    // Clear form
+    document.getElementById('add-name').value = '';
+    document.getElementById('add-home').value = '';
+    document.getElementById('add-work').value = '';
+    acSelectedValues['add-home'] = '';
+    acSelectedValues['add-work'] = '';
+    searchResults = null;
+    document.getElementById('results').classList.add('hidden');
+    await reloadParticipants();
+    const remaining = 2 - participants.length;
+    const hint = remaining > 0
+      ? `あと${remaining}人追加すると検索できます。`
+      : 'ページ下部の「最適スポットを検索」ボタンで検索できます。';
+    showSuccess(`${name} さんを追加しました。${hint}`);
+  } catch(e) { alert('エラーが発生しました'); }
+}
+
+async function deleteParticipant(id) {
+  if (!confirm('この参加者を削除しますか？')) return;
+  try {
+    await fetch(`/api/participants/${id}`, {method: 'DELETE'});
+    searchResults = null;
+    document.getElementById('results').classList.add('hidden');
+    await reloadParticipants();
+  } catch(e) { alert('エラーが発生しました'); }
+}
+
+function editParticipant(id) {
+  const p = participants.find(x => x.id === id);
+  if (!p) return;
+  const isHr = p.pattern === '自宅→飲み会→自宅';
+  const listEl = document.getElementById('participant-list');
+
+  // Find the card for this participant and replace inline
+  const cards = listEl.querySelectorAll('.card');
+  const idx = participants.indexOf(p);
+  if (idx < 0 || !cards[idx]) return;
+
+  // Setup edit autocomplete IDs
+  const homeId = `edit-home-${id}`;
+  const workId = `edit-work-${id}`;
+  const homeListId = `edit-home-list-${id}`;
+  const workListId = `edit-work-list-${id}`;
+
+  cards[idx].innerHTML = `
+    <div style="padding:8px 0;">
+      <strong>${escHtml(p.name)} を編集中</strong>
+      <div class="form-group" style="margin-top:8px;">
+        <label>移動パターン</label>
+        <select id="edit-pattern-${id}" onchange="document.getElementById('edit-work-group-${id}').classList.toggle('hidden', this.value==='自宅→飲み会→自宅')">
+          <option value="職場→飲み会→自宅" ${!isHr?'selected':''}>職場→飲み会→自宅</option>
+          <option value="自宅→飲み会→自宅" ${isHr?'selected':''}>自宅→飲み会→自宅</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>名前</label>
+        <input type="text" id="edit-name-${id}" value="${escHtml(p.name)}">
+      </div>
+      <div class="form-group">
+        <label>自宅最寄駅</label>
+        <div class="autocomplete-wrap">
+          <input type="text" id="${homeId}" value="${escHtml(p.home_location||'')}" autocomplete="off">
+          <div class="autocomplete-list hidden" id="${homeListId}"></div>
+        </div>
+      </div>
+      <div class="form-group ${isHr?'hidden':''}" id="edit-work-group-${id}">
+        <label>職場最寄駅</label>
+        <div class="autocomplete-wrap">
+          <input type="text" id="${workId}" value="${escHtml(p.work_location||'')}" autocomplete="off">
+          <div class="autocomplete-list hidden" id="${workListId}"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" style="flex:1" onclick="saveParticipant('${id}')">保存</button>
+        <button class="btn btn-outline" style="flex:1" onclick="renderEvent()">キャンセル</button>
+      </div>
+    </div>`;
+
+  acSelectedValues[homeId] = p.home_location || '';
+  acSelectedValues[workId] = p.work_location || '';
+  setupAutocomplete(homeId, homeListId);
+  setupAutocomplete(workId, workListId);
+}
+
+async function saveParticipant(id) {
+  const pattern = document.getElementById(`edit-pattern-${id}`).value;
+  const name = document.getElementById(`edit-name-${id}`).value.trim();
+  const homeId = `edit-home-${id}`;
+  const workId = `edit-work-${id}`;
+  const home = getStationValue(homeId);
+  const work = getStationValue(workId);
+  const isHr = pattern === '自宅→飲み会→自宅';
+
+  if (!name) return alert('名前を入力してください。');
+  if (!home) return alert('自宅の最寄駅を選択してください。');
+  if (!isHr && !work) return alert('職場の最寄駅を選択してください。');
+
+  try {
+    await fetch(`/api/participants/${id}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        name, pattern,
+        work_location: isHr ? '' : work,
+        home_location: home,
+      }),
+    });
+    searchResults = null;
+    document.getElementById('results').classList.add('hidden');
+    await reloadParticipants();
+    showSuccess(`${name} さんの情報を更新しました。`);
+  } catch(e) { alert('エラーが発生しました'); }
+}
+
+async function reloadParticipants() {
+  const r = await fetch(`/api/events/${currentEvent._code}`);
+  const data = await r.json();
+  participants = data.participants;
+  renderEvent();
+}
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+function updateBalanceLabel() {
+  const v = parseFloat(document.getElementById('balance').value);
+  const w = Math.round((1 - v) * 100);
+  const h = Math.round(v * 100);
+  document.getElementById('balance-val').textContent = `職${w}%/宅${h}%`;
+}
+function updateFairnessLabel() {
+  const v = parseFloat(document.getElementById('fairness').value);
+  document.getElementById('fairness-val').textContent = v.toFixed(2);
+}
+
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+async function searchSpots() {
+  const btn = document.getElementById('btn-search');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 検索中...';
+
+  const balance = parseFloat(document.getElementById('balance').value);
+  const fairness = parseFloat(document.getElementById('fairness').value);
+
+  try {
+    const r = await fetch('/api/search', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        event_id: currentEvent.id,
+        work_weight: 1 - balance,
+        home_weight: balance,
+        fairness_weight: fairness,
+      }),
+    });
+    if (!r.ok) {
+      const err = await r.json();
+      alert(err.detail || 'エラーが発生しました');
+      return;
+    }
+    searchResults = await r.json();
+    renderResults();
+    document.getElementById('results').classList.remove('hidden');
+    document.getElementById('results').scrollIntoView({behavior: 'smooth'});
+  } catch(e) {
+    alert('エラーが発生しました');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '最適スポットを検索';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Render results
+// ---------------------------------------------------------------------------
+function renderResults() {
+  const scored = searchResults.scored;
+  const geocoded = searchResults.geocoded;
+  const best = scored[0];
+  const unit = '分';
+
+  // Metrics
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">おすすめ1位</div><div class="metric-value">${escHtml(best.name)}</div></div>
+    <div class="metric"><div class="metric-label">平均移動時間</div><div class="metric-value">${best.avg_total_val.toFixed(1)} ${unit}</div></div>
+    <div class="metric"><div class="metric-label">最大移動者</div><div class="metric-value">${best.max_person_val.toFixed(1)} ${unit}</div></div>`;
+
+  renderRanking(scored, geocoded, unit);
+  renderMap(scored, geocoded);
+  renderDetail(scored, geocoded, unit);
+  renderRestaurantTab(scored, geocoded);
+  switchTab('ranking');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('#result-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  ['ranking','map','detail','restaurant'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
+  });
+  if (name === 'map' && mapInstance) {
+    setTimeout(() => mapInstance.invalidateSize(), 100);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ranking tab
+// ---------------------------------------------------------------------------
+function renderRanking(scored, geocoded, unit) {
+  let cols = ['順位','駅名',`平均(${unit})`,`最大(${unit})`,'偏差'];
+  geocoded.forEach(g => {
+    const isHr = g.pattern && g.pattern.startsWith('自宅');
+    const from = isHr ? '自宅→' : '職場→';
+    cols.push(`${g.name}(${from})`);
+    cols.push(`${g.name}(→自宅)`);
+  });
+
+  let html = '<div class="table-wrap"><table><thead><tr>' + cols.map(c => `<th>${escHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
+  scored.forEach((s, i) => {
+    let row = `<td>${i+1}</td><td>${escHtml(s.name)}</td><td>${s.avg_total_val.toFixed(1)}</td><td>${s.max_person_val.toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td>`;
+    s.details.forEach(d => {
+      row += `<td>${d.work_val.toFixed(1)}${unit}</td><td>${d.home_val.toFixed(1)}${unit}</td>`;
+    });
+    html += `<tr>${row}</tr>`;
+  });
+  html += '</tbody></table></div>';
+  html += '<p class="caption">※移動時間は主要路線の駅間所要時間をベースに推定。乗換待ち時間等により実際とは異なる場合があります。</p>';
+  document.getElementById('tab-ranking').innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
+// Map tab
+// ---------------------------------------------------------------------------
+const STATION_COLORS = ["#e53935", "#ff9800", "#9c27b0"];
+const PERSON_COLORS = ["#1e88e5", "#43a047", "#f4511e", "#8e24aa", "#00acc1", "#c0ca33", "#6d4c41", "#d81b60", "#3949ab", "#00897b", "#ffb300", "#546e7a"];
+
+function renderMap(scored, geocoded) {
+  document.getElementById('tab-map').innerHTML = '<div id="map-container"></div>';
+
+  if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+
+  const center = scored.length ? [scored[0].lat, scored[0].lon] : [35.68, 139.76];
+  const map = L.map('map-container', {center, zoom: 12});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
+  }).addTo(map);
+  mapInstance = map;
+
+  const allPoints = [];
+  const placed = [];
+
+  // Top 3 stations
+  scored.slice(0, 3).forEach((s, i) => {
+    addMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, 8, placed);
+    allPoints.push([s.lat, s.lon]);
+  });
+
+  // Participants
+  geocoded.forEach((g, pi) => {
+    const c = PERSON_COLORS[pi % PERSON_COLORS.length];
+    if (g.work_lat != null) {
+      addMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, 6, placed);
+      allPoints.push([g.work_lat, g.work_lon]);
+    }
+    if (g.home_lat != null) {
+      addMarker(map, g.home_lat, g.home_lon, c, `${g.name} 自宅`, 6, placed);
+      allPoints.push([g.home_lat, g.home_lon]);
+    }
+  });
+
+  // Legend
+  const legend = L.control({position: 'bottomright'});
+  legend.onAdd = function() {
+    const div = L.DomUtil.create('div', 'map-legend');
+    let h = '<div style="font-weight:bold;margin-bottom:4px;">凡例</div>';
+    scored.slice(0, 3).forEach((s, i) => {
+      h += `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin-right:6px;vertical-align:middle;"></span>${i+1}位: ${escHtml(s.name)}</div>`;
+    });
+    geocoded.forEach((g, pi) => {
+      const c = PERSON_COLORS[pi % PERSON_COLORS.length];
+      if (g.work_lat != null) h += `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:6px;vertical-align:middle;"></span>${escHtml(g.name)} 職場</div>`;
+      if (g.home_lat != null) h += `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:6px;vertical-align:middle;"></span>${escHtml(g.name)} 自宅</div>`;
+    });
+    div.innerHTML = h;
+    div.style.cssText = 'background:rgba(255,255,255,0.95);padding:10px 14px;border-radius:6px;box-shadow:0 1px 5px rgba(0,0,0,.3);font-size:12px;line-height:1.8;max-height:220px;overflow-y:auto;';
+    return div;
+  };
+  legend.addTo(map);
+
+  if (allPoints.length > 1) map.fitBounds(allPoints, {padding: [40, 40]});
+  else if (allPoints.length === 1) map.setView(allPoints[0], 13);
+}
+
+function addMarker(map, lat, lon, color, label, radius, placed) {
+  let adjLat = lat, adjLon = lon;
+  let dup = 0;
+  for (const p of placed) {
+    if (Math.abs(lat - p[0]) < 0.0005 && Math.abs(lon - p[1]) < 0.0005) dup++;
+  }
+  if (dup > 0) {
+    const angle = dup * (2 * Math.PI / 6);
+    adjLat += 0.0012 * Math.cos(angle);
+    adjLon += 0.0012 * Math.sin(angle);
+  }
+  placed.push([lat, lon]);
+  L.circleMarker([adjLat, adjLon], {
+    radius, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
+  }).addTo(map).bindTooltip(label);
+}
+
+// ---------------------------------------------------------------------------
+// Detail tab
+// ---------------------------------------------------------------------------
+function renderDetail(scored, geocoded, unit) {
+  let html = '<h3>上位3駅の参加者別移動時間・経路</h3>';
+
+  scored.slice(0, 3).forEach((s, i) => {
+    const medal = ['1位','2位','3位'][i];
+    const id = `detail-${i}`;
+    html += `
+      <div class="expander-header" onclick="toggleExpander('${id}')">
+        <span>${i===0?'▼':'▶'}</span> ${medal}: ${escHtml(s.name)}（平均 ${s.avg_total_val.toFixed(1)}${unit}）
+      </div>
+      <div class="expander-body ${i===0?'open':''}" id="${id}">`;
+
+    // Table
+    html += '<div class="table-wrap"><table><thead><tr><th>名前</th><th>職場/自宅→駅(' + unit + ')</th><th>駅→自宅(' + unit + ')</th><th>合計(' + unit + ')</th></tr></thead><tbody>';
+    s.details.forEach(d => {
+      html += `<tr><td>${escHtml(d.name)}</td><td>${d.work_val.toFixed(1)}</td><td>${d.home_val.toFixed(1)}</td><td>${d.total_val.toFixed(1)}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+
+    // Bar chart
+    const maxTotal = Math.max(...s.details.map(d => d.total_val), 1);
+    html += '<div class="bar-chart">';
+    s.details.forEach(d => {
+      const w1 = (d.work_val / maxTotal * 100).toFixed(1);
+      const w2 = (d.home_val / maxTotal * 100).toFixed(1);
+      html += `<div class="bar-row">
+        <span class="bar-name">${escHtml(d.name)}</span>
+        <div class="bar-track">
+          <div class="bar-seg" style="width:${w1}%;background:#1e88e5;"></div>
+          <div class="bar-seg" style="width:${w2}%;background:#43a047;"></div>
+        </div>
+        <span class="bar-val">${d.total_val.toFixed(1)}${unit}</span>
+      </div>`;
+    });
+    html += '</div>';
+
+    // Routes
+    if (s.routes) {
+      html += '<h3 style="margin-top:12px;">経路</h3>';
+      s.routes.forEach(r => {
+        if (r.to_route) {
+          html += `<div class="route-text"><span class="route-label">${escHtml(r.name)}</span>（${escHtml(r.from_label)}→飲み会）${escHtml(r.to_route)}（${r.to_time}${unit}）</div>`;
+        }
+        if (r.home_route) {
+          html += `<div class="route-text"><span class="route-label">${escHtml(r.name)}</span>（飲み会→自宅）${escHtml(r.home_route)}（${r.home_time}${unit}）</div>`;
+        }
+        html += '<hr class="divider" style="margin:4px 0;">';
+      });
+    }
+    html += '</div>';
+  });
+
+  // Fairness analysis
+  html += '<h3>公平性分析</h3><p class="caption">各駅で最も移動時間が長い人と短い人の差（小さいほど公平）</p>';
+  html += '<div class="table-wrap"><table class="fairness-table"><thead><tr><th>駅名</th><th>平均(' + unit + ')</th><th>最短(' + unit + ')</th><th>最長(' + unit + ')</th><th>差(' + unit + ')</th><th>標準偏差</th></tr></thead><tbody>';
+  scored.slice(0, 5).forEach(s => {
+    const vals = s.details.map(d => d.total_val);
+    const mn = Math.min(...vals), mx = Math.max(...vals);
+    html += `<tr><td>${escHtml(s.name)}</td><td>${s.avg_total_val.toFixed(1)}</td><td>${mn.toFixed(1)}</td><td>${mx.toFixed(1)}</td><td>${(mx-mn).toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td></tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  document.getElementById('tab-detail').innerHTML = html;
+}
+
+function toggleExpander(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+  const header = el.previousElementSibling;
+  const arrow = header.querySelector('span');
+  arrow.textContent = el.classList.contains('open') ? '▼' : '▶';
+}
+
+// ---------------------------------------------------------------------------
+// Restaurant tab
+// ---------------------------------------------------------------------------
+function renderRestaurantTab(scored, geocoded) {
+  if (!appConfig.has_hotpepper) {
+    document.getElementById('tab-restaurant').innerHTML = '<div class="msg msg-info">お店検索は現在準備中です。</div>';
+    return;
+  }
+
+  const options = scored.map((s, i) => `<option value="${i}">${i+1}位: ${escHtml(s.name)}</option>`).join('');
+
+  document.getElementById('tab-restaurant').innerHTML = `
+    <h3>上位駅の周辺でお店を探す</h3>
+    <div class="form-group">
+      <label>駅を選択</label>
+      <select id="hp-station">${options}</select>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
+      <label><input type="checkbox" id="hp-free-drink" checked> 飲み放題あり</label>
+      <label><input type="checkbox" id="hp-private-room"> 個室あり</label>
+    </div>
+    <div class="form-group">
+      <label>人数</label>
+      <input type="number" id="hp-people" value="${geocoded.length}" min="0" step="1">
+      <span class="caption">0で人数条件なし</span>
+    </div>
+    <div class="form-group">
+      <label>キーワード（任意）</label>
+      <input type="text" id="hp-keyword" placeholder="例: 焼き鳥、イタリアン">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="searchRestaurants()">お店を検索</button>
+    <div id="hp-results"></div>`;
+}
+
+async function searchRestaurants() {
+  const scored = searchResults.scored;
+  const idx = parseInt(document.getElementById('hp-station').value);
+  const station = scored[idx];
+  const btn = document.querySelector('#tab-restaurant .btn-primary');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 検索中...';
+
+  try {
+    const r = await fetch('/api/restaurants', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        lat: station.lat,
+        lon: station.lon,
+        keyword: document.getElementById('hp-keyword').value,
+        free_drink: document.getElementById('hp-free-drink').checked ? 1 : 0,
+        private_room: document.getElementById('hp-private-room').checked ? 1 : 0,
+        party_capacity: parseInt(document.getElementById('hp-people').value) || 0,
+      }),
+    });
+    hpResults = await r.json();
+    hpPage = 0;
+    renderRestaurantResults(station.name);
+  } catch(e) { alert('エラーが発生しました'); }
+  btn.disabled = false;
+  btn.textContent = 'お店を検索';
+}
+
+function renderRestaurantResults(stationName) {
+  const el = document.getElementById('hp-results');
+  if (!hpResults || !hpResults.length) {
+    el.innerHTML = '<div class="msg msg-warn">条件に合うお店が見つかりませんでした。条件を変えて再検索してください。</div>';
+    return;
+  }
+
+  const perPage = 10;
+  const total = hpResults.length;
+  const totalPages = Math.ceil(total / perPage);
+  hpPage = Math.min(hpPage, totalPages - 1);
+  const start = hpPage * perPage;
+  const end = Math.min(start + perPage, total);
+
+  let html = `<p style="margin:12px 0;"><strong>${escHtml(stationName)}駅</strong>周辺で <strong>${total}件</strong> 見つかりました（${start+1}〜${end}件目）</p>`;
+
+  for (let i = start; i < end; i++) {
+    const s = hpResults[i];
+    const tags = [];
+    if (s.genre) tags.push(`🍽️ ${s.genre}`);
+    if (s.budget) tags.push(`💰 ${s.budget}`);
+    if (s.capacity) tags.push(`👥 宴会最大${s.capacity}名`);
+    if (s.private_room && s.private_room.includes('あり')) tags.push('🚪 個室あり');
+    if (s.free_drink && s.free_drink.includes('あり')) tags.push('🍺 飲み放題あり');
+
+    html += `<div class="card"><div class="shop-card">
+      ${s.photo ? `<img src="${escHtml(s.photo)}" class="shop-img" alt="">` : ''}
+      <div class="shop-info">
+        <strong>${escHtml(s.name)}</strong>
+        ${s.catch ? `<p class="caption" style="margin:2px 0;">${escHtml(s.catch)}</p>` : ''}
+        ${tags.length ? `<div class="shop-tags">${tags.join(' ｜ ')}</div>` : ''}
+        <p class="caption">📍 ${escHtml(s.access)}</p>
+        ${s.url ? `<a href="${escHtml(s.url)}" target="_blank" class="link-btn" style="margin-top:4px;">ホットペッパーで予約</a>` : ''}
+      </div>
+    </div></div>`;
+  }
+
+  // Pagination
+  if (totalPages > 1) {
+    html += '<div class="pagination">';
+    if (hpPage > 0) {
+      html += `<button class="page-btn" onclick="hpGoPage(${hpPage - 1},'${escHtml(stationName)}')">← 前</button>`;
+    }
+    for (let i = 0; i < totalPages; i++) {
+      html += `<button class="page-btn ${i === hpPage ? 'active' : ''}" onclick="hpGoPage(${i},'${escHtml(stationName)}')">${i + 1}</button>`;
+    }
+    if (hpPage < totalPages - 1) {
+      html += `<button class="page-btn" onclick="hpGoPage(${hpPage + 1},'${escHtml(stationName)}')">次 →</button>`;
+    }
+    html += '</div>';
+  }
+
+  html += '<p class="caption" style="text-align:center;margin-top:8px;">powered by ホットペッパーグルメ Webサービス</p>';
+  el.innerHTML = html;
+}
+
+function hpGoPage(page, stationName) {
+  hpPage = page;
+  renderRestaurantResults(stationName);
+  document.getElementById('hp-results').scrollIntoView({behavior: 'smooth'});
+}
+</script>
+</body>
+</html>
