@@ -213,10 +213,19 @@ def _geocode_station(station_name):
     if not name:
         return None, None, "", None
     sdb = _station_db()
+    ntg = _name_to_gcd()
+    # 完全一致（"京橋（東京メトロ銀座線）" など表示名そのまま）
     if name in sdb:
         lat, lon = sdb[name]
-        gcd = _name_to_gcd().get(name)
+        gcd = ntg.get(name)
         return lat, lon, f"{name}駅", gcd
+    # 括弧なし名での前方一致（"京橋" → "京橋（...）" の最初のヒット）
+    for key in sdb:
+        base = key.split("（")[0]
+        if base == name:
+            lat, lon = sdb[key]
+            gcd = ntg.get(key)
+            return lat, lon, f"{key}駅", gcd
     return None, None, "", None
 
 

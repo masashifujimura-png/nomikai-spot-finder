@@ -859,7 +859,7 @@ function renderMap(scored, geocoded) {
   if (mapInstance) { mapInstance.remove(); mapInstance = null; }
 
   const center = scored.length ? [scored[0].lat, scored[0].lon] : [35.68, 139.76];
-  const map = L.map('map-container', {center, zoom: 12});
+  const map = L.map('map-container');
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
   }).addTo(map);
@@ -906,21 +906,28 @@ function renderMap(scored, geocoded) {
   };
   legend.addTo(map);
 
-  if (allPoints.length > 1 && scored.length) {
-    // 1位の駅を中心に、全マーカーが収まる最大縮尺にする
-    const c = [scored[0].lat, scored[0].lon];
-    // 1位からの最大距離(緯度・経度差)を求め、対称なバウンドを作る
-    let maxDlat = 0, maxDlon = 0;
-    for (const p of allPoints) {
-      maxDlat = Math.max(maxDlat, Math.abs(p[0] - c[0]));
-      maxDlon = Math.max(maxDlon, Math.abs(p[1] - c[1]));
+  // タブ切り替え直後はコンテナサイズが0の場合があるので再計算
+  setTimeout(() => {
+    map.invalidateSize();
+    if (allPoints.length > 1 && scored.length) {
+      // 1位の駅を中心に、全マーカーが収まる最大縮尺にする
+      const c = [scored[0].lat, scored[0].lon];
+      let maxDlat = 0, maxDlon = 0;
+      for (const p of allPoints) {
+        maxDlat = Math.max(maxDlat, Math.abs(p[0] - c[0]));
+        maxDlon = Math.max(maxDlon, Math.abs(p[1] - c[1]));
+      }
+      const bounds = L.latLngBounds(
+        [c[0] - maxDlat, c[1] - maxDlon],
+        [c[0] + maxDlat, c[1] + maxDlon]
+      );
+      map.fitBounds(bounds, {padding: [40, 40]});
+    } else if (allPoints.length === 1) {
+      map.setView(allPoints[0], 13);
+    } else {
+      map.setView(center, 12);
     }
-    const bounds = L.latLngBounds(
-      [c[0] - maxDlat, c[1] - maxDlon],
-      [c[0] + maxDlat, c[1] + maxDlon]
-    );
-    map.fitBounds(bounds, {padding: [40, 40]});
-  } else if (allPoints.length === 1) map.setView(allPoints[0], 13);
+  }, 100);
 }
 
 function addMarker(map, lat, lon, color, label, radius, placed) {

@@ -64,20 +64,40 @@ def main():
         if gcd not in gcd_info:
             gcd_info[gcd] = (name, float(lat), float(lon))
 
-    # station_db: name → (lat, lon) UI用（最初の出現のみ）
-    station_db = {}
-    for name, lat, lon in zip(sdf["station_name"], sdf["lat"], sdf["lon"]):
-        if name not in station_db:
-            station_db[name] = (float(lat), float(lon))
-
-    # name_to_gcd: name → g_cd（UI名から内部IDへの変換、最初の出現）
-    name_to_gcd = {}
+    # 同名駅の検出: station_g_cd が異なる同名駅（例: 京橋）
+    # gcd_info は gcd → (name, lat, lon)
+    name_to_gcds = {}  # name → [gcd, ...]
     for gcd, (name, lat, lon) in gcd_info.items():
-        if name not in name_to_gcd:
-            name_to_gcd[name] = gcd
+        name_to_gcds.setdefault(name, []).append(gcd)
+    dup_names = {name for name, gcds in name_to_gcds.items() if len(gcds) > 1}
 
-    # gcd_to_name: g_cd → name（内部IDからUI名への変換）
-    gcd_to_name = {gcd: info[0] for gcd, info in gcd_info.items()}
+    # gcd → 代表路線名（そのgcdに属する最初のline_cd の路線名）
+    gcd_to_line = {}
+    for scd, gcd_val, lc in zip(
+        sdf["station_cd"].astype(int), sdf["station_g_cd"].astype(int),
+        sdf["line_cd"].astype(int),
+    ):
+        if int(gcd_val) not in gcd_to_line:
+            ln = line_names.get(int(lc), "")
+            if ln:
+                gcd_to_line[int(gcd_val)] = ln
+
+    # station_db: display_name → (lat, lon)
+    # 重複駅は "京橋（東京メトロ銀座線）" のように路線名で区別
+    station_db = {}
+    name_to_gcd = {}
+    gcd_to_name = {}
+    for gcd, (name, lat, lon) in gcd_info.items():
+        if name in dup_names:
+            ln = gcd_to_line.get(gcd, "")
+            display = f"{name}（{ln}）" if ln else name
+        else:
+            display = name
+        # 表示名がまだ衝突する場合はスキップ（最初の出現を優先）
+        if display not in station_db:
+            station_db[display] = (float(lat), float(lon))
+            name_to_gcd[display] = gcd
+        gcd_to_name[gcd] = display
 
     print(f"Loaded {len(station_db)} station names, {len(gcd_info)} physical stations")
 
