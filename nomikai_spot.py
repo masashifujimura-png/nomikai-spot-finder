@@ -1250,13 +1250,14 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                     shops = _search_hotpepper(
                         sel_station["lat"], sel_station["lon"],
                         keyword=keyword,
-                        count=30,
+                        count=100,
                         free_drink=1 if want_free_drink else 0,
                         private_room=1 if want_private_room else 0,
                         party_capacity=num_people if num_people > 0 else 0,
                     )
                 st.session_state["_hp_results"] = shops
                 st.session_state["_hp_station"] = sel_station["name"]
+                st.session_state["_hp_page"] = 0
 
             # 結果表示
             if "_hp_results" in st.session_state:
@@ -1265,8 +1266,16 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                 if not shops:
                     st.warning("条件に合うお店が見つかりませんでした。条件を変えて再検索してください。")
                 else:
-                    st.markdown(f"**{station_name}駅**周辺で **{len(shops)}件** 見つかりました")
-                    for shop in shops:
+                    per_page = 10
+                    total = len(shops)
+                    total_pages = (total + per_page - 1) // per_page
+                    page = st.session_state.get("_hp_page", 0)
+                    page = min(page, total_pages - 1)
+                    start = page * per_page
+                    end = min(start + per_page, total)
+
+                    st.markdown(f"**{station_name}駅**周辺で **{total}件** 見つかりました（{start+1}〜{end}件目）")
+                    for shop in shops[start:end]:
                         with st.container(border=True):
                             col_img, col_info = st.columns([1, 3])
                             with col_img:
@@ -1292,6 +1301,24 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                                 if shop["url"]:
                                     st.link_button("ホットペッパーで予約", shop["url"],
                                                    use_container_width=False)
+
+                    # ページネーション
+                    if total_pages > 1:
+                        cols = st.columns([1, 2, 1])
+                        with cols[0]:
+                            if page > 0:
+                                if st.button("← 前の10件", key="hp_prev", use_container_width=True):
+                                    st.session_state["_hp_page"] = page - 1
+                                    st.rerun()
+                        with cols[1]:
+                            st.markdown(f"<div style='text-align:center;padding:8px;'>{page+1} / {total_pages} ページ</div>",
+                                        unsafe_allow_html=True)
+                        with cols[2]:
+                            if page < total_pages - 1:
+                                if st.button("次の10件 →", key="hp_next", use_container_width=True):
+                                    st.session_state["_hp_page"] = page + 1
+                                    st.rerun()
+
                     st.caption("powered by ホットペッパーグルメ Webサービス")
 
     # --- フッター広告 ---
