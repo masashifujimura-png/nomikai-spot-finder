@@ -145,6 +145,24 @@ def _dijkstra(start: str, end: str) -> int | None:
     return None
 
 
+def _dijkstra_all(start: str) -> dict[str, float]:
+    """start から全到達可能駅への最短所要時間（分）を返す。"""
+    if start not in _GRAPH:
+        return {}
+    dist = {start: 0}
+    heap = [(0, start)]
+    while heap:
+        d, u = heapq.heappop(heap)
+        if d > dist.get(u, float("inf")):
+            continue
+        for v, w in _GRAPH.get(u, []):
+            nd = d + w
+            if nd < dist.get(v, float("inf")):
+                dist[v] = nd
+                heapq.heappush(heap, (nd, v))
+    return dist
+
+
 def _find_nearest_graph_station(lat: float, lon: float) -> tuple[str | None, float]:
     best_name, best_dist = None, float("inf")
     for name, (slat, slon) in STATION_DB.items():
@@ -329,30 +347,52 @@ def _station_travel_time(from_name, to_name, from_lat, from_lon, to_lat, to_lon)
 
 def score_stations(stations, participants, work_weight, home_weight,
                    fairness_weight=0.0, mode="train") -> list[dict]:
+    # 参加者ごとに1回だけDijkstraで全駅への距離を事前計算
+    work_dists = {}  # name -> {station: time}
+    home_dists = {}
+    for p in participants:
+        ws = p.get("work_station")
+        hs = p.get("home_station")
+        if ws and ws not in work_dists:
+            work_dists[ws] = _dijkstra_all(ws)
+        if hs and hs not in home_dists:
+            home_dists[hs] = _dijkstra_all(hs)
+
     scored = []
     for st_info in stations:
         total_cost = 0
         max_val = 0
         details = []
+        sn = st_info["name"]
         for p in participants:
-            if mode == "train":
-                work_val = _station_travel_time(
-                    p.get("work_station"), st_info["name"],
-                    p.get("work_lat"), p.get("work_lon"),
-                    st_info["lat"], st_info["lon"],
-                ) if p.get("work_lat") is not None else 0
-                home_val = _station_travel_time(
-                    st_info["name"], p.get("home_station"),
-                    st_info["lat"], st_info["lon"],
-                    p.get("home_lat"), p.get("home_lon"),
-                ) if p.get("home_lat") is not None else 0
+            # 職場→候補駅
+            if p.get("work_lat") is not None:
+                ws = p.get("work_station")
+                if ws and ws in work_dists and sn in work_dists[ws]:
+                    work_val = round(work_dists[ws][sn], 1)
+                elif ws:
+                    work_val = _station_travel_time(
+                        ws, sn, p.get("work_lat"), p.get("work_lon"),
+                        st_info["lat"], st_info["lon"])
+                else:
+                    work_val = 0
             else:
-                work_val = round(haversine(
-                    p["work_lat"], p["work_lon"], st_info["lat"], st_info["lon"]
-                ), 1) if p.get("work_lat") is not None else 0
-                home_val = round(haversine(
-                    st_info["lat"], st_info["lon"], p["home_lat"], p["home_lon"]
-                ), 1) if p.get("home_lat") is not None else 0
+                work_val = 0
+
+            # 候補駅→自宅
+            if p.get("home_lat") is not None:
+                hs = p.get("home_station")
+                if hs and hs in home_dists and sn in home_dists[hs]:
+                    # グラフは無向なので逆方向も同じ距離
+                    home_val = round(home_dists[hs][sn], 1)
+                elif hs:
+                    home_val = _station_travel_time(
+                        sn, hs, st_info["lat"], st_info["lon"],
+                        p.get("home_lat"), p.get("home_lon"))
+                else:
+                    home_val = 0
+            else:
+                home_val = 0
 
             cost = work_val * work_weight + home_val * home_weight
             total_cost += cost
