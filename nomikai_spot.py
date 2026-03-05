@@ -52,11 +52,13 @@ def _load_ekidata():
     if os.path.exists(pickle_file):
         with open(pickle_file, 'rb') as f:
             data = pickle.load(f)
-        # 5-tuple: (station_db, graph, sorted_names, coords, edge_lines)
+        # 7-tuple: (station_db, graph, sorted_names, coords, edge_lines, name_to_gcd, gcd_to_name)
+        if isinstance(data, tuple) and len(data) >= 7:
+            return data[:7]
         if isinstance(data, tuple) and len(data) >= 5:
-            return data[:5]
+            return data[:5] + ({}, {})
         if isinstance(data, tuple) and len(data) >= 4:
-            return data[:4] + ({},)
+            return data[:4] + ({}, {}, {})
     raise RuntimeError("ekidata_cache.pkl not found or outdated. Run precompute.py first.")
 
 
@@ -82,6 +84,14 @@ def _station_coords():
 
 def _edge_lines():
     return _get_ekidata()[4]
+
+
+def _name_to_gcd():
+    return _get_ekidata()[5]
+
+
+def _gcd_to_name():
+    return _get_ekidata()[6]
 
 
 @st.cache_data(show_spinner=False)
@@ -144,39 +154,42 @@ def _dijkstra_with_path(graph, start, target):
 
 
 @st.cache_data(show_spinner=False)
-def _find_route(source, target):
-    """経路探索（キャッシュ付き）。(path_list, time_min) を返す。"""
-    if not source or not target or source == target:
+def _find_route(source_gcd, target_gcd):
+    """経路探索（キャッシュ付き）。g_cd で指定。(path_gcd_list, time_min) を返す。"""
+    if not source_gcd or not target_gcd or source_gcd == target_gcd:
         return None, 0.0
     graph = _graph()
-    if source not in graph:
+    if source_gcd not in graph:
         return None, None
-    return _dijkstra_with_path(graph, source, target)
+    return _dijkstra_with_path(graph, source_gcd, target_gcd)
 
 
-def _format_route(path):
-    """経路を路線名・乗換駅付きでフォーマット。"""
-    if not path or len(path) < 2:
-        return path[0] if path else ""
+def _format_route(path_gcds):
+    """経路(g_cdリスト)を路線名・乗換駅付きでフォーマット。"""
+    if not path_gcds or len(path_gcds) < 2:
+        gtn = _gcd_to_name()
+        return gtn.get(path_gcds[0], "?") if path_gcds else ""
     el = _edge_lines()
+    gtn = _gcd_to_name()
     # 連続する同一路線をまとめてセグメント化
-    segments = []  # [(start, end, line_name)]
-    current_line = el.get((path[0], path[1]), "")
-    seg_start = path[0]
-    for j in range(1, len(path) - 1):
-        next_line = el.get((path[j], path[j + 1]), "")
+    segments = []  # [(start_gcd, end_gcd, line_name)]
+    current_line = el.get((path_gcds[0], path_gcds[1]), "")
+    seg_start = path_gcds[0]
+    for j in range(1, len(path_gcds) - 1):
+        next_line = el.get((path_gcds[j], path_gcds[j + 1]), "")
         if next_line != current_line:
-            segments.append((seg_start, path[j], current_line))
-            seg_start = path[j]
+            segments.append((seg_start, path_gcds[j], current_line))
+            seg_start = path_gcds[j]
             current_line = next_line
-    segments.append((seg_start, path[-1], current_line))
+    segments.append((seg_start, path_gcds[-1], current_line))
     # フォーマット: 新宿 →[中央線]→ 四ツ谷 →[丸ノ内線]→ 池袋
-    parts = [segments[0][0]]
+    parts = [gtn.get(segments[0][0], "?")]
     for _start, end, line in segments:
+        name = gtn.get(end, "?")
         if line:
-            parts.append(f" →[{line}]→ {end}")
+            parts.append(f" →[{line}]→ {name}")
         else:
-            parts.append(f" → {end}")
+            parts.append(f" → {name}")
     return "".join(parts)
 
 
@@ -217,15 +230,16 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 # ---------------------------------------------------------------------------
 # ジオコーディング（駅データベースのみ — 外部API不使用）
 # ---------------------------------------------------------------------------
-def _geocode_station(station_name: str) -> tuple[float | None, float | None, str]:
+def _geocode_station(station_name: str) -> tuple[float | None, float | None, str, int | None]:
     name = station_name.rstrip("駅").strip()
     if not name:
-        return None, None, ""
+        return None, None, "", None
     sdb = _station_db()
     if name in sdb:
         lat, lon = sdb[name]
-        return lat, lon, f"{name}駅"
-    return None, None, ""
+        gcd = _name_to_gcd().get(name)
+        return lat, lon, f"{name}駅", gcd
+    return None, None, "", None
 
 
 # ---------------------------------------------------------------------------
@@ -268,10 +282,13 @@ def find_candidate_stations(participants: list[dict], margin: float = 1.2) -> li
 
     mask = distances <= search_radius
     stations = []
+    ntg = _name_to_gcd()
     for i in np.where(mask)[0]:
         name = names[int(i)]
         lat, lon = sdb[name]
-        stations.append({"name": name, "lat": lat, "lon": lon})
+        gcd = ntg.get(name)
+        if gcd is not None:
+            stations.append({"name": name, "lat": lat, "lon": lon, "gcd": gcd})
 
     return stations
 
@@ -301,22 +318,22 @@ def _prefilter_stations(stations, participants, work_weight, home_weight, top_n=
 
 def score_stations(stations, participants, work_weight, home_weight,
                    fairness_weight=0.0) -> list[dict]:
-    # Collect unique source stations for Dijkstra
+    # Collect unique source g_cds for Dijkstra
     work_sources = set()
     home_targets = set()
     for p in participants:
-        ws = p.get("work_station")
-        if ws:
-            work_sources.add(ws)
-        hs = p.get("home_station")
-        if hs:
-            home_targets.add(hs)
+        wg = p.get("work_gcd")
+        if wg:
+            work_sources.add(wg)
+        hg = p.get("home_gcd")
+        if hg:
+            home_targets.add(hg)
 
-    candidate_names = [s["name"] for s in stations]
-    all_dijkstra_sources = work_sources | set(candidate_names)
+    candidate_gcds = [s["gcd"] for s in stations if s.get("gcd")]
+    all_dijkstra_sources = work_sources | set(candidate_gcds)
 
-    # Run batch Dijkstra: from work stations to candidates, from candidates to home stations
-    all_targets = set(candidate_names) | home_targets
+    # Run batch Dijkstra: from work g_cds to candidates, from candidates to home g_cds
+    all_targets = set(candidate_gcds) | home_targets
     dist_table = _batch_dijkstra(all_dijkstra_sources, all_targets)
 
     scored = []
@@ -324,15 +341,15 @@ def score_stations(stations, participants, work_weight, home_weight,
         total_cost = 0
         max_val = 0
         details = []
-        sn = st_info["name"]
+        sg = st_info.get("gcd")
         for p in participants:
             # Work -> candidate station
             if p.get("work_lat") is not None:
-                ws = p.get("work_station")
-                if ws and ws == sn:
+                wg = p.get("work_gcd")
+                if wg and sg and wg == sg:
                     work_val = 0.0
-                elif ws:
-                    work_val = dist_table.get(ws, {}).get(sn)
+                elif wg and sg:
+                    work_val = dist_table.get(wg, {}).get(sg)
                     if work_val is None:
                         dist = haversine(p["work_lat"], p["work_lon"],
                                          st_info["lat"], st_info["lon"])
@@ -344,11 +361,11 @@ def score_stations(stations, participants, work_weight, home_weight,
 
             # Candidate station -> home
             if p.get("home_lat") is not None:
-                hs = p.get("home_station")
-                if hs and hs == sn:
+                hg = p.get("home_gcd")
+                if hg and sg and hg == sg:
                     home_val = 0.0
-                elif hs:
-                    home_val = dist_table.get(sn, {}).get(hs)
+                elif hg and sg:
+                    home_val = dist_table.get(sg, {}).get(hg)
                     if home_val is None:
                         dist = haversine(st_info["lat"], st_info["lon"],
                                          p["home_lat"], p["home_lon"])
@@ -447,34 +464,37 @@ def geocode_participant(p: dict) -> dict:
     entry = {
         "name": p["name"],
         "pattern": p.get("pattern", TRIP_PATTERNS[0]),
-        "work_station": None, "work_lat": None, "work_lon": None, "work_label": None,
-        "home_station": None, "home_lat": None, "home_lon": None, "home_label": None,
+        "work_station": None, "work_lat": None, "work_lon": None, "work_label": None, "work_gcd": None,
+        "home_station": None, "home_lat": None, "home_lon": None, "home_label": None, "home_gcd": None,
     }
     is_home_round = entry["pattern"] == TRIP_PATTERNS[1]
 
     work_loc = p.get("work_location", "").strip()
     if not is_home_round and work_loc:
-        lat, lon, label = _geocode_station(work_loc)
+        lat, lon, label, gcd = _geocode_station(work_loc)
         if lat is not None:
             entry["work_station"] = label.rstrip("駅")
             entry["work_lat"] = lat
             entry["work_lon"] = lon
             entry["work_label"] = label
+            entry["work_gcd"] = gcd
 
     home_loc = p.get("home_location", "").strip()
     if home_loc:
-        lat, lon, label = _geocode_station(home_loc)
+        lat, lon, label, gcd = _geocode_station(home_loc)
         if lat is not None:
             entry["home_station"] = label.rstrip("駅")
             entry["home_lat"] = lat
             entry["home_lon"] = lon
             entry["home_label"] = label
+            entry["home_gcd"] = gcd
 
     if is_home_round and entry["home_lat"] is not None:
         entry["work_lat"] = entry["home_lat"]
         entry["work_lon"] = entry["home_lon"]
         entry["work_station"] = entry["home_station"]
         entry["work_label"] = entry["home_label"]
+        entry["work_gcd"] = entry["home_gcd"]
 
     return entry
 
@@ -1028,33 +1048,36 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
 
                 # --- 経路詳細 ---
                 sn = s["name"]
+                sg = s.get("gcd")
                 st.markdown("#### 経路")
                 for d, g in zip(s["details"], geocoded):
                     is_hr = g.get("pattern", "").startswith("自宅")
                     from_label = "自宅" if is_hr else "職場"
 
                     # 出発 → 飲み会駅
+                    wg = g.get("work_gcd")
                     ws = g.get("work_station")
-                    if ws and ws != sn:
-                        path_to, time_to = _find_route(ws, sn)
+                    if wg and sg and wg != sg:
+                        path_to, time_to = _find_route(wg, sg)
                         if path_to:
                             route_str = _format_route(path_to)
                             st.markdown(f"**{d['name']}**（{from_label}→飲み会）{route_str}（{time_to}{unit}）")
                         else:
                             st.markdown(f"**{d['name']}**（{from_label}→飲み会）{ws} → {sn}（{d['work_val']:.1f}{unit}）")
-                    elif ws == sn:
+                    elif wg and sg and wg == sg:
                         st.markdown(f"**{d['name']}**（{from_label}→飲み会）{sn}駅（0{unit}）")
 
                     # 飲み会駅 → 自宅
+                    hg = g.get("home_gcd")
                     hs = g.get("home_station")
-                    if hs and hs != sn:
-                        path_home, time_home = _find_route(sn, hs)
+                    if hg and sg and hg != sg:
+                        path_home, time_home = _find_route(sg, hg)
                         if path_home:
                             route_str = _format_route(path_home)
                             st.markdown(f"**{d['name']}**（飲み会→自宅）{route_str}（{time_home}{unit}）")
                         else:
                             st.markdown(f"**{d['name']}**（飲み会→自宅）{sn} → {hs}（{d['home_val']:.1f}{unit}）")
-                    elif hs == sn:
+                    elif hg and sg and hg == sg:
                         st.markdown(f"**{d['name']}**（飲み会→自宅）{sn}駅（0{unit}）")
                     st.markdown("---")
 
