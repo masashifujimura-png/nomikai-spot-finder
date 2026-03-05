@@ -722,7 +722,7 @@ def _add_participant_fragment(event_id, event_code, participant_count):
     new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS, key=f"add_pattern_{fv}")
     is_home_round_form = new_pattern == TRIP_PATTERNS[1]
 
-    new_name = st.text_input("名前", placeholder="あなたの名前", key=f"add_name_{fv}")
+    new_name = st.text_input("名前", placeholder="参加者の名前", key=f"add_name_{fv}")
     new_home = _station_picker("自宅最寄駅", f"add_home_{fv}")
     if is_home_round_form:
         new_work = None
@@ -1047,12 +1047,12 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
             medal = ["1位", "2位", "3位"][i]
             with st.expander(f"{medal}: {s['name']}（平均 {s['avg_total_val']:.1f}{unit}）", expanded=(i == 0)):
                 detail_df = pd.DataFrame(s["details"])
-                detail_df.columns = ["名前", f"出発→駅({unit})", f"駅→自宅({unit})", f"合計({unit})"]
+                detail_df.columns = ["名前", f"職場/自宅→駅({unit})", f"駅→自宅({unit})", f"合計({unit})"]
                 st.dataframe(detail_df, use_container_width=True, hide_index=True)
 
                 chart_df = pd.DataFrame({
                     "名前": [d["name"] for d in s["details"]],
-                    f"出発→駅({unit})": [d["work_val"] for d in s["details"]],
+                    f"職場/自宅→駅({unit})": [d["work_val"] for d in s["details"]],
                     f"駅→自宅({unit})": [d["home_val"] for d in s["details"]],
                 }).set_index("名前")
                 st.bar_chart(chart_df)
