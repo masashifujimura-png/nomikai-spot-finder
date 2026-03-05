@@ -413,15 +413,11 @@ def geocode_participant(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 def _station_picker(label, key, default=""):
     names = _sorted_station_names()
-    options = ["（未選択）"] + names
     if default and default in names:
-        idx = names.index(default) + 1
+        idx = names.index(default)
     else:
-        idx = 0
-    selected = st.selectbox(label, options, index=idx, key=f"{key}_s")
-    if selected == "（未選択）":
-        return None
-    return selected
+        idx = None
+    return st.selectbox(label, names, index=idx, placeholder="駅名を入力して選択", key=f"{key}_s")
 
 
 # ---------------------------------------------------------------------------
@@ -492,42 +488,49 @@ def _inject_custom_css():
 # 地図描画（Leaflet.js — 軽量、スマホ対応）
 # ---------------------------------------------------------------------------
 _STATION_COLORS = ["#e53935", "#ff9800", "#9c27b0"]
-_WORK_COLOR = "#1e88e5"
-_HOME_COLOR = "#43a047"
+# 参加者ごとの色パレット（人数が増えても対応）
+_PERSON_COLORS = [
+    "#1e88e5", "#43a047", "#f4511e", "#8e24aa",
+    "#00acc1", "#c0ca33", "#6d4c41", "#d81b60",
+    "#3949ab", "#00897b", "#ffb300", "#546e7a",
+]
 
 
 def _render_map(top_stations, geocoded):
-    """Leaflet.js で上位駅・参加者の職場/自宅を凡例付きで表示。"""
+    """Leaflet.js で上位3駅・参加者の職場/自宅を凡例付きで表示。"""
     marker_data = []
     all_points = []
+
+    # 1位の座標（地図中心用）
+    center = [top_stations[0]["lat"], top_stations[0]["lon"]] if top_stations else [35.68, 139.76]
+
     for i, s in enumerate(top_stations[:3]):
         marker_data.append({
             "lat": s["lat"], "lon": s["lon"], "color": _STATION_COLORS[i],
             "label": f"{i+1}位: {s['name']}", "radius": 8,
         })
         all_points.append([s["lat"], s["lon"]])
-    for g in geocoded:
-        if g.get("work_lat") is not None:
-            marker_data.append({
-                "lat": g["work_lat"], "lon": g["work_lon"], "color": _WORK_COLOR,
-                "label": f"{g['name']} 職場", "radius": 6,
-            })
-            all_points.append([g["work_lat"], g["work_lon"]])
-        if g.get("home_lat") is not None:
-            marker_data.append({
-                "lat": g["home_lat"], "lon": g["home_lon"], "color": _HOME_COLOR,
-                "label": f"{g['name']} 自宅", "radius": 6,
-            })
-            all_points.append([g["home_lat"], g["home_lon"]])
 
     legend_items = []
     for i, s in enumerate(top_stations[:3]):
         legend_items.append({"color": _STATION_COLORS[i], "label": f"{i+1}位: {s['name']}"})
-    for g in geocoded:
+
+    for pi, g in enumerate(geocoded):
+        pcolor = _PERSON_COLORS[pi % len(_PERSON_COLORS)]
         if g.get("work_lat") is not None:
-            legend_items.append({"color": _WORK_COLOR, "label": f"{g['name']} 職場"})
+            marker_data.append({
+                "lat": g["work_lat"], "lon": g["work_lon"], "color": pcolor,
+                "label": f"{g['name']} 職場", "radius": 6,
+            })
+            all_points.append([g["work_lat"], g["work_lon"]])
+            legend_items.append({"color": pcolor, "label": f"{g['name']} 職場"})
         if g.get("home_lat") is not None:
-            legend_items.append({"color": _HOME_COLOR, "label": f"{g['name']} 自宅"})
+            marker_data.append({
+                "lat": g["home_lat"], "lon": g["home_lon"], "color": pcolor,
+                "label": f"{g['name']} 自宅", "radius": 6,
+            })
+            all_points.append([g["home_lat"], g["home_lon"]])
+            legend_items.append({"color": pcolor, "label": f"{g['name']} 自宅"})
 
     html = _MAP_TEMPLATE.replace(
         "/*MARKERS*/", json.dumps(marker_data, ensure_ascii=False),
@@ -535,6 +538,8 @@ def _render_map(top_stations, geocoded):
         "/*LEGEND*/", json.dumps(legend_items, ensure_ascii=False),
     ).replace(
         "/*BOUNDS*/", json.dumps(all_points),
+    ).replace(
+        "/*CENTER*/", json.dumps(center),
     )
     st.components.v1.html(html, height=460)
 
@@ -544,7 +549,7 @@ _MAP_TEMPLATE = """
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <div id="map" style="height:440px;width:100%;border-radius:8px;"></div>
 <style>
-.map-legend{background:#fff;padding:10px 14px;border-radius:6px;
+.map-legend{background:rgba(255,255,255,0.95);padding:10px 14px;border-radius:6px;
   box-shadow:0 1px 5px rgba(0,0,0,.3);font-size:12px;line-height:1.8;
   max-height:220px;overflow-y:auto;}
 .map-legend .title{font-weight:bold;margin-bottom:4px;}
@@ -553,9 +558,10 @@ _MAP_TEMPLATE = """
 </style>
 <script>
 (function(){
-  var map=L.map('map');
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'&copy; OpenStreetMap',maxZoom:18}).addTo(map);
+  var center=/*CENTER*/;
+  var map=L.map('map',{center:center,zoom:12});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:18}).addTo(map);
   var markers=/*MARKERS*/;
   markers.forEach(function(m){
     L.circleMarker([m.lat,m.lon],{radius:m.radius,fillColor:m.color,
@@ -573,7 +579,8 @@ _MAP_TEMPLATE = """
   };
   legend.addTo(map);
   var bounds=/*BOUNDS*/;
-  if(bounds.length)map.fitBounds(bounds,{padding:[30,30]});
+  if(bounds.length>1){map.fitBounds(bounds,{padding:[40,40],maxZoom:14});}
+  else if(bounds.length==1){map.setView(bounds[0],13);}
 })();
 </script>
 """
