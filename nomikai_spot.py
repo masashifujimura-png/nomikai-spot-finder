@@ -475,7 +475,7 @@ _HP_API_URL = "https://webservice.recruit.co.jp/hotpepper/gourmet/v1/"
 
 
 @st.cache_data(ttl=600, show_spinner=False)
-def _search_hotpepper(lat, lon, keyword="", genre="G001", count=10,
+def _search_hotpepper(lat, lon, keyword="", genre="", count=10,
                       free_drink=0, private_room=0, party_capacity=0, budget=""):
     """ホットペッパーAPIで周辺の飲食店を検索。結果を10分キャッシュ。"""
     if not HOTPEPPER_API_KEY:
@@ -485,11 +485,12 @@ def _search_hotpepper(lat, lon, keyword="", genre="G001", count=10,
         "lat": lat,
         "lng": lon,
         "range": 3,  # 1km圏内
-        "genre": genre,
         "order": 4,  # おすすめ順
         "count": count,
         "format": "json",
     }
+    if genre:
+        params["genre"] = genre
     if keyword:
         params["keyword"] = keyword
     if free_drink:
@@ -516,7 +517,7 @@ def _search_hotpepper(lat, lon, keyword="", genre="G001", count=10,
             "course": s.get("course", ""),
             "genre": s.get("genre", {}).get("name", ""),
             "catch": s.get("catch", ""),
-            "photo": s.get("photo", {}).get("mobile", {}).get("l", ""),
+            "photo": s.get("photo", {}).get("pc", {}).get("l", ""),
             "url": s.get("urls", {}).get("pc", ""),
             "open": s.get("open", ""),
         } for s in shops]
@@ -1223,14 +1224,16 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                     st.markdown(f"**{station_name}駅**周辺で **{len(shops)}件** 見つかりました")
                     for shop in shops:
                         with st.container(border=True):
-                            col_img, col_info = st.columns([1, 3])
+                            col_img, col_info = st.columns([1, 2])
                             with col_img:
                                 if shop["photo"]:
-                                    st.image(shop["photo"], width=120)
+                                    st.image(shop["photo"], use_container_width=True)
                             with col_info:
                                 st.markdown(f"**{shop['name']}**")
                                 st.caption(shop["catch"] if shop["catch"] else "")
                                 tags = []
+                                if shop["genre"]:
+                                    tags.append(f"🍽️ {shop['genre']}")
                                 if shop["budget"]:
                                     tags.append(f"💰 {shop['budget']}")
                                 if shop["capacity"]:
