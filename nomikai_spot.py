@@ -835,28 +835,12 @@ def page_top():
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns([3, 2])
-
-    with col1:
-        st.subheader("新しい飲み会を作成")
-        title = st.text_input("飲み会の名前", placeholder="例: 歓迎会、忘年会")
-        if st.button("作成してURLを発行", type="primary", use_container_width=True):
-            code = create_event(title.strip() or "飲み会")
-            st.session_state["_redirect_event"] = code
-            st.rerun()
-
-    with col2:
-        st.subheader("コードで参加")
-        st.caption("幹事から共有されたコードを入力")
-        join_code = st.text_input("イベントコード", placeholder="例: Xk9mZ3", label_visibility="collapsed")
-        if st.button("参加する", use_container_width=True):
-            if join_code.strip():
-                event = get_event(join_code.strip())
-                if event:
-                    st.query_params["event"] = join_code.strip()
-                    st.rerun()
-                else:
-                    st.error("イベントが見つかりません。コードを確認してください。")
+    st.subheader("新しい飲み会を作成")
+    title = st.text_input("飲み会の名前", placeholder="例: 歓迎会、忘年会")
+    if st.button("作成してURLを発行", type="primary", use_container_width=True):
+        code = create_event(title.strip() or "飲み会")
+        st.session_state["_redirect_event"] = code
+        st.rerun()
 
 
 # ---------------------------------------------------------------------------
