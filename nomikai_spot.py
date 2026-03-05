@@ -586,6 +586,11 @@ def _inject_custom_css():
         border-color: #d32f2f !important;
     }
 
+    /* 再実行時の白い靄を無効化 */
+    [data-testid="stAppViewBlockContainer"] [data-stale="true"] {
+        opacity: 1 !important;
+    }
+
     /* ステップ番号のスタイル */
     .step-badge {
         display: inline-block;
@@ -984,14 +989,19 @@ def main():
     event_code = st.query_params.get("event")
 
     if event_code:
-        # プログレスバー付きローディング
-        loading = st.empty()
-        progress = st.progress(0, text="イベント情報を取得中...")
-        _event_data = get_event(event_code)
-        progress.progress(50, text="参加者情報を取得中...")
-        _participants = get_participants(_event_data["id"]) if _event_data else []
-        progress.progress(100, text="準備完了")
-        progress.empty()
+        # 初回のみプログレスバー表示（以降はキャッシュ）
+        cache_key = f"_loaded_{event_code}"
+        if cache_key not in st.session_state:
+            progress = st.progress(0, text="イベント情報を取得中...")
+            _event_data = get_event(event_code)
+            progress.progress(50, text="参加者情報を取得中...")
+            _participants = get_participants(_event_data["id"]) if _event_data else []
+            progress.progress(100, text="準備完了")
+            progress.empty()
+            st.session_state[cache_key] = True
+        else:
+            _event_data = get_event(event_code)
+            _participants = get_participants(_event_data["id"]) if _event_data else []
         page_event(event_code, _event_data, _participants)
     else:
         page_top()
