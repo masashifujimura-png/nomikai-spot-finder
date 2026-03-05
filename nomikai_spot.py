@@ -140,7 +140,8 @@ def _station_names_set():
 def _dijkstra(start: str, end: str) -> int | None:
     if start == end:
         return 0
-    if start not in _graph() or end not in _graph():
+    g = _graph()
+    if start not in g or end not in g:
         return None
     dist = {start: 0}
     heap = [(0, start)]
@@ -150,7 +151,7 @@ def _dijkstra(start: str, end: str) -> int | None:
             return d
         if d > dist.get(u, float("inf")):
             continue
-        for v, w in _graph().get(u, []):
+        for v, w in g.get(u, []):
             nd = d + w
             if nd < dist.get(v, float("inf")):
                 dist[v] = nd
@@ -179,7 +180,8 @@ def _dijkstra_all(start: str) -> dict[str, float]:
 
 def _find_nearest_graph_station(lat: float, lon: float) -> tuple[str | None, float]:
     best_name, best_dist = None, float("inf")
-    for name, (slat, slon) in _station_db().items():
+    sdb = _station_db()
+    for name, (slat, slon) in sdb.items():
         if abs(slat - lat) > 0.5:
             continue
         d = haversine(lat, lon, slat, slon)
@@ -237,8 +239,9 @@ def _geocode_station(station_name: str) -> tuple[float | None, float | None, str
     if not name:
         return None, None, ""
 
-    if name in _station_db():
-        lat, lon = _station_db()[name]
+    sdb = _station_db()
+    if name in sdb:
+        lat, lon = sdb[name]
         return lat, lon, f"{name}駅"
 
     query = f'[out:json][timeout:10];node["railway"="station"]["name"~"^{name}$"];out body 1;'
@@ -310,12 +313,14 @@ def find_candidate_stations(participants: list[dict], margin: float = 1.2) -> li
 
     stations = []
     seen = set()
+    sdb = _station_db()
+    sl = _station_lines()
 
-    for name, (slat, slon) in _station_db().items():
+    for name, (slat, slon) in sdb.items():
         dist = haversine(center_lat, center_lon, slat, slon)
         if dist <= search_radius:
             seen.add(name)
-            lines = _station_lines().get(name, [])
+            lines = sl.get(name, [])
             stations.append({
                 "name": name, "lat": slat, "lon": slon,
                 "operator": "", "line": "・".join(lines),
