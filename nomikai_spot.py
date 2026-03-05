@@ -525,6 +525,124 @@ def make_result_map(participants, top_stations, center_lat, center_lon, mode="tr
 
 
 # ---------------------------------------------------------------------------
+# 路線図（ネットワーク図）
+# ---------------------------------------------------------------------------
+def make_route_diagram(participants: list[dict], top_stations: list[dict]) -> go.Figure:
+    """参加者の駅とおすすめ駅をネットワーク図で表示。"""
+    fig = go.Figure()
+
+    # ノード収集: 参加者の駅 + おすすめ駅
+    nodes = {}  # name -> {"x", "y", "type", "label", "color", "size"}
+    edges = []  # (from_name, to_name, time, color)
+
+    # おすすめ駅を中央に配置
+    for i, s in enumerate(top_stations[:3]):
+        color = _RANK_MARKER_COLORS[i]
+        rank = ["1位", "2位", "3位"][i]
+        nodes[f"rec_{s['name']}"] = {
+            "x": 0.5, "y": 0.5 - i * 0.2,
+            "name": s["name"],
+            "label": f"★{rank} {s['name']}",
+            "color": color, "size": 28,
+            "type": "recommend",
+        }
+
+    # 参加者の駅を左右に配置
+    n_people = len(participants)
+    for pi, p in enumerate(participants):
+        colors = _PERSON_COLORS[pi % len(_PERSON_COLORS)]
+        y_base = 1.0 - (pi + 0.5) / n_people  # 均等配置
+
+        is_hr = p.get("pattern", "").startswith("自宅")
+
+        # 職場（左側）
+        if not is_hr and p.get("work_station"):
+            ws = p["work_station"]
+            node_key = f"work_{p['name']}"
+            nodes[node_key] = {
+                "x": 0.0, "y": y_base,
+                "name": ws,
+                "label": f"{p['name']} 職場\n({ws})",
+                "color": colors["work"], "size": 18,
+                "type": "work",
+            }
+            # おすすめ駅への接続線
+            for i, s in enumerate(top_stations[:3]):
+                t = _dijkstra(ws, s["name"])
+                time_str = f"{round(t)}分" if t is not None else "?"
+                edges.append((node_key, f"rec_{s['name']}", time_str, colors["work"]))
+
+        # 自宅（右側）
+        if p.get("home_station"):
+            hs = p["home_station"]
+            node_key = f"home_{p['name']}"
+            nodes[node_key] = {
+                "x": 1.0, "y": y_base,
+                "name": hs,
+                "label": f"{p['name']} 自宅\n({hs})",
+                "color": colors["home"], "size": 18,
+                "type": "home",
+            }
+            for i, s in enumerate(top_stations[:3]):
+                t = _dijkstra(s["name"], hs)
+                time_str = f"{round(t)}分" if t is not None else "?"
+                edges.append((f"rec_{s['name']}", node_key, time_str, colors["home"]))
+
+    # 接続線を描画
+    for from_key, to_key, time_str, color in edges:
+        if from_key not in nodes or to_key not in nodes:
+            continue
+        fn, tn = nodes[from_key], nodes[to_key]
+        fig.add_trace(go.Scatter(
+            x=[fn["x"], tn["x"]], y=[fn["y"], tn["y"]],
+            mode="lines",
+            line=dict(color=color, width=1.5),
+            opacity=0.3,
+            showlegend=False, hoverinfo="skip",
+        ))
+        # 所要時間ラベル（線の中点）
+        mid_x = (fn["x"] + tn["x"]) / 2
+        mid_y = (fn["y"] + tn["y"]) / 2
+        fig.add_trace(go.Scatter(
+            x=[mid_x], y=[mid_y],
+            mode="text",
+            text=[time_str],
+            textfont=dict(size=10, color="#757575"),
+            showlegend=False, hoverinfo="skip",
+        ))
+
+    # ノードを描画
+    for node in nodes.values():
+        # 白縁
+        fig.add_trace(go.Scatter(
+            x=[node["x"]], y=[node["y"]],
+            mode="markers",
+            marker=dict(size=node["size"] + 8, color="white"),
+            showlegend=False, hoverinfo="skip",
+        ))
+        fig.add_trace(go.Scatter(
+            x=[node["x"]], y=[node["y"]],
+            mode="markers+text",
+            marker=dict(size=node["size"], color=node["color"]),
+            text=[node["label"]],
+            textposition="top center" if node["type"] == "recommend" else
+                         ("middle left" if node["x"] < 0.3 else "middle right"),
+            textfont=dict(size=12, color=node["color"]),
+            showlegend=False,
+            hovertext=node["name"],
+        ))
+
+    fig.update_layout(
+        xaxis=dict(visible=False, range=[-0.3, 1.3]),
+        yaxis=dict(visible=False, range=[-0.15, 1.15]),
+        height=450,
+        margin=dict(l=0, r=0, t=10, b=10),
+        plot_bgcolor="white",
+    )
+    return fig
+
+
+# ---------------------------------------------------------------------------
 # DB操作
 # ---------------------------------------------------------------------------
 TRIP_PATTERNS = ["職場→飲み会→自宅", "自宅→飲み会→自宅"]
@@ -802,42 +920,52 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     is_home_round_form = new_pattern == TRIP_PATTERNS[1]
 
     new_name = st.text_input("名前", placeholder="あなたの名前", key="add_name")
-    new_home = st.text_input("自宅最寄駅", placeholder="駅名を入力（例: 渋谷）", key="add_home")
-    # 入力中のヒント表示
-    if new_home and new_home not in STATION_NAMES_SET:
-        matches = [s for s in STATION_NAMES_SET if new_home in s][:5]
-        if matches:
-            st.caption(f"もしかして: {', '.join(matches)}")
+
+    # 自宅最寄駅 — 入力して候補から選択
+    home_query = st.text_input("自宅最寄駅", placeholder="駅名を入力（例: 渋谷、北）", key="home_query")
+    new_home = None
+    if home_query:
+        home_matches = [s for s in STATION_NAMES_SET if home_query in s]
+        home_matches.sort()
+        if home_query in STATION_NAMES_SET:
+            new_home = home_query
+            st.success(f"自宅: {home_query}駅")
+        elif home_matches:
+            new_home = st.selectbox(
+                "候補から選択", home_matches[:20], index=None, key="home_select",
+                placeholder="候補をクリックして選択...")
         else:
             st.caption("該当する駅が見つかりません")
 
-    if is_home_round_form:
-        new_work = ""
-    else:
-        new_work = st.text_input("職場最寄駅", placeholder="駅名を入力（例: 東京）", key="add_work")
-        if new_work and new_work not in STATION_NAMES_SET:
-            matches = [s for s in STATION_NAMES_SET if new_work in s][:5]
-            if matches:
-                st.caption(f"もしかして: {', '.join(matches)}")
+    # 職場最寄駅
+    new_work = None
+    if not is_home_round_form:
+        work_query = st.text_input("職場最寄駅", placeholder="駅名を入力（例: 東京、新）", key="work_query")
+        if work_query:
+            work_matches = [s for s in STATION_NAMES_SET if work_query in s]
+            work_matches.sort()
+            if work_query in STATION_NAMES_SET:
+                new_work = work_query
+                st.success(f"職場: {work_query}駅")
+            elif work_matches:
+                new_work = st.selectbox(
+                    "候補から選択", work_matches[:20], index=None, key="work_select",
+                    placeholder="候補をクリックして選択...")
             else:
                 st.caption("該当する駅が見つかりません")
 
     if st.button("参加者を追加", type="primary", use_container_width=True):
         if not new_name.strip():
             st.error("名前を入力してください。")
-        elif not new_home.strip():
-            st.error("自宅の最寄駅を入力してください。")
-        elif new_home.strip() not in STATION_NAMES_SET:
-            st.error(f"「{new_home}」は駅データに見つかりません。正しい駅名を入力してください。")
-        elif not is_home_round_form and not new_work.strip():
-            st.error("職場の最寄駅を入力してください。")
-        elif not is_home_round_form and new_work.strip() not in STATION_NAMES_SET:
-            st.error(f"「{new_work}」は駅データに見つかりません。正しい駅名を入力してください。")
+        elif not new_home:
+            st.error("自宅の最寄駅を入力・選択してください。")
+        elif not is_home_round_form and not new_work:
+            st.error("職場の最寄駅を入力・選択してください。")
         else:
-            work_val = "" if is_home_round_form else new_work.strip()
-            add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home.strip())
-            # 入力をリセット
-            for k in ["add_name", "add_home", "add_work", "add_pattern"]:
+            work_val = "" if is_home_round_form else new_work
+            add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home)
+            for k in ["add_name", "home_query", "home_select", "work_query",
+                       "work_select", "add_pattern"]:
                 if k in st.session_state:
                     del st.session_state[k]
             st.rerun()
@@ -956,29 +1084,50 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     k3.metric("最大移動者", f"{best['max_person_val']:.1f} {unit}")
     k4.metric("候補駅数", f"{len(stations)} 駅")
 
-    tab_map, tab_ranking, tab_detail = st.tabs(["地図", "ランキング", "詳細比較"])
+    tab_route, tab_map, tab_ranking, tab_detail = st.tabs(["路線図", "地図", "ランキング", "詳細比較"])
 
-    with tab_map:
-        # 参加者ごとの色凡例を動的生成
-        person_legend = ""
+    # 共通: 凡例HTML生成
+    def _build_legends():
+        person_items = ""
         for i, g in enumerate(geocoded):
             colors = _PERSON_COLORS[i % len(_PERSON_COLORS)]
             is_hr = g.get("pattern", "").startswith("自宅")
             if is_hr:
-                person_legend += f'<span><span style="color:{colors["home"]};">●</span> {g["name"]}(自宅)</span> '
+                person_items += f'<span style="margin-right:12px;"><span style="color:{colors["home"]};">●</span> {g["name"]}(自宅)</span>'
             else:
-                person_legend += f'<span><span style="color:{colors["work"]};">■</span><span style="color:{colors["home"]};">●</span> {g["name"]}</span> '
-        rank_legend = (
-            f'<span style="margin-left:12px;"><span style="color:#d50000;">★</span> 1位</span> '
-            f'<span><span style="color:#e65100;">★</span> 2位</span> '
+                person_items += f'<span style="margin-right:12px;"><span style="color:{colors["work"]};">■</span> {g["name"]} 職場 <span style="color:{colors["home"]};">●</span> 自宅</span>'
+        rank_items = (
+            f'<span style="margin-right:12px;"><span style="color:#d50000;">★</span> 1位</span>'
+            f'<span style="margin-right:12px;"><span style="color:#e65100;">★</span> 2位</span>'
             f'<span><span style="color:#f57f17;">★</span> 3位</span>'
         )
-        st.markdown(
-            f'<div style="display:flex; gap:16px; margin-bottom:8px; font-size:14px; font-weight:600; flex-wrap:wrap;">'
-            f'{person_legend}{rank_legend}</div>',
-            unsafe_allow_html=True,
-        )
-        st.caption("■ 職場 / ● 自宅 / ★ おすすめ駅　※地図上のマーカーにカーソルを合わせると詳細が表示されます")
+        return person_items, rank_items
+
+    person_legend, rank_legend = _build_legends()
+    legend_style = "padding:8px 12px; border-radius:6px; font-size:13px; font-weight:600; display:flex; flex-wrap:wrap; gap:4px; align-items:center;"
+
+    def _show_legends():
+        c1, c2 = st.columns([3, 2])
+        with c1:
+            st.markdown(
+                f'<div style="{legend_style} background:#f0f4ff; border:1px solid #c5cae9;">'
+                f'<span style="margin-right:8px; color:#555;">参加者:</span>{person_legend}</div>',
+                unsafe_allow_html=True)
+        with c2:
+            st.markdown(
+                f'<div style="{legend_style} background:#fff8e1; border:1px solid #ffe082;">'
+                f'<span style="margin-right:8px; color:#555;">おすすめ:</span>{rank_legend}</div>',
+                unsafe_allow_html=True)
+
+    # --- 路線図タブ ---
+    with tab_route:
+        _show_legends()
+        fig_route = make_route_diagram(geocoded, top_stations[:3])
+        st.plotly_chart(fig_route, use_container_width=True)
+
+    # --- 地図タブ ---
+    with tab_map:
+        _show_legends()
         fig = make_result_map(geocoded, top_stations, center_lat, center_lon, mode="train")
         st.plotly_chart(fig, use_container_width=True)
 
