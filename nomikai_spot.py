@@ -657,7 +657,7 @@ def page_top():
         title = st.text_input("飲み会の名前", value="飲み会", placeholder="例: 歓迎会、忘年会")
         if st.button("作成してURLを発行", type="primary", use_container_width=True):
             code = create_event(title)
-            st.query_params["event"] = code
+            st.session_state["_redirect_event"] = code
             st.rerun()
 
     with col2:
@@ -677,15 +677,17 @@ def page_top():
 # ---------------------------------------------------------------------------
 # UI: イベントページ（参加者入力 & 結果表示）
 # ---------------------------------------------------------------------------
-def page_event(event_code: str):
+def page_event(event_code: str, event: dict | None = None, db_participants: list | None = None):
     _inject_custom_css()
-    event = get_event(event_code)
     if not event:
         st.error("イベントが見つかりません。URLを確認してください。")
         if st.button("トップに戻る"):
             del st.query_params["event"]
             st.rerun()
         return
+
+    if db_participants is None:
+        db_participants = []
 
     st.title(f"{event['title']}")
     st.caption("飲み会スポットファインダー")
@@ -694,8 +696,6 @@ def page_event(event_code: str):
     base_url = os.environ.get("APP_URL", st.context.headers.get("Origin", ""))
     share_url = f"{base_url}/?event={event_code}" if base_url else f"?event={event_code}"
 
-    # 参加者数を取得
-    db_participants = get_participants(event["id"])
     participant_count = len(db_participants)
 
     # ステップ表示（現在の進行状況に応じてハイライト）
@@ -746,16 +746,26 @@ def page_event(event_code: str):
     else:
         st.caption("駅名、地名、住所のいずれかを入力してください")
 
+    # パターン選択をフォーム外に置いて動的に職場欄を表示/非表示
+    new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS, key="add_pattern")
+    is_home_round_form = new_pattern == TRIP_PATTERNS[1]
+
     with st.form("add_participant", clear_on_submit=True):
-        fc = st.columns([1.5, 2, 2, 2])
-        with fc[0]:
-            new_name = st.text_input("名前", placeholder="あなたの名前")
-        with fc[1]:
-            new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS)
-        with fc[2]:
-            new_home = st.text_input("自宅最寄駅", placeholder=home_ph)
-        with fc[3]:
-            new_work = st.text_input("職場最寄駅", placeholder=work_ph)
+        if is_home_round_form:
+            fc = st.columns([2, 3])
+            with fc[0]:
+                new_name = st.text_input("名前", placeholder="あなたの名前")
+            with fc[1]:
+                new_home = st.text_input("自宅最寄駅", placeholder=home_ph)
+            new_work = ""
+        else:
+            fc = st.columns([1.5, 2, 2])
+            with fc[0]:
+                new_name = st.text_input("名前", placeholder="あなたの名前")
+            with fc[1]:
+                new_home = st.text_input("自宅最寄駅", placeholder=home_ph)
+            with fc[2]:
+                new_work = st.text_input("職場最寄駅", placeholder=work_ph)
 
         submitted = st.form_submit_button("参加者を追加", type="primary", use_container_width=True)
         if submitted:
@@ -763,10 +773,10 @@ def page_event(event_code: str):
                 st.error("名前を入力してください。")
             elif not new_home.strip():
                 st.error("自宅の最寄駅を入力してください。")
-            elif new_pattern == TRIP_PATTERNS[0] and not new_work.strip():
+            elif not is_home_round_form and not new_work.strip():
                 st.error("職場の最寄駅を入力してください。")
             else:
-                work_val = "" if new_pattern == TRIP_PATTERNS[1] else new_work.strip()
+                work_val = "" if is_home_round_form else new_work.strip()
                 add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home.strip())
                 st.rerun()
 
@@ -986,9 +996,20 @@ def page_event(event_code: str):
 # メイン
 # ---------------------------------------------------------------------------
 def main():
+    # イベント作成後のリダイレクト処理
+    if "_redirect_event" in st.session_state:
+        code = st.session_state.pop("_redirect_event")
+        st.query_params["event"] = code
+        st.rerun()
+
     event_code = st.query_params.get("event")
+
+    # ローディング表示: DB接続を伴うページはスピナーで包む
     if event_code:
-        page_event(event_code)
+        with st.spinner("読み込み中..."):
+            _event_data = get_event(event_code)
+            _participants = get_participants(_event_data["id"]) if _event_data else []
+        page_event(event_code, _event_data, _participants)
     else:
         page_top()
 
