@@ -45,7 +45,7 @@ _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 # ---------------------------------------------------------------------------
 # 駅データ.jp CSV 読み込み → STATION_DB / グラフ構築
 # ---------------------------------------------------------------------------
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def _load_ekidata():
     """statione.csv, join.csv, line.csv を読み込み、駅辞書・路線グラフ・路線名マップを構築する。"""
 
