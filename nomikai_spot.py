@@ -318,23 +318,19 @@ def _prefilter_stations(stations, participants, work_weight, home_weight, top_n=
 
 def score_stations(stations, participants, work_weight, home_weight,
                    fairness_weight=0.0) -> list[dict]:
-    # Collect unique source g_cds for Dijkstra
-    work_sources = set()
-    home_targets = set()
+    # 参加者の拠点のみからDijkstra実行（無向グラフなので候補駅からの実行は不要）
+    person_sources = set()
     for p in participants:
         wg = p.get("work_gcd")
         if wg:
-            work_sources.add(wg)
+            person_sources.add(wg)
         hg = p.get("home_gcd")
         if hg:
-            home_targets.add(hg)
+            person_sources.add(hg)
 
     candidate_gcds = [s["gcd"] for s in stations if s.get("gcd")]
-    all_dijkstra_sources = work_sources | set(candidate_gcds)
-
-    # Run batch Dijkstra: from work g_cds to candidates, from candidates to home g_cds
-    all_targets = set(candidate_gcds) | home_targets
-    dist_table = _batch_dijkstra(all_dijkstra_sources, all_targets)
+    # ターゲットは候補駅のみ（参加者拠点→候補駅の距離を求める）
+    dist_table = _batch_dijkstra(person_sources, candidate_gcds)
 
     scored = []
     for st_info in stations:
@@ -355,20 +351,19 @@ def score_stations(stations, participants, work_weight, home_weight,
                                          st_info["lat"], st_info["lon"])
                         work_val = round(dist / TRAIN_SPEED_KMH * 60, 1)
                 else:
-                    # gcd が取得できない場合は直線距離でフォールバック
                     dist = haversine(p["work_lat"], p["work_lon"],
                                      st_info["lat"], st_info["lon"])
                     work_val = round(dist / TRAIN_SPEED_KMH * 60, 1)
             else:
                 work_val = 0
 
-            # Candidate station -> home
+            # Candidate station -> home (無向グラフ: dist(home→candidate) = dist(candidate→home))
             if p.get("home_lat") is not None:
                 hg = p.get("home_gcd")
                 if hg and sg and hg == sg:
                     home_val = 0.0
                 elif hg and sg:
-                    home_val = dist_table.get(sg, {}).get(hg)
+                    home_val = dist_table.get(hg, {}).get(sg)
                     if home_val is None:
                         dist = haversine(st_info["lat"], st_info["lon"],
                                          p["home_lat"], p["home_lon"])
