@@ -380,6 +380,12 @@ def score_stations(stations, participants, work_weight, home_weight,
             else:
                 home_val = 0
 
+            # 自宅→飲み会→自宅の場合、往復同一経路なので一方に揃える
+            wg = p.get("work_gcd")
+            hg = p.get("home_gcd")
+            if wg and hg and wg == hg:
+                home_val = work_val
+
             cost = work_val * work_weight + home_val * home_weight
             total_cost += cost
             total_val = work_val + home_val
