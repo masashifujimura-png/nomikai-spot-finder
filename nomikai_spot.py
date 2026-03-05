@@ -725,60 +725,43 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
 
     st.markdown("---")
 
-    # --- モード選択 ---
-    mode = st.radio(
-        "計算モード",
-        ["電車（路線グラフ）", "直線距離"],
-        horizontal=True,
-        help="電車モード: 主要路線の所要時間で計算（駅名のみ入力）\n直線距離モード: 直線距離で計算（駅名・住所・地名OK）",
-    )
-    is_train = mode.startswith("電車")
+    # 駅名リスト（レコメンド用）
+    station_names = sorted(STATION_DB.keys())
 
-    if is_train:
-        work_ph, home_ph = "職場最寄駅（例: 東京）", "自宅最寄駅（例: 吉祥寺）"
-    else:
-        work_ph, home_ph = "職場（駅名 or 住所）", "自宅（駅名 or 住所）"
-
-    # --- 参加者追加フォーム（先に表示） ---
+    # --- 参加者追加フォーム ---
     st.subheader("自分の情報を入力")
-    if is_train:
-        st.caption("最寄駅名を入力してください（例: 東京、渋谷、新宿）")
-    else:
-        st.caption("駅名、地名、住所のいずれかを入力してください")
+    st.caption("最寄駅を選択してください（入力すると候補が絞り込まれます）")
 
     # パターン選択をフォーム外に置いて動的に職場欄を表示/非表示
     new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS, key="add_pattern")
     is_home_round_form = new_pattern == TRIP_PATTERNS[1]
 
-    with st.form("add_participant", clear_on_submit=True):
-        if is_home_round_form:
-            fc = st.columns([2, 3])
-            with fc[0]:
-                new_name = st.text_input("名前", placeholder="あなたの名前")
-            with fc[1]:
-                new_home = st.text_input("自宅最寄駅", placeholder=home_ph)
-            new_work = ""
-        else:
-            fc = st.columns([1.5, 2, 2])
-            with fc[0]:
-                new_name = st.text_input("名前", placeholder="あなたの名前")
-            with fc[1]:
-                new_home = st.text_input("自宅最寄駅", placeholder=home_ph)
-            with fc[2]:
-                new_work = st.text_input("職場最寄駅", placeholder=work_ph)
+    new_name = st.text_input("名前", placeholder="あなたの名前", key="add_name")
+    new_home = st.selectbox("自宅最寄駅", options=[""] + station_names,
+                            index=0, key="add_home",
+                            format_func=lambda x: "駅を選択..." if x == "" else x)
+    if is_home_round_form:
+        new_work = ""
+    else:
+        new_work = st.selectbox("職場最寄駅", options=[""] + station_names,
+                                index=0, key="add_work",
+                                format_func=lambda x: "駅を選択..." if x == "" else x)
 
-        submitted = st.form_submit_button("参加者を追加", type="primary", use_container_width=True)
-        if submitted:
-            if not new_name.strip():
-                st.error("名前を入力してください。")
-            elif not new_home.strip():
-                st.error("自宅の最寄駅を入力してください。")
-            elif not is_home_round_form and not new_work.strip():
-                st.error("職場の最寄駅を入力してください。")
-            else:
-                work_val = "" if is_home_round_form else new_work.strip()
-                add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home.strip())
-                st.rerun()
+    if st.button("参加者を追加", type="primary", use_container_width=True):
+        if not new_name.strip():
+            st.error("名前を入力してください。")
+        elif not new_home:
+            st.error("自宅の最寄駅を選択してください。")
+        elif not is_home_round_form and not new_work:
+            st.error("職場の最寄駅を選択してください。")
+        else:
+            work_val = "" if is_home_round_form else new_work
+            add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home)
+            # 入力をリセット
+            for k in ["add_name", "add_home", "add_work", "add_pattern"]:
+                if k in st.session_state:
+                    del st.session_state[k]
+            st.rerun()
 
     # --- 参加者一覧（DB） ---
     st.markdown("---")
@@ -857,7 +840,7 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
 
     for i, p in enumerate(db_participants):
         status.text(f"検索中... {p['name']}")
-        entry = geocode_participant(p, is_train)
+        entry = geocode_participant(p, True)
         if entry["work_lat"] is not None or entry["home_lat"] is not None:
             geocoded.append(entry)
         else:
@@ -884,15 +867,14 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
         return
 
     # --- スコアリング ---
-    score_mode = "train" if is_train else "distance"
     status.text("各駅のスコアを計算中...")
     scored = score_stations(stations, geocoded, work_weight, home_weight,
-                            fairness_weight=fairness_weight, mode=score_mode)
+                            fairness_weight=fairness_weight, mode="train")
     progress.progress(1.0)
     progress.empty()
     status.empty()
 
-    unit = "分" if is_train else "km"
+    unit = "分"
 
     # =====================================================================
     # 結果表示
@@ -906,14 +888,14 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     best = top_stations[0]
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("おすすめ1位", best["name"])
-    k2.metric("平均移動" + ("時間" if is_train else "距離"), f"{best['avg_total_val']:.1f} {unit}")
+    k2.metric("平均移動時間", f"{best['avg_total_val']:.1f} {unit}")
     k3.metric("最大移動者", f"{best['max_person_val']:.1f} {unit}")
     k4.metric("候補駅数", f"{len(stations)} 駅")
 
     tab_map, tab_ranking, tab_detail = st.tabs(["地図", "ランキング", "詳細比較"])
 
     with tab_map:
-        fig = make_result_map(geocoded, top_stations, center_lat, center_lon, mode=score_mode)
+        fig = make_result_map(geocoded, top_stations, center_lat, center_lon, mode="train")
         st.plotly_chart(fig, use_container_width=True)
         st.caption("青丸: 職場 / 緑丸: 自宅 / 色付き丸: おすすめ駅（順位順）")
 
@@ -938,13 +920,10 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
 
         ranking_df = pd.DataFrame(ranking_rows)
         st.dataframe(ranking_df, use_container_width=True, hide_index=True)
-        if is_train:
-            st.caption("※移動時間は主要路線の駅間所要時間をベースに推定。乗換待ち時間等により実際とは異なる場合があります。")
-        else:
-            st.caption("※直線距離での概算です。実際の移動距離・時間は路線や経路により異なります。")
+        st.caption("※移動時間は主要路線の駅間所要時間をベースに推定。乗換待ち時間等により実際とは異なる場合があります。")
 
     with tab_detail:
-        st.markdown(f"### 上位3駅の参加者別移動{'時間' if is_train else '距離'}")
+        st.markdown("### 上位3駅の参加者別移動時間")
 
         for i, s in enumerate(top_stations[:3]):
             medal = ["🥇", "🥈", "🥉"][i]
@@ -969,14 +948,14 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                 ))
                 fig_bar.update_layout(
                     barmode="stack", height=300,
-                    yaxis_title=f"{'移動時間 (分)' if is_train else '距離 (km)'}",
+                    yaxis_title="移動時間 (分)",
                     template="plotly_white",
                     legend=dict(orientation="h", yanchor="bottom", y=1.02),
                 )
                 st.plotly_chart(fig_bar, use_container_width=True)
 
         st.markdown("### 公平性分析")
-        st.caption(f"各駅で最も移動{'時間' if is_train else '距離'}が長い人と短い人の差（小さいほど公平）")
+        st.caption("各駅で最も移動時間が長い人と短い人の差（小さいほど公平）")
 
         fairness_data = []
         for s in top_stations[:5]:
