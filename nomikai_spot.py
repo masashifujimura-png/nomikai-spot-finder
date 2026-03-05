@@ -899,46 +899,31 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
         st.error("2人以上の参加者を追加してください。")
         return
 
-    # --- ジオコーディング ---
-    progress = st.progress(0)
-    status = st.empty()
-    geocoded = []
-
-    for i, p in enumerate(db_participants):
-        status.text(f"検索中... {p['name']}")
-        entry = geocode_participant(p, True)
-        if entry["work_lat"] is not None or entry["home_lat"] is not None:
-            geocoded.append(entry)
-        else:
-            st.warning(f"{p['name']} の場所が特定できませんでした。")
-        progress.progress((i + 1) / (len(db_participants) + 2))
-        time.sleep(0.3)
+    # --- 検索処理 ---
+    with st.spinner("最適スポットを検索しています..."):
+        # ジオコーディング
+        geocoded = []
+        for p in db_participants:
+            entry = geocode_participant(p, True)
+            if entry["work_lat"] is not None or entry["home_lat"] is not None:
+                geocoded.append(entry)
 
     if len(geocoded) < 2:
         st.error("場所を特定できた参加者が2人未満です。入力内容を確認してください。")
-        progress.empty()
-        status.empty()
         return
 
-    # --- 候補駅検索 ---
-    status.text("候補駅を検索中...")
-    center_lat, center_lon, _ = compute_bounding_circle(geocoded)
-    stations = find_candidate_stations(geocoded)
-    progress.progress(0.9)
+    with st.spinner("最適スポットを計算しています..."):
+        # 候補駅検索
+        center_lat, center_lon, _ = compute_bounding_circle(geocoded)
+        stations = find_candidate_stations(geocoded)
 
-    if not stations:
-        st.error("周辺に駅が見つかりませんでした。")
-        progress.empty()
-        status.empty()
-        return
+        if not stations:
+            st.error("周辺に駅が見つかりませんでした。")
+            return
 
-    # --- スコアリング ---
-    status.text("各駅のスコアを計算中...")
-    scored = score_stations(stations, geocoded, work_weight, home_weight,
-                            fairness_weight=fairness_weight, mode="train")
-    progress.progress(1.0)
-    progress.empty()
-    status.empty()
+        # スコアリング
+        scored = score_stations(stations, geocoded, work_weight, home_weight,
+                                fairness_weight=fairness_weight, mode="train")
 
     unit = "分"
 
