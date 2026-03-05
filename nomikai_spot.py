@@ -45,7 +45,7 @@ _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 # ---------------------------------------------------------------------------
 # 駅データ.jp CSV 読み込み → STATION_DB / グラフ構築
 # ---------------------------------------------------------------------------
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner="駅データを読み込んでいます...")
 def _load_ekidata():
     """statione.csv, join.csv, line.csv を読み込み、駅辞書・路線グラフ・路線名マップを構築する。"""
 
@@ -983,11 +983,15 @@ def main():
 
     event_code = st.query_params.get("event")
 
-    # ローディング表示: DB接続を伴うページはスピナーで包む
     if event_code:
-        with st.spinner("読み込み中..."):
-            _event_data = get_event(event_code)
-            _participants = get_participants(_event_data["id"]) if _event_data else []
+        # プログレスバー付きローディング
+        loading = st.empty()
+        progress = st.progress(0, text="イベント情報を取得中...")
+        _event_data = get_event(event_code)
+        progress.progress(50, text="参加者情報を取得中...")
+        _participants = get_participants(_event_data["id"]) if _event_data else []
+        progress.progress(100, text="準備完了")
+        progress.empty()
         page_event(event_code, _event_data, _participants)
     else:
         page_top()
