@@ -67,6 +67,7 @@ st.set_page_config(page_title="飲み会スポットファインダー", layout=
 
 TRAIN_SPEED_KMH = 30
 AVG_TRAIN_SPEED_KMH = 35
+TRANSFER_PENALTY = 5.0  # 乗り換えペナルティ（分）
 
 _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -129,57 +130,81 @@ def _sorted_station_names():
 
 
 # ---------------------------------------------------------------------------
-# オンデマンド Dijkstra（検索時のみ実行）
+# オンデマンド Dijkstra（乗り換えペナルティ付き）
 # ---------------------------------------------------------------------------
-def _dijkstra(graph, start, targets=None):
-    """Single-source Dijkstra. If targets is given, stop early when all found."""
-    dist = {start: 0.0}
-    heap = [(0.0, start)]
+def _dijkstra(graph, start, targets=None, edge_lines=None):
+    """Single-source Dijkstra with transfer penalty.
+    State: (node, line) — 同一駅でも路線ごとに別状態。
+    Returns best (minimum) distance per node.
+    """
+    if edge_lines is None:
+        edge_lines = {}
+    # (node, line) → distance
+    state_dist = {(start, ""): 0.0}
+    best = {start: 0.0}
+    heap = [(0.0, start, "")]
     remaining = set(targets) if targets else None
     if remaining:
         remaining.discard(start)
     while heap:
-        d, u = heapq.heappop(heap)
-        if d > dist.get(u, float("inf")):
+        d, u, u_line = heapq.heappop(heap)
+        if d > state_dist.get((u, u_line), float("inf")):
             continue
-        if remaining is not None and u in remaining:
+        if remaining is not None and u in remaining and d <= best.get(u, float("inf")):
             remaining.discard(u)
             if not remaining:
                 break
         for v, w in graph.get(u, []):
-            nd = d + w
-            if nd < dist.get(v, float("inf")):
-                dist[v] = nd
-                heapq.heappush(heap, (nd, v))
-    return dist
+            v_line = edge_lines.get((u, v), "")
+            penalty = TRANSFER_PENALTY if u_line and v_line and u_line != v_line else 0
+            nd = d + w + penalty
+            state = (v, v_line)
+            if nd < state_dist.get(state, float("inf")):
+                state_dist[state] = nd
+                if nd < best.get(v, float("inf")):
+                    best[v] = nd
+                heapq.heappush(heap, (nd, v, v_line))
+    return best
 
 
-def _dijkstra_with_path(graph, start, target):
-    """Single-source Dijkstra returning shortest path to target."""
-    dist = {start: 0.0}
-    prev = {start: None}
-    heap = [(0.0, start)]
+def _dijkstra_with_path(graph, start, target, edge_lines=None):
+    """Single-source Dijkstra with transfer penalty, returning shortest path."""
+    if edge_lines is None:
+        edge_lines = {}
+    state_dist = {(start, ""): 0.0}
+    prev = {(start, ""): None}
+    best_target_d = float("inf")
+    best_target_state = None
+    heap = [(0.0, start, "")]
     while heap:
-        d, u = heapq.heappop(heap)
-        if d > dist.get(u, float("inf")):
+        d, u, u_line = heapq.heappop(heap)
+        state = (u, u_line)
+        if d > state_dist.get(state, float("inf")):
             continue
-        if u == target:
-            break
+        if u == target and d < best_target_d:
+            best_target_d = d
+            best_target_state = state
+            continue
+        if d >= best_target_d:
+            continue
         for v, w in graph.get(u, []):
-            nd = d + w
-            if nd < dist.get(v, float("inf")):
-                dist[v] = nd
-                prev[v] = u
-                heapq.heappush(heap, (nd, v))
-    if target not in dist:
+            v_line = edge_lines.get((u, v), "")
+            penalty = TRANSFER_PENALTY if u_line and v_line and u_line != v_line else 0
+            nd = d + w + penalty
+            next_state = (v, v_line)
+            if nd < state_dist.get(next_state, float("inf")):
+                state_dist[next_state] = nd
+                prev[next_state] = state
+                heapq.heappush(heap, (nd, v, v_line))
+    if best_target_state is None:
         return None, None
     path = []
-    node = target
-    while node is not None:
-        path.append(node)
-        node = prev.get(node)
+    s = best_target_state
+    while s is not None:
+        path.append(s[0])
+        s = prev.get(s)
     path.reverse()
-    return path, round(dist[target], 1)
+    return path, round(best_target_d, 1)
 
 
 @st.cache_data(show_spinner=False)
@@ -190,7 +215,7 @@ def _find_route(source_gcd, target_gcd):
     graph = _graph()
     if source_gcd not in graph:
         return None, None
-    return _dijkstra_with_path(graph, source_gcd, target_gcd)
+    return _dijkstra_with_path(graph, source_gcd, target_gcd, _edge_lines())
 
 
 def _format_route(path_gcds):
@@ -228,7 +253,7 @@ def _dijkstra_cached(source, _targets_key):
     graph = _graph()
     if source not in graph:
         return {}
-    dist = _dijkstra(graph, source, set(_targets_key))
+    dist = _dijkstra(graph, source, set(_targets_key), _edge_lines())
     return {t: round(dist[t], 1) for t in _targets_key if t in dist}
 
 
