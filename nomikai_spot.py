@@ -355,7 +355,10 @@ def score_stations(stations, participants, work_weight, home_weight,
                                          st_info["lat"], st_info["lon"])
                         work_val = round(dist / TRAIN_SPEED_KMH * 60, 1)
                 else:
-                    work_val = 0
+                    # gcd が取得できない場合は直線距離でフォールバック
+                    dist = haversine(p["work_lat"], p["work_lon"],
+                                     st_info["lat"], st_info["lon"])
+                    work_val = round(dist / TRAIN_SPEED_KMH * 60, 1)
             else:
                 work_val = 0
 
@@ -371,7 +374,9 @@ def score_stations(stations, participants, work_weight, home_weight,
                                          p["home_lat"], p["home_lon"])
                         home_val = round(dist / TRAIN_SPEED_KMH * 60, 1)
                 else:
-                    home_val = 0
+                    dist = haversine(st_info["lat"], st_info["lon"],
+                                     p["home_lat"], p["home_lon"])
+                    home_val = round(dist / TRAIN_SPEED_KMH * 60, 1)
             else:
                 home_val = 0
 
@@ -1063,9 +1068,11 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                             route_str = _format_route(path_to)
                             st.markdown(f"**{d['name']}**（{from_label}→飲み会）{route_str}（{time_to}{unit}）")
                         else:
-                            st.markdown(f"**{d['name']}**（{from_label}→飲み会）{ws} → {sn}（{d['work_val']:.1f}{unit}）")
+                            st.markdown(f"**{d['name']}**（{from_label}→飲み会）{ws or '?'} → {sn}（{d['work_val']:.1f}{unit}）")
                     elif wg and sg and wg == sg:
                         st.markdown(f"**{d['name']}**（{from_label}→飲み会）{sn}駅（0{unit}）")
+                    elif d["work_val"] > 0:
+                        st.markdown(f"**{d['name']}**（{from_label}→飲み会）{ws or '?'} → {sn}（{d['work_val']:.1f}{unit}）")
 
                     # 飲み会駅 → 自宅
                     hg = g.get("home_gcd")
@@ -1076,9 +1083,11 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                             route_str = _format_route(path_home)
                             st.markdown(f"**{d['name']}**（飲み会→自宅）{route_str}（{time_home}{unit}）")
                         else:
-                            st.markdown(f"**{d['name']}**（飲み会→自宅）{sn} → {hs}（{d['home_val']:.1f}{unit}）")
+                            st.markdown(f"**{d['name']}**（飲み会→自宅）{sn} → {hs or '?'}（{d['home_val']:.1f}{unit}）")
                     elif hg and sg and hg == sg:
                         st.markdown(f"**{d['name']}**（飲み会→自宅）{sn}駅（0{unit}）")
+                    elif d["home_val"] > 0:
+                        st.markdown(f"**{d['name']}**（飲み会→自宅）{sn} → {hs or '?'}（{d['home_val']:.1f}{unit}）")
                     st.markdown("---")
 
         st.markdown("### 公平性分析")
