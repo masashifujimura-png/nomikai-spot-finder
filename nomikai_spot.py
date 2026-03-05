@@ -583,6 +583,10 @@ def _invalidate_event_cache(event_code):
     cache_key = f"_event_cache_{event_code}"
     if cache_key in st.session_state:
         del st.session_state[cache_key]
+    # 参加者変更時は検索結果もクリア
+    for k in ["_search_results", "_hp_results", "_hp_station"]:
+        if k in st.session_state:
+            del st.session_state[k]
 
 
 # ---------------------------------------------------------------------------
@@ -1017,39 +1021,46 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     else:
         search_clicked = st.button("最適スポットを検索", type="primary", use_container_width=True)
 
-    if not search_clicked:
-        return
-
-    db_participants = get_participants(event["id"])
-    if len(db_participants) < 2:
-        st.error("2人以上の参加者を追加してください。")
-        return
-
-    # --- 検索処理 ---
-    with st.spinner("最適スポットを検索しています..."):
-        geocoded = []
-        for p in db_participants:
-            entry = geocode_participant(p)
-            if entry["work_lat"] is not None or entry["home_lat"] is not None:
-                geocoded.append(entry)
-
-    if len(geocoded) < 2:
-        st.error("場所を特定できた参加者が2人未満です。入力内容を確認してください。")
-        return
-
-    with st.spinner("最適スポットを計算しています..."):
-        stations = find_candidate_stations(geocoded)
-
-        if not stations:
-            st.error("周辺に駅が見つかりませんでした。")
+    if search_clicked:
+        db_participants = get_participants(event["id"])
+        if len(db_participants) < 2:
+            st.error("2人以上の参加者を追加してください。")
             return
 
-        # 直線距離で上位30駅に絞ってから Dijkstra（大幅高速化）
-        stations = _prefilter_stations(stations, geocoded, work_weight, home_weight, top_n=30)
+        with st.spinner("最適スポットを検索しています..."):
+            geocoded = []
+            for p in db_participants:
+                entry = geocode_participant(p)
+                if entry["work_lat"] is not None or entry["home_lat"] is not None:
+                    geocoded.append(entry)
 
-        scored = score_stations(stations, geocoded, work_weight, home_weight,
-                                fairness_weight=fairness_weight)
+        if len(geocoded) < 2:
+            st.error("場所を特定できた参加者が2人未満です。入力内容を確認してください。")
+            return
 
+        with st.spinner("最適スポットを計算しています..."):
+            stations = find_candidate_stations(geocoded)
+
+            if not stations:
+                st.error("周辺に駅が見つかりませんでした。")
+                return
+
+            stations = _prefilter_stations(stations, geocoded, work_weight, home_weight, top_n=30)
+
+            scored = score_stations(stations, geocoded, work_weight, home_weight,
+                                    fairness_weight=fairness_weight)
+
+        st.session_state["_search_results"] = {
+            "scored": scored,
+            "geocoded": geocoded,
+        }
+
+    # session_stateから結果を取得して表示
+    if "_search_results" not in st.session_state:
+        return
+
+    scored = st.session_state["_search_results"]["scored"]
+    geocoded = st.session_state["_search_results"]["geocoded"]
     unit = "分"
 
     # =====================================================================
