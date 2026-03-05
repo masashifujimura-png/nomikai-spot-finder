@@ -742,8 +742,8 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     station_names = sorted(STATION_DB.keys())
 
     # --- 参加者追加フォーム ---
-    st.subheader("自分の情報を入力")
-    st.caption("最寄駅を選択してください（入力すると候補が絞り込まれます）")
+    st.subheader("参加者を追加")
+    st.caption("自分の情報を入力、または幹事がまとめて全員分を追加できます")
 
     # パターン選択をフォーム外に置いて動的に職場欄を表示/非表示
     new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS, key="add_pattern")
