@@ -388,22 +388,26 @@ def geocode_participant(p: dict) -> dict:
 # 駅名検索ウィジェット
 # ---------------------------------------------------------------------------
 def _station_picker(label, key, default=""):
-    search = st.text_input(label, value=default, placeholder="駅名を入力して絞り込み", key=f"{key}_q")
+    search = st.text_input(label, value=default, placeholder="駅名を入力（例: 新宿）", key=f"{key}_q")
     if not search:
         return None
+    name = search.rstrip("駅").strip()
+    if not name:
+        return None
+    sdb = _station_db()
+    if name in sdb:
+        st.caption(f"✅ {name}駅")
+        return name
     names = _sorted_station_names()
-    matches = [n for n in names if search in n]
+    matches = [n for n in names if name in n]
     if not matches:
-        st.caption("該当する駅がありません")
+        st.caption("❌ 該当する駅がありません")
         return None
-    if len(matches) > 50:
-        st.caption(f"{len(matches)}件ヒット - もう少し絞り込んでください")
-        return None
-    idx = matches.index(search) if search in matches else 0
-    return st.selectbox(
-        "選択", matches, index=idx, key=f"{key}_s",
-        label_visibility="collapsed",
-    )
+    if len(matches) <= 8:
+        st.caption(f"もしかして: {' / '.join(matches)}")
+    else:
+        st.caption(f"{len(matches)}件ヒット（例: {' / '.join(matches[:5])}…）もう少し絞り込んでください")
+    return None
 
 
 # ---------------------------------------------------------------------------
