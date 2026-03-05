@@ -579,8 +579,15 @@ _MAP_TEMPLATE = """
   };
   legend.addTo(map);
   var bounds=/*BOUNDS*/;
-  if(bounds.length>1){map.fitBounds(bounds,{padding:[40,40],maxZoom:14});}
-  else if(bounds.length==1){map.setView(bounds[0],13);}
+  setTimeout(function(){
+    map.invalidateSize();
+    if(bounds.length>1){
+      map.fitBounds(bounds,{padding:[40,40]});
+      map.panTo(center);
+    }else if(bounds.length==1){
+      map.setView(bounds[0],13);
+    }
+  },150);
 })();
 </script>
 """
