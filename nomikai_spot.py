@@ -7,6 +7,7 @@ import string
 import random
 import pickle
 import heapq
+import json
 
 # ---------------------------------------------------------------------------
 # Supabase
@@ -204,6 +205,29 @@ def find_candidate_stations(participants: list[dict], margin: float = 1.2) -> li
     return stations
 
 
+def _prefilter_stations(stations, participants, work_weight, home_weight, top_n=30):
+    """直線距離で粗くスコアリングし、上位 top_n 駅に絞る（Dijkstra 前の高速フィルタ）。"""
+    if len(stations) <= top_n:
+        return stations
+    s_coords = np.array([(s["lat"], s["lon"]) for s in stations])
+    costs = np.zeros(len(stations))
+    for p in participants:
+        for loc_key, weight in [("work", work_weight), ("home", home_weight)]:
+            plat = p.get(f"{loc_key}_lat")
+            plon = p.get(f"{loc_key}_lon")
+            if plat is None or weight <= 0:
+                continue
+            dlat = np.radians(s_coords[:, 0] - plat)
+            dlon = np.radians(s_coords[:, 1] - plon)
+            a = (np.sin(dlat / 2) ** 2
+                 + np.cos(np.radians(plat)) * np.cos(np.radians(s_coords[:, 0]))
+                 * np.sin(dlon / 2) ** 2)
+            d = 6371 * 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+            costs += (d / TRAIN_SPEED_KMH * 60) * weight
+    top_indices = np.argsort(costs)[:top_n]
+    return [stations[i] for i in top_indices]
+
+
 def score_stations(stations, participants, work_weight, home_weight,
                    fairness_weight=0.0) -> list[dict]:
     # Collect unique source stations for Dijkstra
@@ -388,59 +412,22 @@ def geocode_participant(p: dict) -> dict:
 # 駅名検索ウィジェット
 # ---------------------------------------------------------------------------
 def _station_picker(label, key, default=""):
-    confirmed_key = f"{key}_confirmed"
-    search_mode_key = f"{key}_search"
-
-    # 編集時: デフォルト値を初回のみ自動確定
-    if default and confirmed_key not in st.session_state and not st.session_state.get(search_mode_key):
-        name = default.rstrip("駅").strip()
-        if name and name in _station_db():
-            st.session_state[confirmed_key] = name
-
-    # 確定済み → 表示 + 変更ボタン
-    if confirmed_key in st.session_state:
-        confirmed = st.session_state[confirmed_key]
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            st.markdown(f"**{label}**: ✅ {confirmed}駅")
-        with col2:
-            if st.button("変更", key=f"{key}_change", use_container_width=True):
-                del st.session_state[confirmed_key]
-                st.session_state[search_mode_key] = True
-                st.rerun(scope="fragment")
-        return confirmed
-
-    # 未確定 → 検索入力 + 候補ボタン
-    search = st.text_input(label, placeholder="駅名を入力（例: 新宿、しぶ…）", key=f"{key}_q")
+    search = st.text_input(label, value=default, placeholder="駅名を入力して絞り込み", key=f"{key}_q")
     if not search:
         return None
-    name = search.rstrip("駅").strip()
-    if not name:
-        return None
-
-    sdb = _station_db()
     names = _sorted_station_names()
-    matches = [n for n in names if name in n]
-    # 完全一致を先頭に
-    if name in sdb and name in matches:
-        matches.remove(name)
-        matches.insert(0, name)
-
+    matches = [n for n in names if search in n]
     if not matches:
         st.caption("該当する駅がありません")
         return None
-
-    displayed = matches[:8]
-    cols = st.columns(min(len(displayed), 4))
-    for i, m in enumerate(displayed):
-        with cols[i % 4]:
-            if st.button(m, key=f"{key}_sug_{i}", use_container_width=True):
-                st.session_state[confirmed_key] = m
-                st.session_state.pop(search_mode_key, None)
-                st.rerun(scope="fragment")
-    if len(matches) > 8:
-        st.caption(f"他 {len(matches) - 8}件")
-    return None
+    if len(matches) > 50:
+        st.caption(f"{len(matches)}件ヒット - もう少し絞り込んでください")
+        return None
+    idx = matches.index(search) if search in matches else 0
+    return st.selectbox(
+        "選択", matches, index=idx, key=f"{key}_s",
+        label_visibility="collapsed",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -505,6 +492,98 @@ def _inject_custom_css():
     }
     </style>
     """, unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------------------------
+# 地図描画（Leaflet.js — 軽量、スマホ対応）
+# ---------------------------------------------------------------------------
+_STATION_COLORS = ["#e53935", "#ff9800", "#9c27b0"]
+_WORK_COLOR = "#1e88e5"
+_HOME_COLOR = "#43a047"
+
+
+def _render_map(top_stations, geocoded):
+    """Leaflet.js で上位駅・参加者の職場/自宅を凡例付きで表示。"""
+    marker_data = []
+    all_points = []
+    for i, s in enumerate(top_stations[:10]):
+        color = _STATION_COLORS[i] if i < 3 else "#757575"
+        marker_data.append({
+            "lat": s["lat"], "lon": s["lon"], "color": color,
+            "label": f"{i+1}位: {s['name']}", "radius": 8,
+        })
+        all_points.append([s["lat"], s["lon"]])
+    for g in geocoded:
+        if g.get("work_lat") is not None:
+            marker_data.append({
+                "lat": g["work_lat"], "lon": g["work_lon"], "color": _WORK_COLOR,
+                "label": f"{g['name']} 職場", "radius": 6,
+            })
+            all_points.append([g["work_lat"], g["work_lon"]])
+        if g.get("home_lat") is not None:
+            marker_data.append({
+                "lat": g["home_lat"], "lon": g["home_lon"], "color": _HOME_COLOR,
+                "label": f"{g['name']} 自宅", "radius": 6,
+            })
+            all_points.append([g["home_lat"], g["home_lon"]])
+
+    legend_items = []
+    for i, s in enumerate(top_stations[:3]):
+        legend_items.append({"color": _STATION_COLORS[i], "label": f"{i+1}位: {s['name']}"})
+    for g in geocoded:
+        if g.get("work_lat") is not None:
+            legend_items.append({"color": _WORK_COLOR, "label": f"{g['name']} 職場"})
+        if g.get("home_lat") is not None:
+            legend_items.append({"color": _HOME_COLOR, "label": f"{g['name']} 自宅"})
+
+    html = _MAP_TEMPLATE.replace(
+        "/*MARKERS*/", json.dumps(marker_data, ensure_ascii=False),
+    ).replace(
+        "/*LEGEND*/", json.dumps(legend_items, ensure_ascii=False),
+    ).replace(
+        "/*BOUNDS*/", json.dumps(all_points),
+    )
+    st.components.v1.html(html, height=460)
+
+
+_MAP_TEMPLATE = """
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="map" style="height:440px;width:100%;border-radius:8px;"></div>
+<style>
+.map-legend{background:#fff;padding:10px 14px;border-radius:6px;
+  box-shadow:0 1px 5px rgba(0,0,0,.3);font-size:12px;line-height:1.8;
+  max-height:220px;overflow-y:auto;}
+.map-legend .title{font-weight:bold;margin-bottom:4px;}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;
+  margin-right:6px;vertical-align:middle;}
+</style>
+<script>
+(function(){
+  var map=L.map('map');
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; OpenStreetMap',maxZoom:18}).addTo(map);
+  var markers=/*MARKERS*/;
+  markers.forEach(function(m){
+    L.circleMarker([m.lat,m.lon],{radius:m.radius,fillColor:m.color,
+      color:'#fff',weight:2,fillOpacity:0.9}).addTo(map).bindTooltip(m.label);
+  });
+  var legend=L.control({position:'bottomright'});
+  legend.onAdd=function(){
+    var div=L.DomUtil.create('div','map-legend');
+    var h='<div class="title">凡例</div>';
+    var items=/*LEGEND*/;
+    items.forEach(function(it){
+      h+='<div><span class="dot" style="background:'+it.color+'"></span>'+it.label+'</div>';
+    });
+    div.innerHTML=h;return div;
+  };
+  legend.addTo(map);
+  var bounds=/*BOUNDS*/;
+  if(bounds.length)map.fitBounds(bounds,{padding:[30,30]});
+})();
+</script>
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -790,6 +869,9 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
             st.error("周辺に駅が見つかりませんでした。")
             return
 
+        # 直線距離で上位30駅に絞ってから Dijkstra（大幅高速化）
+        stations = _prefilter_stations(stations, geocoded, work_weight, home_weight, top_n=30)
+
         scored = score_stations(stations, geocoded, work_weight, home_weight,
                                 fairness_weight=fairness_weight)
 
@@ -836,29 +918,7 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
         st.caption("※移動時間は主要路線の駅間所要時間をベースに推定。乗換待ち時間等により実際とは異なる場合があります。")
 
     with tab_map:
-        map_rows = []
-        # 上位駅（1位: 赤大, 2-5位: オレンジ）
-        for i, s in enumerate(top_stations[:5]):
-            map_rows.append({
-                "lat": s["lat"], "lon": s["lon"],
-                "color": "#e53935" if i == 0 else "#ff9800",
-                "size": 600 if i == 0 else 300,
-            })
-        # 参加者の出発地（青）・自宅（緑）
-        for g in geocoded:
-            if g.get("work_lat") is not None:
-                map_rows.append({
-                    "lat": g["work_lat"], "lon": g["work_lon"],
-                    "color": "#1e88e5", "size": 200,
-                })
-            if g.get("home_lat") is not None:
-                map_rows.append({
-                    "lat": g["home_lat"], "lon": g["home_lon"],
-                    "color": "#43a047", "size": 200,
-                })
-        map_df = pd.DataFrame(map_rows)
-        st.map(map_df, latitude="lat", longitude="lon", color="color", size="size")
-        st.caption("🔴 おすすめ駅（1位は大）  🟠 候補駅  🔵 出発地  🟢 自宅")
+        _render_map(top_stations, geocoded)
 
     with tab_detail:
         st.markdown("### 上位3駅の参加者別移動時間")
