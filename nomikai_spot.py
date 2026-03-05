@@ -919,47 +919,30 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS, key="add_pattern")
     is_home_round_form = new_pattern == TRIP_PATTERNS[1]
 
+    station_names = sorted(STATION_DB.keys())
+
     new_name = st.text_input("名前", placeholder="あなたの名前", key="add_name")
-
-    # 自宅最寄駅 — 入力して候補から選択
-    home_query = st.text_input("自宅最寄駅", placeholder="駅名を入力（例: 渋谷、北）", key="home_query")
-    new_home = None
-    if home_query:
-        home_matches = [s for s in STATION_NAMES_SET if home_query in s]
-        home_matches.sort()
-        if home_matches:
-            new_home = st.selectbox(
-                "候補から選択", home_matches[:20], index=None, key="home_select",
-                placeholder="候補をクリックして選択...")
-        else:
-            st.caption("該当する駅が見つかりません")
-
-    # 職場最寄駅
-    new_work = None
-    if not is_home_round_form:
-        work_query = st.text_input("職場最寄駅", placeholder="駅名を入力（例: 東京、新）", key="work_query")
-        if work_query:
-            work_matches = [s for s in STATION_NAMES_SET if work_query in s]
-            work_matches.sort()
-            if work_matches:
-                new_work = st.selectbox(
-                    "候補から選択", work_matches[:20], index=None, key="work_select",
-                    placeholder="候補をクリックして選択...")
-            else:
-                st.caption("該当する駅が見つかりません")
+    new_home = st.selectbox("自宅最寄駅", options=station_names,
+                            index=None, key="add_home",
+                            placeholder="駅名を入力して選択...")
+    if is_home_round_form:
+        new_work = None
+    else:
+        new_work = st.selectbox("職場最寄駅", options=station_names,
+                                index=None, key="add_work",
+                                placeholder="駅名を入力して選択...")
 
     if st.button("参加者を追加", type="primary", use_container_width=True):
         if not new_name.strip():
             st.error("名前を入力してください。")
         elif not new_home:
-            st.error("自宅の最寄駅を入力・選択してください。")
+            st.error("自宅の最寄駅を選択してください。")
         elif not is_home_round_form and not new_work:
-            st.error("職場の最寄駅を入力・選択してください。")
+            st.error("職場の最寄駅を選択してください。")
         else:
-            work_val = "" if is_home_round_form else new_work
+            work_val = "" if is_home_round_form else (new_work or "")
             add_participant(event["id"], new_name.strip(), new_pattern, work_val, new_home)
-            for k in ["add_name", "home_query", "home_select", "work_query",
-                       "work_select", "add_pattern"]:
+            for k in ["add_name", "add_home", "add_work", "add_pattern"]:
                 if k in st.session_state:
                     del st.session_state[k]
             st.rerun()
