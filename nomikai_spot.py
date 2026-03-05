@@ -117,8 +117,21 @@ def _load_ekidata():
     return station_db, graph, station_lines
 
 
-STATION_DB, _GRAPH, STATION_LINES = _load_ekidata()
-STATION_NAMES_SET = frozenset(STATION_DB.keys())
+def _get_ekidata():
+    """駅データを遅延読み込み（初回のみ計算、以降はキャッシュ）。"""
+    return _load_ekidata()
+
+def _station_db():
+    return _get_ekidata()[0]
+
+def _graph():
+    return _get_ekidata()[1]
+
+def _station_lines():
+    return _get_ekidata()[2]
+
+def _station_names_set():
+    return frozenset(_station_db().keys())
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +140,7 @@ STATION_NAMES_SET = frozenset(STATION_DB.keys())
 def _dijkstra(start: str, end: str) -> int | None:
     if start == end:
         return 0
-    if start not in _GRAPH or end not in _GRAPH:
+    if start not in _graph() or end not in _graph():
         return None
     dist = {start: 0}
     heap = [(0, start)]
@@ -137,7 +150,7 @@ def _dijkstra(start: str, end: str) -> int | None:
             return d
         if d > dist.get(u, float("inf")):
             continue
-        for v, w in _GRAPH.get(u, []):
+        for v, w in _graph().get(u, []):
             nd = d + w
             if nd < dist.get(v, float("inf")):
                 dist[v] = nd
@@ -147,7 +160,8 @@ def _dijkstra(start: str, end: str) -> int | None:
 
 def _dijkstra_all(start: str) -> dict[str, float]:
     """start から全到達可能駅への最短所要時間（分）を返す。"""
-    if start not in _GRAPH:
+    g = _graph()
+    if start not in g:
         return {}
     dist = {start: 0}
     heap = [(0, start)]
@@ -155,7 +169,7 @@ def _dijkstra_all(start: str) -> dict[str, float]:
         d, u = heapq.heappop(heap)
         if d > dist.get(u, float("inf")):
             continue
-        for v, w in _GRAPH.get(u, []):
+        for v, w in g.get(u, []):
             nd = d + w
             if nd < dist.get(v, float("inf")):
                 dist[v] = nd
@@ -165,7 +179,7 @@ def _dijkstra_all(start: str) -> dict[str, float]:
 
 def _find_nearest_graph_station(lat: float, lon: float) -> tuple[str | None, float]:
     best_name, best_dist = None, float("inf")
-    for name, (slat, slon) in STATION_DB.items():
+    for name, (slat, slon) in _station_db().items():
         if abs(slat - lat) > 0.5:
             continue
         d = haversine(lat, lon, slat, slon)
@@ -223,8 +237,8 @@ def _geocode_station(station_name: str) -> tuple[float | None, float | None, str
     if not name:
         return None, None, ""
 
-    if name in STATION_DB:
-        lat, lon = STATION_DB[name]
+    if name in _station_db():
+        lat, lon = _station_db()[name]
         return lat, lon, f"{name}駅"
 
     query = f'[out:json][timeout:10];node["railway"="station"]["name"~"^{name}$"];out body 1;'
@@ -297,11 +311,11 @@ def find_candidate_stations(participants: list[dict], margin: float = 1.2) -> li
     stations = []
     seen = set()
 
-    for name, (slat, slon) in STATION_DB.items():
+    for name, (slat, slon) in _station_db().items():
         dist = haversine(center_lat, center_lon, slat, slon)
         if dist <= search_radius:
             seen.add(name)
-            lines = STATION_LINES.get(name, [])
+            lines = _station_lines().get(name, [])
             stations.append({
                 "name": name, "lat": slat, "lon": slon,
                 "operator": "", "line": "・".join(lines),
@@ -836,11 +850,14 @@ def page_top():
     """, unsafe_allow_html=True)
 
     st.subheader("新しい飲み会を作成")
-    title = st.text_input("飲み会の名前", placeholder="例: 歓迎会、忘年会")
-    if st.button("作成してURLを発行", type="primary", use_container_width=True):
-        code = create_event(title.strip() or "飲み会")
-        st.session_state["_redirect_event"] = code
-        st.rerun()
+    col_input, col_btn, col_empty = st.columns([2, 1, 2])
+    with col_input:
+        title = st.text_input("飲み会の名前", placeholder="例: 歓迎会、忘年会", label_visibility="collapsed")
+    with col_btn:
+        if st.button("作成", type="primary", use_container_width=True):
+            code = create_event(title.strip() or "飲み会")
+            st.session_state["_redirect_event"] = code
+            st.rerun()
 
 
 # ---------------------------------------------------------------------------
@@ -903,7 +920,7 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     new_pattern = st.selectbox("移動パターン", TRIP_PATTERNS, key="add_pattern")
     is_home_round_form = new_pattern == TRIP_PATTERNS[1]
 
-    station_names = sorted(STATION_DB.keys())
+    station_names = sorted(_station_db().keys())
 
     new_name = st.text_input("名前", placeholder="あなたの名前", key="add_name")
     new_home = st.selectbox("自宅最寄駅", options=station_names,
