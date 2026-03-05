@@ -17,6 +17,25 @@ import urllib.parse
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 HOTPEPPER_API_KEY = os.environ.get("HOTPEPPER_API_KEY", "")
+ADSENSE_CLIENT = os.environ.get("ADSENSE_CLIENT", "")  # ca-pub-XXXXXXXX
+
+
+def _render_ad(slot_id, ad_format="auto", height=100):
+    """Google AdSense 広告枠を表示。ADSENSE_CLIENT 未設定時は何も表示しない。"""
+    if not ADSENSE_CLIENT:
+        return
+    html = f"""
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={ADSENSE_CLIENT}"
+     crossorigin="anonymous"></script>
+    <ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="{ADSENSE_CLIENT}"
+     data-ad-slot="{slot_id}"
+     data-ad-format="{ad_format}"
+     data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({{}});</script>
+    """
+    st.components.v1.html(html, height=height)
 
 
 def _sb_request(method, path, body=None, params=None):
@@ -1249,6 +1268,15 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                                     st.link_button("ホットペッパーで予約", shop["url"],
                                                    use_container_width=False)
                     st.caption("powered by ホットペッパーグルメ Webサービス")
+
+    # --- フッター広告 ---
+    st.markdown("---")
+    _render_ad("footer", height=100)
+
+    # --- サイドバー広告 ---
+    with st.sidebar:
+        st.markdown("---")
+        _render_ad("sidebar", ad_format="vertical", height=250)
 
 
 # ---------------------------------------------------------------------------
