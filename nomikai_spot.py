@@ -640,6 +640,13 @@ def _invalidate_event_cache(event_code):
 # カスタムCSS
 # ---------------------------------------------------------------------------
 def _inject_custom_css():
+    # AdSense スクリプト注入
+    if ADSENSE_CLIENT:
+        st.markdown(
+            f'<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js'
+            f'?client={ADSENSE_CLIENT}" crossorigin="anonymous"></script>',
+            unsafe_allow_html=True,
+        )
     st.markdown("""
     <style>
     button[kind="primary"] {
