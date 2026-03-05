@@ -927,10 +927,7 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     if home_query:
         home_matches = [s for s in STATION_NAMES_SET if home_query in s]
         home_matches.sort()
-        if home_query in STATION_NAMES_SET:
-            new_home = home_query
-            st.success(f"自宅: {home_query}駅")
-        elif home_matches:
+        if home_matches:
             new_home = st.selectbox(
                 "候補から選択", home_matches[:20], index=None, key="home_select",
                 placeholder="候補をクリックして選択...")
@@ -944,10 +941,7 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
         if work_query:
             work_matches = [s for s in STATION_NAMES_SET if work_query in s]
             work_matches.sort()
-            if work_query in STATION_NAMES_SET:
-                new_work = work_query
-                st.success(f"職場: {work_query}駅")
-            elif work_matches:
+            if work_matches:
                 new_work = st.selectbox(
                     "候補から選択", work_matches[:20], index=None, key="work_select",
                     placeholder="候補をクリックして選択...")
