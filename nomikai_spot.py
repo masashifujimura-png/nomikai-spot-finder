@@ -563,8 +563,20 @@ _MAP_TEMPLATE = """
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:18}).addTo(map);
   var markers=/*MARKERS*/;
+  var placed=[];
   markers.forEach(function(m){
-    L.circleMarker([m.lat,m.lon],{radius:m.radius,fillColor:m.color,
+    var lat=m.lat,lon=m.lon;
+    var dup=0;
+    for(var j=0;j<placed.length;j++){
+      if(Math.abs(lat-placed[j][0])<0.0005&&Math.abs(lon-placed[j][1])<0.0005)dup++;
+    }
+    if(dup>0){
+      var angle=dup*(2*Math.PI/6);
+      lat+=0.0012*Math.cos(angle);
+      lon+=0.0012*Math.sin(angle);
+    }
+    placed.push([m.lat,m.lon]);
+    L.circleMarker([lat,lon],{radius:m.radius,fillColor:m.color,
       color:'#fff',weight:2,fillOpacity:0.9}).addTo(map).bindTooltip(m.label);
   });
   var legend=L.control({position:'bottomright'});
@@ -579,15 +591,15 @@ _MAP_TEMPLATE = """
   };
   legend.addTo(map);
   var bounds=/*BOUNDS*/;
-  setTimeout(function(){
+  function fitMap(){
     map.invalidateSize();
-    if(bounds.length>1){
-      map.fitBounds(bounds,{padding:[40,40]});
-      map.panTo(center);
-    }else if(bounds.length==1){
-      map.setView(bounds[0],13);
-    }
-  },150);
+    var el=map.getContainer();
+    if(el.clientHeight>0&&el.clientWidth>0){
+      if(bounds.length>1)map.fitBounds(bounds,{padding:[40,40]});
+      else if(bounds.length==1)map.setView(bounds[0],13);
+    }else{setTimeout(fitMap,100);}
+  }
+  setTimeout(fitMap,50);
 })();
 </script>
 """
