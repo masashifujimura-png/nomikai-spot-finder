@@ -1275,6 +1275,13 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                     end = min(start + per_page, total)
 
                     st.markdown(f"**{station_name}駅**周辺で **{total}件** 見つかりました（{start+1}〜{end}件目）")
+                    # ページ遷移後にリスト先頭へスクロール
+                    if st.session_state.pop("_hp_scroll", False):
+                        st.components.v1.html(
+                            '<script>window.parent.document.querySelector("section.main").scrollTo(0, '
+                            'window.parent.document.querySelector("[data-testid=stTabs]").offsetTop - 10);</script>',
+                            height=0,
+                        )
                     for shop in shops[start:end]:
                         with st.container(border=True):
                             col_img, col_info = st.columns([1, 3])
@@ -1304,19 +1311,29 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
 
                     # ページネーション
                     if total_pages > 1:
-                        cols = st.columns([1, 2, 1])
-                        with cols[0]:
+                        # 前へ / ページ番号 / 次へ
+                        nav_cols = st.columns([1] + [0.5] * total_pages + [1])
+                        with nav_cols[0]:
                             if page > 0:
-                                if st.button("← 前の10件", key="hp_prev", use_container_width=True):
+                                if st.button("←前", key="hp_prev", use_container_width=True):
                                     st.session_state["_hp_page"] = page - 1
+                                    st.session_state["_hp_scroll"] = True
                                     st.rerun()
-                        with cols[1]:
-                            st.markdown(f"<div style='text-align:center;padding:8px;'>{page+1} / {total_pages} ページ</div>",
-                                        unsafe_allow_html=True)
-                        with cols[2]:
+                        for i in range(total_pages):
+                            with nav_cols[i + 1]:
+                                if i == page:
+                                    st.markdown(f"<div style='text-align:center;padding:6px;font-weight:bold;'>{i+1}</div>",
+                                                unsafe_allow_html=True)
+                                else:
+                                    if st.button(str(i + 1), key=f"hp_p{i}", use_container_width=True):
+                                        st.session_state["_hp_page"] = i
+                                        st.session_state["_hp_scroll"] = True
+                                        st.rerun()
+                        with nav_cols[-1]:
                             if page < total_pages - 1:
-                                if st.button("次の10件 →", key="hp_next", use_container_width=True):
+                                if st.button("次→", key="hp_next", use_container_width=True):
                                     st.session_state["_hp_page"] = page + 1
+                                    st.session_state["_hp_scroll"] = True
                                     st.rerun()
 
                     st.caption("powered by ホットペッパーグルメ Webサービス")
