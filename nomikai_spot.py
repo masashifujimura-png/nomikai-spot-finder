@@ -8,6 +8,8 @@ import random
 import pickle
 import heapq
 import json
+import urllib.request
+import urllib.parse
 
 # ---------------------------------------------------------------------------
 # Supabase
@@ -16,6 +18,7 @@ from supabase import create_client
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+HOTPEPPER_API_KEY = os.environ.get("HOTPEPPER_API_KEY", "")
 
 
 @st.cache_resource
@@ -461,6 +464,62 @@ def update_participant(participant_id: str, name: str, pattern: str, work: str, 
 def delete_participant(participant_id: str) -> None:
     sb = _get_supabase()
     sb.table("participants").delete().eq("id", participant_id).execute()
+
+
+# ---------------------------------------------------------------------------
+# ホットペッパーグルメ検索
+# ---------------------------------------------------------------------------
+_HP_API_URL = "https://webservice.recruit.co.jp/hotpepper/gourmet/v1/"
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _search_hotpepper(lat, lon, keyword="", genre="G001", count=10,
+                      free_drink=0, private_room=0, party_capacity=0, budget=""):
+    """ホットペッパーAPIで周辺の飲食店を検索。結果を10分キャッシュ。"""
+    if not HOTPEPPER_API_KEY:
+        return []
+    params = {
+        "key": HOTPEPPER_API_KEY,
+        "lat": lat,
+        "lng": lon,
+        "range": 3,  # 1km圏内
+        "genre": genre,
+        "order": 4,  # おすすめ順
+        "count": count,
+        "format": "json",
+    }
+    if keyword:
+        params["keyword"] = keyword
+    if free_drink:
+        params["free_drink"] = 1
+    if private_room:
+        params["private_room"] = 1
+    if party_capacity:
+        params["party_capacity"] = party_capacity
+    if budget:
+        params["budget"] = budget
+    url = _HP_API_URL + "?" + urllib.parse.urlencode(params)
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read())
+        shops = data.get("results", {}).get("shop", [])
+        return [{
+            "name": s["name"],
+            "address": s.get("address", ""),
+            "access": s.get("mobile_access") or s.get("access", ""),
+            "budget": s.get("budget", {}).get("average", ""),
+            "capacity": s.get("party_capacity", ""),
+            "private_room": s.get("private_room", ""),
+            "free_drink": s.get("free_drink", ""),
+            "course": s.get("course", ""),
+            "genre": s.get("genre", {}).get("name", ""),
+            "catch": s.get("catch", ""),
+            "photo": s.get("photo", {}).get("mobile", {}).get("l", ""),
+            "url": s.get("urls", {}).get("pc", ""),
+            "open": s.get("open", ""),
+        } for s in shops]
+    except Exception:
+        return []
 
 
 # ---------------------------------------------------------------------------
@@ -1008,7 +1067,7 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
     k2.metric("平均移動時間", f"{best['avg_total_val']:.1f} {unit}")
     k3.metric("最大移動者", f"{best['max_person_val']:.1f} {unit}")
 
-    tab_ranking, tab_map, tab_detail = st.tabs(["ランキング", "地図", "詳細比較"])
+    tab_ranking, tab_map, tab_detail, tab_restaurant = st.tabs(["ランキング", "地図", "詳細比較", "お店を探す"])
 
     with tab_ranking:
         ranking_rows = []
@@ -1106,6 +1165,74 @@ def page_event(event_code: str, event: dict | None = None, db_participants: list
                 "標準偏差": s["std_dev"],
             })
         st.dataframe(pd.DataFrame(fairness_data), use_container_width=True, hide_index=True)
+
+    with tab_restaurant:
+        if not HOTPEPPER_API_KEY:
+            st.info("お店検索は現在準備中です。")
+        else:
+            st.markdown("### 上位駅の周辺でお店を探す")
+            # 駅選択
+            station_options = [f"{i+1}位: {s['name']}" for i, s in enumerate(top_stations[:3])]
+            selected_station_label = st.radio("駅を選択", station_options, horizontal=True)
+            selected_idx = station_options.index(selected_station_label)
+            sel_station = top_stations[selected_idx]
+
+            # 検索条件
+            col_f1, col_f2, col_f3 = st.columns(3)
+            with col_f1:
+                want_free_drink = st.checkbox("飲み放題あり", value=True)
+            with col_f2:
+                want_private_room = st.checkbox("個室あり")
+            with col_f3:
+                num_people = st.number_input("人数", min_value=0, value=len(geocoded), step=1,
+                                             help="0で人数条件なし")
+            keyword = st.text_input("キーワード（任意）", placeholder="例: 焼き鳥、イタリアン", key="hp_keyword")
+
+            if st.button("お店を検索", type="primary", use_container_width=True, key="hp_search"):
+                with st.spinner(f"{sel_station['name']}駅周辺のお店を検索中..."):
+                    shops = _search_hotpepper(
+                        sel_station["lat"], sel_station["lon"],
+                        keyword=keyword,
+                        free_drink=1 if want_free_drink else 0,
+                        private_room=1 if want_private_room else 0,
+                        party_capacity=num_people if num_people > 0 else 0,
+                    )
+                st.session_state["_hp_results"] = shops
+                st.session_state["_hp_station"] = sel_station["name"]
+
+            # 結果表示
+            if "_hp_results" in st.session_state:
+                shops = st.session_state["_hp_results"]
+                station_name = st.session_state.get("_hp_station", "")
+                if not shops:
+                    st.warning("条件に合うお店が見つかりませんでした。条件を変えて再検索してください。")
+                else:
+                    st.markdown(f"**{station_name}駅**周辺で **{len(shops)}件** 見つかりました")
+                    for shop in shops:
+                        with st.container(border=True):
+                            col_img, col_info = st.columns([1, 3])
+                            with col_img:
+                                if shop["photo"]:
+                                    st.image(shop["photo"], width=120)
+                            with col_info:
+                                st.markdown(f"**{shop['name']}**")
+                                st.caption(shop["catch"] if shop["catch"] else "")
+                                tags = []
+                                if shop["budget"]:
+                                    tags.append(f"💰 {shop['budget']}")
+                                if shop["capacity"]:
+                                    tags.append(f"👥 宴会最大{shop['capacity']}名")
+                                if shop["private_room"] and "あり" in shop["private_room"]:
+                                    tags.append("🚪 個室あり")
+                                if shop["free_drink"] and "あり" in shop["free_drink"]:
+                                    tags.append("🍺 飲み放題あり")
+                                if tags:
+                                    st.markdown(" ｜ ".join(tags))
+                                st.caption(f"📍 {shop['access']}")
+                                if shop["url"]:
+                                    st.link_button("ホットペッパーで予約", shop["url"],
+                                                   use_container_width=False)
+                    st.caption("powered by ホットペッパーグルメ Webサービス")
 
 
 # ---------------------------------------------------------------------------
