@@ -765,6 +765,11 @@ def serve_llms_txt():
     return FileResponse(os.path.join(_static_dir, "llms.txt"), media_type="text/plain; charset=utf-8")
 
 
+@app.get("/ads.txt")
+def serve_ads_txt():
+    return FileResponse(os.path.join(_static_dir, "ads.txt"), media_type="text/plain; charset=utf-8")
+
+
 @app.get("/")
 @app.get("/{path:path}")
 def serve_spa(path: str = ""):
