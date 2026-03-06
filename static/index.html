@@ -24,7 +24,7 @@
   "@type": "WebApplication",
   "name": "飲み会スポットファインダー",
   "url": "https://www.nomikai-spot-finder.com/",
-  "description": "参加者の最寄り駅を入力するだけで、全員にとって公平な集合駅と周辺の居酒屋・レストランを提案する無料Webアプリ。飲み会・宴会の幹事の負担を軽減します。",
+  "description": "飲み会を作成し、参加者の最寄り駅を入力するだけで、全員にとって公平な集合駅と周辺の居酒屋・レストランを提案。3ステップで飲み会の幹事の負担を軽減する無料Webアプリです。",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "All",
   "offers": {
@@ -307,11 +307,9 @@ td { white-space: nowrap; }
     <div class="steps">
       <div><span class="step-badge">1</span><span class="step-title">飲み会を作成</span></div>
       <span class="step-arrow">→</span>
-      <div><span class="step-badge muted">2</span><span class="step-title muted">URLを共有</span></div>
+      <div><span class="step-badge muted">2</span><span class="step-title muted">参加者情報を入力</span></div>
       <span class="step-arrow">→</span>
-      <div><span class="step-badge muted">3</span><span class="step-title muted">みんなで入力</span></div>
-      <span class="step-arrow">→</span>
-      <div><span class="step-badge muted">4</span><span class="step-title muted">最適スポット発見</span></div>
+      <div><span class="step-badge muted">3</span><span class="step-title muted">最適スポット発見</span></div>
     </div>
     <h2>新しい飲み会を作成</h2>
     <div style="display:flex;gap:8px;max-width:500px;" class="form-row">
@@ -610,15 +608,13 @@ function renderEvent() {
 
 
   // Steps
-  const s2 = count === 0, s3 = count > 0, s4 = count >= 2;
+  const s2 = count > 0 || count === 0, s3 = count >= 2;
   document.getElementById('event-steps').innerHTML = `
     <div><span class="step-badge done">✓</span><span class="step-title" style="color:var(--success)">作成済み</span></div>
     <span class="step-arrow">→</span>
-    <div><span class="step-badge ${s2?'':'muted'}">2</span><span class="step-title ${s2?'':'muted'}">URLを共有</span></div>
+    <div><span class="step-badge ${s2?'':'muted'}">2</span><span class="step-title ${s2?'':'muted'}">参加者情報を入力（現在 ${count}人）</span></div>
     <span class="step-arrow">→</span>
-    <div><span class="step-badge ${s3?'':'muted'}">3</span><span class="step-title ${s3?'':'muted'}">みんなで入力（現在 ${count}人）</span></div>
-    <span class="step-arrow">→</span>
-    <div><span class="step-badge ${s4?'':'muted'}">4</span><span class="step-title ${s4?'':'muted'}">最適スポット発見</span></div>`;
+    <div><span class="step-badge ${s3?'':'muted'}">3</span><span class="step-title ${s3?'':'muted'}">最適スポット発見</span></div>`;
 
   // Share URL
   const baseUrl = location.origin;
