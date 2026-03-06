@@ -384,7 +384,7 @@ td { white-space: nowrap; }
         <input type="range" id="fairness" min="0" max="1" step="0.05" value="0.3">
         <span class="range-edge">公平重視</span>
       </div>
-      <p class="caption" style="text-align:center;" id="fairness-val">やや効率重視</p>
+      <p class="caption" style="text-align:center;" id="fairness-val">効率 70% / 公平 30%</p>
     </div>
 
     <hr class="divider">
@@ -1072,13 +1072,9 @@ function updateBalanceLabel() {
 }
 function updateFairnessLabel() {
   const v = parseFloat(document.getElementById('fairness').value);
-  let label;
-  if (v <= 0.1) label = '効率重視';
-  else if (v <= 0.3) label = 'やや効率重視';
-  else if (v <= 0.5) label = 'バランス';
-  else if (v <= 0.7) label = 'やや公平重視';
-  else label = '公平重視';
-  document.getElementById('fairness-val').textContent = label;
+  const e = Math.round((1 - v) * 100);
+  const f = Math.round(v * 100);
+  document.getElementById('fairness-val').textContent = `効率 ${e}% / 公平 ${f}%`;
 }
 
 // ---------------------------------------------------------------------------
