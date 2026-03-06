@@ -261,7 +261,6 @@ td { white-space: nowrap; }
   <!-- Event page -->
   <div id="page-event" class="hidden">
     <h1 id="event-title-display"></h1>
-    <p class="caption">飲み会スポットファインダー</p>
     <div class="steps" id="event-steps"></div>
 
     <p style="font-weight:600;margin-top:8px;">この飲み会の共有用URL（右のボタンでコピー）</p>
@@ -535,6 +534,10 @@ function renderEvent() {
   const count = participants.length;
 
   document.getElementById('event-title-display').textContent = ev.title;
+  document.getElementById('event-title-display').insertAdjacentHTML('beforebegin',
+    document.getElementById('event-subtitle') ? '' :
+    '<p class="caption" id="event-subtitle" style="margin-bottom:2px;">飲み会タイトル</p>');
+
 
   // Steps
   const s2 = count === 0, s3 = count > 0, s4 = count >= 2;
