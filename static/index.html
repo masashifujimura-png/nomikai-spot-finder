@@ -94,12 +94,22 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 .card-row .actions { display: flex; gap: 6px; }
 
 /* Tabs */
-.tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 16px; }
-.tab {
-  padding: 10px 20px; cursor: pointer; font-weight: 600; font-size: 14px;
-  border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--text-muted);
+.tabs {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
 }
-.tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab {
+  flex: 1; min-width: 0;
+  padding: 12px 8px; cursor: pointer; font-weight: 600; font-size: 14px;
+  text-align: center; border-radius: var(--radius);
+  background: var(--bg-secondary); color: var(--text-muted);
+  border: 2px solid var(--border); transition: all 0.15s;
+}
+.tab:hover { border-color: var(--primary); color: var(--primary); }
+.tab.active {
+  background: var(--primary); color: white; border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(26,115,232,0.25);
+}
+.tab-icon { display: block; font-size: 20px; margin-bottom: 2px; }
 
 /* Metrics */
 .metrics { display: flex; gap: 16px; margin: 12px 0; flex-wrap: wrap; }
@@ -320,10 +330,10 @@ td { white-space: nowrap; }
       <div class="metrics" id="metrics"></div>
 
       <div class="tabs" id="result-tabs">
-        <div class="tab active" data-tab="map" onclick="switchTab('map')">地図</div>
-        <div class="tab" data-tab="detail" onclick="switchTab('detail')">詳細比較</div>
-        <div class="tab" data-tab="ranking" onclick="switchTab('ranking')">ランキング</div>
-        <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant')">お店を探す</div>
+        <div class="tab active" data-tab="map" onclick="switchTab('map')"><span class="tab-icon">&#x1f5fa;</span>地図</div>
+        <div class="tab" data-tab="detail" onclick="switchTab('detail')"><span class="tab-icon">&#x1f4ca;</span>詳細比較</div>
+        <div class="tab" data-tab="ranking" onclick="switchTab('ranking')"><span class="tab-icon">&#x1f3c6;</span>ランキング</div>
+        <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant')"><span class="tab-icon">&#x1f37a;</span>お店を探す</div>
       </div>
 
       <div id="tab-map"></div>
