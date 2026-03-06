@@ -124,8 +124,12 @@ def main():
         graph.setdefault(gcd2, []).append((gcd1, time_min))
         ln = line_names.get(lc, "")
         if ln:
-            edge_lines[(gcd1, gcd2)] = ln
-            edge_lines[(gcd2, gcd1)] = ln
+            edge_lines.setdefault((gcd1, gcd2), [])
+            if ln not in edge_lines[(gcd1, gcd2)]:
+                edge_lines[(gcd1, gcd2)].append(ln)
+            edge_lines.setdefault((gcd2, gcd1), [])
+            if ln not in edge_lines[(gcd2, gcd1)]:
+                edge_lines[(gcd2, gcd1)].append(ln)
 
     # g_cd をノードキーにしているため、同一 station_g_cd の駅は
     # 自動的に同一ノードになる（乗換コスト0）。

@@ -140,15 +140,18 @@ def _dijkstra(graph, start, targets=None, edge_lines=None):
             if not remaining:
                 break
         for v, w in graph.get(u, []):
-            v_line = edge_lines.get((u, v), "")
-            penalty = TRANSFER_PENALTY if u_line and v_line and u_line != v_line else 0
-            nd = d + w + penalty
-            state = (v, v_line)
-            if nd < state_dist.get(state, float("inf")):
-                state_dist[state] = nd
-                if nd < best.get(v, float("inf")):
-                    best[v] = nd
-                heapq.heappush(heap, (nd, v, v_line))
+            v_lines = edge_lines.get((u, v), [])
+            if not v_lines:
+                v_lines = [""]
+            for v_line in v_lines:
+                penalty = TRANSFER_PENALTY if u_line and v_line and u_line != v_line else 0
+                nd = d + w + penalty
+                state = (v, v_line)
+                if nd < state_dist.get(state, float("inf")):
+                    state_dist[state] = nd
+                    if nd < best.get(v, float("inf")):
+                        best[v] = nd
+                    heapq.heappush(heap, (nd, v, v_line))
     return best
 
 
@@ -172,23 +175,28 @@ def _dijkstra_with_path(graph, start, target, edge_lines=None):
         if d >= best_target_d:
             continue
         for v, w in graph.get(u, []):
-            v_line = edge_lines.get((u, v), "")
-            penalty = TRANSFER_PENALTY if u_line and v_line and u_line != v_line else 0
-            nd = d + w + penalty
-            next_state = (v, v_line)
-            if nd < state_dist.get(next_state, float("inf")):
-                state_dist[next_state] = nd
-                prev[next_state] = state
-                heapq.heappush(heap, (nd, v, v_line))
+            v_lines = edge_lines.get((u, v), [])
+            if not v_lines:
+                v_lines = [""]
+            for v_line in v_lines:
+                penalty = TRANSFER_PENALTY if u_line and v_line and u_line != v_line else 0
+                nd = d + w + penalty
+                next_state = (v, v_line)
+                if nd < state_dist.get(next_state, float("inf")):
+                    state_dist[next_state] = nd
+                    prev[next_state] = state
+                    heapq.heappush(heap, (nd, v, v_line))
     if best_target_state is None:
         return None, None
-    path = []
+    # 経路復元: (gcd, line) のペアを返す
+    path_states = []
     s = best_target_state
     while s is not None:
-        path.append(s[0])
+        path_states.append(s)
         s = prev.get(s)
-    path.reverse()
-    return path, round(best_target_d, 1)
+    path_states.reverse()
+    path = [s[0] for s in path_states]
+    return path, round(best_target_d, 1), path_states
 
 
 def _batch_dijkstra(sources, targets):
@@ -424,17 +432,29 @@ def score_stations(stations, participants, work_weight, home_weight, fairness_we
 # ---------------------------------------------------------------------------
 # Route formatting
 # ---------------------------------------------------------------------------
-def _format_route(path_gcds):
+def _format_route(path_gcds, path_states=None):
     if not path_gcds or len(path_gcds) < 2:
         gtn = _gcd_to_name()
         return gtn.get(path_gcds[0], "?") if path_gcds else ""
-    el = _edge_lines()
     gtn = _gcd_to_name()
+
+    # path_states があれば各ノードの路線名を使う（ダイクストラの結果）
+    if path_states and len(path_states) == len(path_gcds):
+        lines = [s[1] for s in path_states]
+    else:
+        # フォールバック: edge_lines の最初の路線を使う
+        el = _edge_lines()
+        lines = [""]
+        for j in range(len(path_gcds) - 1):
+            edge_l = el.get((path_gcds[j], path_gcds[j + 1]), [])
+            lines.append(edge_l[0] if edge_l else "")
+
+    # 同じ路線が続く区間をまとめる
     segments = []
-    current_line = el.get((path_gcds[0], path_gcds[1]), "")
+    current_line = lines[1] if len(lines) > 1 else ""
     seg_start = path_gcds[0]
     for j in range(1, len(path_gcds) - 1):
-        next_line = el.get((path_gcds[j], path_gcds[j + 1]), "")
+        next_line = lines[j + 1] if j + 1 < len(lines) else ""
         if next_line != current_line:
             segments.append((seg_start, path_gcds[j], current_line))
             seg_start = path_gcds[j]
@@ -452,10 +472,10 @@ def _format_route(path_gcds):
 
 def _find_route(source_gcd, target_gcd):
     if not source_gcd or not target_gcd or source_gcd == target_gcd:
-        return None, 0.0
+        return None, 0.0, None
     graph = _graph()
     if source_gcd not in graph:
-        return None, None
+        return None, None, None
     return _dijkstra_with_path(graph, source_gcd, target_gcd, _edge_lines())
 
 
@@ -665,9 +685,9 @@ def api_search(req: SearchReq):
 
             wg = g.get("work_gcd")
             if wg and sg and wg != sg:
-                path_to, time_to = _find_route(wg, sg)
+                path_to, time_to, states_to = _find_route(wg, sg)
                 if path_to:
-                    person_routes["to_route"] = _format_route(path_to)
+                    person_routes["to_route"] = _format_route(path_to, states_to)
                     person_routes["to_time"] = time_to
                 else:
                     ws = g.get("work_station") or "?"
@@ -683,9 +703,9 @@ def api_search(req: SearchReq):
 
             hg = g.get("home_gcd")
             if hg and sg and hg != sg:
-                path_home, time_home = _find_route(sg, hg)
+                path_home, time_home, states_home = _find_route(sg, hg)
                 if path_home:
-                    person_routes["home_route"] = _format_route(path_home)
+                    person_routes["home_route"] = _format_route(path_home, states_home)
                     person_routes["home_time"] = time_home
                 else:
                     hs = g.get("home_station") or "?"
