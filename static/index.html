@@ -28,10 +28,16 @@ body {
   line-height: 1.6;
 }
 .site-header {
-  padding: 20px 20px 0; max-width: 960px; margin: 0 auto;
+  position: sticky; top: 0; z-index: 1000;
+  background: var(--bg);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.site-header-inner {
+  max-width: 960px; margin: 0 auto;
 }
 .site-header img {
-  width: clamp(260px, 55vw, 560px);
+  width: clamp(200px, 40vw, 360px);
   height: auto;
   cursor: pointer;
 }
@@ -235,7 +241,9 @@ td { white-space: nowrap; }
 </head>
 <body>
 <div class="site-header">
-  <img src="/static/nomikai_wide.png" alt="飲み会スポットファインダー" onclick="location.href='/'">
+  <div class="site-header-inner">
+    <img src="/static/nomikai_wide.png" alt="飲み会スポットファインダー" onclick="location.href='/'">
+  </div>
 </div>
 <div class="container" id="app">
   <!-- Top page (create event) -->
