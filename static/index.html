@@ -324,7 +324,7 @@ td { white-space: nowrap; }
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, rgba(58,28,113,0.85) 0%, rgba(30,15,60,0.7) 50%, rgba(0,0,0,0.3) 100%);
+  background: linear-gradient(to right, rgba(0,0,0,0.15) 0%, rgba(30,15,60,0.45) 40%, rgba(58,28,113,0.85) 100%);
   border-radius: 0 0 24px 24px;
 }
 .lp-hero-inner {
@@ -337,19 +337,19 @@ td { white-space: nowrap; }
 }
 .lp-hero-text {
   flex: 1;
-  text-align: left;
-  padding: 56px 20px 56px 40px;
+  text-align: right;
+  padding: 56px 40px 56px 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
+  align-items: flex-end;
 }
 .lp-hero-visual {
   flex: 0 0 280px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 32px 24px 0;
+  padding: 24px 0 24px 32px;
 }
 .lp-hero-img {
   width: 100%;
@@ -584,13 +584,13 @@ td { white-space: nowrap; }
     <!-- 1. Hero -->
     <div class="lp-hero">
       <div class="lp-hero-inner">
+        <div class="lp-hero-visual">
+          <img src="/static/hero-hand.png" alt="飲み会スポットファインダー" class="lp-hero-img">
+        </div>
         <div class="lp-hero-text">
           <h1 class="lp-headline">全員が、笑顔で集まる、<br>笑顔で帰る。</h1>
           <p class="lp-headline-sub">みんなに「やさしい」駅探し。</p>
           <button class="btn btn-cta-hero" onclick="document.getElementById('lp-create').scrollIntoView({behavior:'smooth'})">無料で飲み会を作成する</button>
-        </div>
-        <div class="lp-hero-visual">
-          <img src="/static/hero-hand.png" alt="飲み会スポットファインダー" class="lp-hero-img">
         </div>
       </div>
     </div>
