@@ -274,8 +274,8 @@ td { white-space: nowrap; }
 .ptbl .actions-cell button { margin-left: 4px; }
 .ptbl .add-row td { border-bottom: none; }
 .ptbl .btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 50%; }
-.ptbl .btn-add-row { border: 2px dashed var(--primary); color: var(--primary); background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 16px; border-radius: var(--radius); width: 100%; margin-top: 8px; }
-.ptbl .btn-add-row:hover { background: #e8f0fe; }
+.ptbl .btn-add-row { background: var(--primary); color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: var(--radius); width: 100%; margin-top: 8px; transition: background 0.2s; }
+.ptbl .btn-add-row:hover { background: var(--primary-dark); }
 
 /* Participant cards (mobile) */
 .p-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; background: white; }
@@ -289,6 +289,120 @@ td { white-space: nowrap; }
 @media (max-width: 640px) {
   .ptbl-desktop { display: none; }
   .ptbl-mobile { display: block; }
+}
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.hero-headline {
+  font-size: 1.6rem;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.hero-sub {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+.hero-body {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.hero-visual {
+  flex: 0 0 200px;
+}
+.hero-img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+.hero-form {
+  flex: 1;
+  text-align: left;
+}
+.hero-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  outline: none;
+}
+.hero-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
+}
+.btn-cta {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 16px;
+  font-weight: 700;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-cta:hover { background: var(--primary-dark); }
+.hero-steps {
+  margin-top: 16px;
+}
+.hero-steps .steps {
+  justify-content: center;
+  font-size: 13px;
+}
+
+/* Features */
+.features {
+  padding: 32px 0 16px;
+  border-top: 1px solid var(--border);
+}
+.features-headline {
+  text-align: center;
+  font-size: 1.3rem;
+  margin-bottom: 24px;
+  color: var(--text);
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.feature-card {
+  text-align: center;
+  padding: 20px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+}
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+.feature-card h3 {
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.feature-card p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .hero-headline { font-size: 1.3rem; }
+  .hero-body { flex-direction: column; gap: 16px; }
+  .hero-visual { flex: 0 0 auto; width: 160px; }
+  .features-grid { grid-template-columns: 1fr; }
 }
 
 /* Hidden */
@@ -334,19 +448,50 @@ td { white-space: nowrap; }
 <div class="container" id="app">
   <!-- Top page (create event) -->
   <div id="page-top">
-    <p class="caption">参加者の職場と自宅から、最も集まりやすく帰りやすい駅を見つけます</p>
-    <hr class="divider">
-    <div class="steps">
-      <div><span class="step-badge">1</span><span class="step-title">飲み会を作成</span></div>
-      <span class="step-arrow">→</span>
-      <div><span class="step-badge muted">2</span><span class="step-title muted">参加者情報を入力</span></div>
-      <span class="step-arrow">→</span>
-      <div><span class="step-badge muted">3</span><span class="step-title muted">最適スポット発見</span></div>
+    <!-- Hero section -->
+    <div class="hero">
+      <h1 class="hero-headline">「最適な飲み会スポットを、<br>公平に見つける。」</h1>
+      <p class="hero-sub">全員の職場と自宅から、最も集まりやすく帰りやすい駅を特定。</p>
+      <div class="hero-body">
+        <div class="hero-visual">
+          <img src="/static/nomikai.png" alt="飲み会スポットファインダー" class="hero-img">
+        </div>
+        <div class="hero-form">
+          <input type="text" id="event-title" placeholder="イベント名を入力して、飲み会を作成" class="hero-input">
+          <button class="btn btn-cta" onclick="createNomikai()" id="btn-create">無料で作成</button>
+          <div class="hero-steps">
+            <div class="steps">
+              <div><span class="step-badge">1</span><span class="step-title">飲み会を作成</span></div>
+              <span class="step-arrow">→</span>
+              <div><span class="step-badge muted">2</span><span class="step-title muted">参加者情報を入力</span></div>
+              <span class="step-arrow">→</span>
+              <div><span class="step-badge muted">3</span><span class="step-title muted">最適スポット発見</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <h2>新しい飲み会を作成</h2>
-    <div style="display:flex;gap:8px;max-width:500px;" class="form-row">
-      <input type="text" id="event-title" placeholder="例: 歓迎会、忘年会" style="flex:2;">
-      <button class="btn btn-primary" onclick="createNomikai()" id="btn-create">作成</button>
+
+    <!-- Features section -->
+    <div class="features">
+      <h2 class="features-headline">幹事の「独断」を「みんなの納得」に。</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#x1f39b;</div>
+          <h3>2本のスライダーで<br>こだわり調整</h3>
+          <p>「職場に近い vs 家に帰りやすい」「効率 vs 公平」を直感的に調整できます。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1f5fa;</div>
+          <h3>地図で全員のルートが<br>一目瞭然</h3>
+          <p>提案された駅と各参加者の経路を地図上で確認。移動時間も一覧で比較できます。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#x1f37a;</div>
+          <h3>外部サイトと連携し<br>お店探しをサポート</h3>
+          <p>ホットペッパーグルメと連携。飲み放題・個室・人数など条件で絞り込めます。</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -738,7 +883,7 @@ function renderParticipantTable() {
     mb += renderAddRowMobile();
   }
   if (!addingRow && editingId === null) {
-    mb += '<button class="btn-add-row" onclick="showAddRow()" style="border:2px dashed var(--primary);color:var(--primary);background:transparent;cursor:pointer;font-size:14px;font-weight:600;padding:8px 16px;border-radius:var(--radius);width:100%;margin-top:8px;">＋ 参加者を追加</button>';
+    mb += '<button class="btn btn-primary btn-full" onclick="showAddRow()" style="margin-top:8px;">＋ 参加者を追加</button>';
   }
   mb += '</div>';
 
