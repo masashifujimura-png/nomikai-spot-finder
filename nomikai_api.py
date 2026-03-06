@@ -760,6 +760,11 @@ _static_dir = os.path.join(_DATA_DIR, "static")
 app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
 
+@app.get("/llms.txt")
+def serve_llms_txt():
+    return FileResponse(os.path.join(_static_dir, "llms.txt"), media_type="text/plain; charset=utf-8")
+
+
 @app.get("/")
 @app.get("/{path:path}")
 def serve_spa(path: str = ""):
