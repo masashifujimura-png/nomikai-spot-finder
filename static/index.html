@@ -324,7 +324,7 @@ td { white-space: nowrap; }
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(58,28,113,0.82) 0%, rgba(30,15,60,0.7) 40%, rgba(0,0,0,0.4) 100%);
+  background: linear-gradient(to right, rgba(0,0,0,0.05) 0%, rgba(30,15,60,0.3) 35%, rgba(58,28,113,0.8) 65%, rgba(58,28,113,0.88) 100%);
   border-radius: 0 0 24px 24px;
 }
 .lp-hero-inner {
@@ -332,18 +332,18 @@ td { white-space: nowrap; }
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   position: relative;
   z-index: 1;
 }
 .lp-hero-text {
-  flex: 1;
-  text-align: center;
-  padding: 64px 40px;
+  flex: 0 1 auto;
+  text-align: right;
+  padding: 64px 48px 64px 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: flex-end;
 }
 .lp-headline {
   font-size: 2.2rem;
@@ -510,7 +510,7 @@ td { white-space: nowrap; }
 /* LP responsive */
 @media (max-width: 640px) {
   .lp-hero { margin: 0 -12px; }
-  .lp-hero-text { padding: 40px 20px; }
+  .lp-hero-text { text-align: center; align-items: center; padding: 40px 20px; }
   .lp-headline { font-size: 1.4rem; }
   .lp-headline-sub { font-size: 1.1rem; }
   .lp-pain-grid { grid-template-columns: 1fr; max-width: 300px; }
