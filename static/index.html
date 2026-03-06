@@ -681,9 +681,12 @@ async function addParticipant() {
     document.getElementById('results').classList.add('hidden');
     await reloadParticipants();
     const remaining = 2 - participants.length;
-    const hint = remaining > 0
-      ? `あと${remaining}人追加すると検索できます。`
-      : 'ページ下部の「最適スポットを検索」ボタンで検索できます。';
+    let hint;
+    if (remaining > 0) {
+      hint = `あと${remaining}人追加すると検索できます。`;
+    } else {
+      hint = '続けて参加者を追加するか、全員そろったらページ下部の「最適スポットを検索」ボタンで検索してください。';
+    }
     showSuccess(`${name} さんを追加しました。${hint}`);
   } catch(e) { alert('エラーが発生しました'); }
 }
