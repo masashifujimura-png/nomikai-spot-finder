@@ -315,16 +315,17 @@ td { white-space: nowrap; }
 .lp-hero {
   background: url('/static/hero-bg.jpg') center/cover no-repeat;
   color: white;
-  padding: 56px 20px 48px;
+  padding: 64px 20px 56px;
   margin: 0 -20px;
   border-radius: 0 0 24px 24px;
   position: relative;
+  min-height: 380px;
 }
 .lp-hero::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(58, 28, 113, 0.35);
+  background: linear-gradient(to right, rgba(0,0,0,0.15), rgba(58, 28, 113, 0.3));
   border-radius: 0 0 24px 24px;
 }
 .lp-hero-inner {
