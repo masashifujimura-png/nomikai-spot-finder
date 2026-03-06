@@ -313,7 +313,7 @@ td { white-space: nowrap; }
 
 /* LP Hero */
 .lp-hero {
-  background: url('/static/hero-bg.jpg') center/cover no-repeat;
+  background: url('/static/hero-phone.png') center/cover no-repeat;
   color: white;
   margin: 0 -20px;
   border-radius: 0 0 24px 24px;
@@ -324,25 +324,26 @@ td { white-space: nowrap; }
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.1) 0%, rgba(30,15,60,0.4) 50%, rgba(58,28,113,0.7) 100%);
+  background: linear-gradient(135deg, rgba(58,28,113,0.82) 0%, rgba(30,15,60,0.7) 40%, rgba(0,0,0,0.4) 100%);
   border-radius: 0 0 24px 24px;
 }
 .lp-hero-inner {
   max-width: 960px;
   margin: 0 auto;
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   position: relative;
   z-index: 1;
 }
 .lp-hero-text {
   flex: 1;
-  text-align: right;
-  padding: 56px 40px 48px 0;
+  text-align: center;
+  padding: 64px 40px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
 }
 .lp-headline {
   font-size: 2.2rem;
@@ -376,21 +377,6 @@ td { white-space: nowrap; }
 .btn-cta-hero:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(0,0,0,0.4);
-}
-.lp-hero-visual {
-  flex: 0 0 300px;
-  align-self: flex-end;
-  overflow: hidden;
-}
-.lp-hero-img {
-  width: 300px;
-  height: auto;
-  display: block;
-  object-fit: cover;
-  object-position: left bottom;
-  mix-blend-mode: luminosity;
-  opacity: 0.9;
-  margin-bottom: -4px;
 }
 
 /* LP Sections */
@@ -524,12 +510,9 @@ td { white-space: nowrap; }
 /* LP responsive */
 @media (max-width: 640px) {
   .lp-hero { margin: 0 -12px; }
-  .lp-hero-inner { flex-direction: column; }
-  .lp-hero-text { text-align: center; align-items: center; padding: 40px 20px 24px; }
+  .lp-hero-text { padding: 40px 20px; }
   .lp-headline { font-size: 1.4rem; }
   .lp-headline-sub { font-size: 1.1rem; }
-  .lp-hero-visual { flex: 0 0 auto; width: 100%; max-width: 280px; margin: 0 auto; }
-  .lp-hero-img { width: 100%; }
   .lp-pain-grid { grid-template-columns: 1fr; max-width: 300px; }
   .lp-steps-grid { flex-direction: column; }
   .lp-step-arrow { transform: rotate(90deg); }
@@ -585,9 +568,6 @@ td { white-space: nowrap; }
     <!-- 1. Hero -->
     <div class="lp-hero">
       <div class="lp-hero-inner">
-        <div class="lp-hero-visual">
-          <img src="/static/hero-phone.png" alt="飲み会スポットファインダー" class="lp-hero-img">
-        </div>
         <div class="lp-hero-text">
           <h1 class="lp-headline">全員が、笑顔で集まる、<br>笑顔で帰る。</h1>
           <p class="lp-headline-sub">みんなに「やさしい」駅探し。</p>
