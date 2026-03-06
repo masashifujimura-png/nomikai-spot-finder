@@ -41,6 +41,9 @@
 </script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1228050934779173"
      crossorigin="anonymous"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -59,11 +62,13 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 400;
   color: var(--text);
   background: var(--bg);
   line-height: 1.6;
 }
+h1, h2, h3 { font-weight: 900; }
 .site-header {
   position: sticky; top: 0; z-index: 1000;
   background: var(--bg);
@@ -82,10 +87,11 @@ body {
 }
 .site-header-name {
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 900;
   color: #4a2d8a;
   margin-left: 6px;
   white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 @media (max-width: 640px) {
   .site-header-name { font-size: 1rem; }
@@ -321,16 +327,17 @@ td { white-space: nowrap; }
 }
 .lp-hero-text { flex: 1; }
 .lp-headline {
-  font-size: 2rem;
+  font-size: 2.2rem;
   line-height: 1.4;
-  margin-bottom: 4px;
-  font-weight: 800;
+  margin-bottom: 8px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
 }
 .lp-headline-sub {
   font-size: 1.5rem;
-  line-height: 1.4;
-  margin-bottom: 16px;
-  font-weight: 700;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  font-weight: 900;
   opacity: 0.95;
 }
 .lp-hero-desc {
@@ -366,18 +373,20 @@ td { white-space: nowrap; }
 
 /* LP Sections */
 .lp-section {
-  padding: 40px 0;
+  padding: 56px 0;
 }
 .lp-section-alt {
   background: var(--bg-secondary);
   margin: 0 -20px;
-  padding: 40px 20px;
+  padding: 56px 20px;
 }
 .lp-section-title {
   text-align: center;
-  font-size: 1.4rem;
-  margin-bottom: 28px;
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin-bottom: 36px;
   color: var(--text);
+  letter-spacing: 0.02em;
 }
 
 /* Pain points */
