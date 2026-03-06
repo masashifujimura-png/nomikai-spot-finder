@@ -859,7 +859,7 @@ function renderMap(scored, geocoded) {
   if (mapInstance) { mapInstance.remove(); mapInstance = null; }
 
   const center = scored.length ? [scored[0].lat, scored[0].lon] : [35.68, 139.76];
-  const map = L.map('map-container');
+  const map = L.map('map-container', {center, zoom: 12});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
   }).addTo(map);
@@ -910,24 +910,27 @@ function renderMap(scored, geocoded) {
   setTimeout(() => {
     map.invalidateSize();
     if (allPoints.length > 1 && scored.length) {
-      // 1位の駅を中心に、全マーカーが収まる最大縮尺にする
-      const c = [scored[0].lat, scored[0].lon];
+      // 1位の駅を中心に、全マーカーが収まるズームレベルを計算
+      const c = L.latLng(scored[0].lat, scored[0].lon);
+      // 全ポイントが入るバウンドを作成
+      const allBounds = L.latLngBounds(allPoints);
+      // 1位中心で対称なバウンドを作成
       let maxDlat = 0, maxDlon = 0;
       for (const p of allPoints) {
-        maxDlat = Math.max(maxDlat, Math.abs(p[0] - c[0]));
-        maxDlon = Math.max(maxDlon, Math.abs(p[1] - c[1]));
+        maxDlat = Math.max(maxDlat, Math.abs(p[0] - c.lat));
+        maxDlon = Math.max(maxDlon, Math.abs(p[1] - c.lng));
       }
-      const bounds = L.latLngBounds(
-        [c[0] - maxDlat, c[1] - maxDlon],
-        [c[0] + maxDlat, c[1] + maxDlon]
+      const symBounds = L.latLngBounds(
+        [c.lat - maxDlat, c.lng - maxDlon],
+        [c.lat + maxDlat, c.lng + maxDlon]
       );
-      map.fitBounds(bounds, {padding: [40, 40]});
+      // バウンドに収まるズームレベルを取得し、1位中心でセット
+      const zoom = map.getBoundsZoom(symBounds, false, [40, 40]);
+      map.setView(c, zoom);
     } else if (allPoints.length === 1) {
       map.setView(allPoints[0], 13);
-    } else {
-      map.setView(center, 12);
     }
-  }, 100);
+  }, 150);
 }
 
 function addMarker(map, lat, lon, color, label, radius, placed) {
