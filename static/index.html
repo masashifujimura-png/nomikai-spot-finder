@@ -347,6 +347,7 @@ let searchResults = null;
 let hpResults = null;
 let hpPage = 0;
 let mapInstance = null;
+let pendingMapData = null;
 let appConfig = {};
 
 // ---------------------------------------------------------------------------
@@ -801,9 +802,9 @@ function renderResults() {
     <div class="metric"><div class="metric-label">最大移動者</div><div class="metric-value">${best.max_person_val.toFixed(1)} ${unit}</div></div>`;
 
   renderRanking(scored, geocoded, unit);
-  renderMap(scored, geocoded);
   renderDetail(scored, geocoded, unit);
   renderRestaurantTab(scored, geocoded);
+  pendingMapData = {scored, geocoded};
   switchTab('ranking');
 }
 
@@ -812,8 +813,15 @@ function switchTab(name) {
   ['ranking','map','detail','restaurant'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
   });
-  if (name === 'map' && mapInstance) {
-    setTimeout(() => mapInstance.invalidateSize(), 100);
+  if (name === 'map') {
+    if (pendingMapData) {
+      // タブが表示された直後に描画（コンテナサイズが確定してから）
+      const data = pendingMapData;
+      pendingMapData = null;
+      setTimeout(() => renderMap(data.scored, data.geocoded), 50);
+    } else if (mapInstance) {
+      setTimeout(() => mapInstance.invalidateSize(), 100);
+    }
   }
 }
 
@@ -906,20 +914,15 @@ function renderMap(scored, geocoded) {
   };
   legend.addTo(map);
 
-  // タブ切り替え直後はコンテナサイズが0の場合があるので再計算
-  setTimeout(() => {
-    map.invalidateSize();
-    if (allPoints.length > 1 && scored.length) {
-      const c = L.latLng(scored[0].lat, scored[0].lon);
-      // まず全ポイントが収まるズームを適用
-      map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: false});
-      // ズームを1段階引いて余裕を持たせ、中心を1位に移動
-      const zoom = Math.max(map.getZoom() - 1, 1);
-      map.setView(c, zoom, {animate: false});
-    } else if (allPoints.length === 1) {
-      map.setView(allPoints[0], 13);
-    }
-  }, 150);
+  if (allPoints.length > 1 && scored.length) {
+    const c = L.latLng(scored[0].lat, scored[0].lon);
+    // 全ポイントが収まるズームを適用し、中心を1位に移動
+    map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: false});
+    const zoom = map.getZoom();
+    map.setView(c, zoom, {animate: false});
+  } else if (allPoints.length === 1) {
+    map.setView(allPoints[0], 13);
+  }
 }
 
 function addMarker(map, lat, lon, color, label, radius, placed) {
