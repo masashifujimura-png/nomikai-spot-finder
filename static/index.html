@@ -313,20 +313,30 @@ td { white-space: nowrap; }
 
 /* LP Hero */
 .lp-hero {
-  background: linear-gradient(135deg, #3a1c71, #d76d77, #ffaf7b);
+  background: url('/static/hero-bg.jpg') center/cover no-repeat;
   color: white;
-  padding: 48px 20px 40px;
+  padding: 56px 20px 48px;
   margin: 0 -20px;
+  border-radius: 0 0 24px 24px;
+  position: relative;
+}
+.lp-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(58, 28, 113, 0.35);
   border-radius: 0 0 24px 24px;
 }
 .lp-hero-inner {
-  max-width: 860px;
+  max-width: 900px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 40px;
+  position: relative;
+  z-index: 1;
 }
-.lp-hero-text { flex: 1; }
+.lp-hero-text { flex: 1; text-align: right; }
 .lp-headline {
   font-size: 2.2rem;
   line-height: 1.4;
@@ -340,12 +350,6 @@ td { white-space: nowrap; }
   margin-bottom: 20px;
   font-weight: 900;
   opacity: 0.95;
-}
-.lp-hero-desc {
-  font-size: 0.9rem;
-  opacity: 0.85;
-  line-height: 1.7;
-  margin-bottom: 24px;
 }
 .btn-cta-hero {
   display: inline-block;
@@ -364,12 +368,11 @@ td { white-space: nowrap; }
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(0,0,0,0.3);
 }
-.lp-hero-visual { flex: 0 0 200px; text-align: center; }
+.lp-hero-visual { flex: 0 0 280px; text-align: center; }
 .lp-hero-img {
-  width: 180px;
+  width: 280px;
   height: auto;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.4));
 }
 
 /* LP Sections */
@@ -503,11 +506,12 @@ td { white-space: nowrap; }
 /* LP responsive */
 @media (max-width: 640px) {
   .lp-hero { padding: 32px 16px; margin: 0 -12px; }
-  .lp-hero-inner { flex-direction: column; text-align: center; gap: 24px; }
+  .lp-hero-inner { flex-direction: column; gap: 20px; }
+  .lp-hero-text { text-align: center; }
   .lp-headline { font-size: 1.5rem; }
-  .lp-headline-sub { font-size: 1.2rem; }
-  .lp-hero-visual { flex: 0 0 auto; }
-  .lp-hero-img { width: 140px; }
+  .lp-headline-sub { font-size: 1.15rem; }
+  .lp-hero-visual { flex: 0 0 auto; order: -1; }
+  .lp-hero-img { width: 200px; }
   .lp-pain-grid { grid-template-columns: 1fr; max-width: 300px; }
   .lp-steps-grid { flex-direction: column; }
   .lp-step-arrow { transform: rotate(90deg); }
@@ -563,13 +567,13 @@ td { white-space: nowrap; }
     <!-- 1. Hero -->
     <div class="lp-hero">
       <div class="lp-hero-inner">
+        <div class="lp-hero-visual">
+          <img src="/static/hero-phone.png" alt="飲み会スポットファインダー" class="lp-hero-img">
+        </div>
         <div class="lp-hero-text">
           <h1 class="lp-headline">全員が、笑顔で集まる、<br>笑顔で帰る。</h1>
           <p class="lp-headline-sub">みんなに「やさしい」駅探し。</p>
           <button class="btn btn-cta-hero" onclick="document.getElementById('lp-create').scrollIntoView({behavior:'smooth'})">無料で飲み会を作成する</button>
-        </div>
-        <div class="lp-hero-visual">
-          <img src="/static/nomikai.png" alt="飲み会スポットファインダー" class="lp-hero-img">
         </div>
       </div>
     </div>
