@@ -28,11 +28,10 @@ body {
   line-height: 1.6;
 }
 .site-header {
-  display: flex; align-items: center; justify-content: flex-end;
-  padding: 8px 20px; max-width: 960px; margin: 0 auto;
+  padding: 20px 20px 0; max-width: 960px; margin: 0 auto;
 }
 .site-header img {
-  width: clamp(120px, 30vw, 400px);
+  width: clamp(260px, 55vw, 560px);
   height: auto;
   cursor: pointer;
 }
@@ -236,12 +235,11 @@ td { white-space: nowrap; }
 </head>
 <body>
 <div class="site-header">
-  <img src="/static/nomikai.png" alt="飲み会スポットファインダー" onclick="location.href='/'">
+  <img src="/static/nomikai_wide.png" alt="飲み会スポットファインダー" onclick="location.href='/'">
 </div>
 <div class="container" id="app">
   <!-- Top page (create event) -->
   <div id="page-top">
-    <h1>飲み会スポットファインダー</h1>
     <p class="caption">参加者の職場と自宅から、最も集まりやすく帰りやすい駅を見つけます</p>
     <hr class="divider">
     <div class="steps">
