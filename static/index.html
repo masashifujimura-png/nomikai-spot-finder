@@ -910,23 +910,12 @@ function renderMap(scored, geocoded) {
   setTimeout(() => {
     map.invalidateSize();
     if (allPoints.length > 1 && scored.length) {
-      // 1位の駅を中心に、全マーカーが収まるズームレベルを計算
       const c = L.latLng(scored[0].lat, scored[0].lon);
-      // 全ポイントが入るバウンドを作成
-      const allBounds = L.latLngBounds(allPoints);
-      // 1位中心で対称なバウンドを作成
-      let maxDlat = 0, maxDlon = 0;
-      for (const p of allPoints) {
-        maxDlat = Math.max(maxDlat, Math.abs(p[0] - c.lat));
-        maxDlon = Math.max(maxDlon, Math.abs(p[1] - c.lng));
-      }
-      const symBounds = L.latLngBounds(
-        [c.lat - maxDlat, c.lng - maxDlon],
-        [c.lat + maxDlat, c.lng + maxDlon]
-      );
-      // バウンドに収まるズームレベルを取得し、1位中心でセット
-      const zoom = map.getBoundsZoom(symBounds, false, [40, 40]);
-      map.setView(c, zoom);
+      // まず全ポイントが収まるズームを適用
+      map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: false});
+      // ズームを1段階引いて余裕を持たせ、中心を1位に移動
+      const zoom = Math.max(map.getZoom() - 1, 1);
+      map.setView(c, zoom, {animate: false});
     } else if (allPoints.length === 1) {
       map.setView(allPoints[0], 13);
     }
