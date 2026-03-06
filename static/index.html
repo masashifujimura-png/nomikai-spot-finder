@@ -31,7 +31,11 @@ body {
   display: flex; align-items: center; justify-content: flex-end;
   padding: 8px 20px; max-width: 960px; margin: 0 auto;
 }
-.site-header img { height: 40px; cursor: pointer; }
+.site-header img {
+  width: clamp(120px, 30vw, 400px);
+  height: auto;
+  cursor: pointer;
+}
 .container { max-width: 960px; margin: 0 auto; padding: 0 20px 16px; }
 h1 { font-size: 1.8rem; margin-bottom: 4px; }
 h2 { font-size: 1.3rem; margin: 20px 0 12px; }
