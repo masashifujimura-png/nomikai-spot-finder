@@ -847,6 +847,16 @@ function renderRanking(scored, geocoded, unit) {
   });
   html += '</tbody></table></div>';
   html += '<p class="caption">※移動時間は主要路線の駅間所要時間をベースに推定。乗換待ち時間等により実際とは異なる場合があります。</p>';
+  html += `<div class="settings-panel" style="margin-top:16px;">
+    <h3>ランキングのしくみ</h3>
+    <p class="caption" style="line-height:1.8;">
+      各候補駅について、全参加者の「職場/自宅→駅」と「駅→自宅」の移動時間を鉄道ネットワーク上で計算し、
+      その<strong>加重合計が小さい駅</strong>を上位にしています。<br>
+      「職場↔自宅重視」設定で、行きと帰りのどちらを重視するかを調整できます。<br>
+      「効率↔公平」設定を上げると、特定の人だけ遠くならないよう<strong>移動時間のばらつき（偏差）</strong>にもペナルティがかかり、
+      より公平な駅が上位に来ます。
+    </p>
+  </div>`;
   document.getElementById('tab-ranking').innerHTML = html;
 }
 
