@@ -541,10 +541,7 @@ function renderEvent() {
   const code = ev._code;
   const count = participants.length;
 
-  document.getElementById('event-title-display').textContent = ev.title;
-  document.getElementById('event-title-display').insertAdjacentHTML('beforebegin',
-    document.getElementById('event-subtitle') ? '' :
-    '<p class="caption" id="event-subtitle" style="margin-bottom:2px;">飲み会タイトル</p>');
+  document.getElementById('event-title-display').textContent = '「' + ev.title + '」';
 
 
   // Steps
