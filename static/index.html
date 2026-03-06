@@ -1059,10 +1059,10 @@ function renderDetail(scored, geocoded, unit) {
       s.routes.forEach(r => {
         html += `<div style="margin-bottom:8px;"><strong>${escHtml(r.name)}</strong>`;
         if (r.to_route) {
-          html += `<div class="route-text" style="margin-left:12px;">▶ ${escHtml(r.from_label)}→飲み会：${escHtml(r.to_route)}（${r.to_time}${unit}）</div>`;
+          html += `<div class="route-text" style="margin-left:12px;">${escHtml(r.from_label)}→飲み会｜${escHtml(r.to_route)}（${r.to_time}${unit}）</div>`;
         }
         if (r.home_route) {
-          html += `<div class="route-text" style="margin-left:12px;">▶ 飲み会→自宅：${escHtml(r.home_route)}（${r.home_time}${unit}）</div>`;
+          html += `<div class="route-text" style="margin-left:12px;">飲み会→自宅｜${escHtml(r.home_route)}（${r.home_time}${unit}）</div>`;
         }
         html += '</div>';
       });

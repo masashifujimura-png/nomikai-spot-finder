@@ -464,7 +464,7 @@ def _format_route(path_gcds, path_states=None):
     for _start, end, line in segments:
         name = gtn.get(end, "?")
         if line:
-            parts.append(f" →[{line}]→ {name}")
+            parts.append(f" →({line})→ {name}")
         else:
             parts.append(f" → {name}")
     return "".join(parts)
