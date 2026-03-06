@@ -320,15 +320,15 @@ td { white-space: nowrap; }
       <div class="metrics" id="metrics"></div>
 
       <div class="tabs" id="result-tabs">
-        <div class="tab active" data-tab="ranking" onclick="switchTab('ranking')">ランキング</div>
-        <div class="tab" data-tab="map" onclick="switchTab('map')">地図</div>
+        <div class="tab active" data-tab="map" onclick="switchTab('map')">地図</div>
         <div class="tab" data-tab="detail" onclick="switchTab('detail')">詳細比較</div>
+        <div class="tab" data-tab="ranking" onclick="switchTab('ranking')">ランキング</div>
         <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant')">お店を探す</div>
       </div>
 
-      <div id="tab-ranking"></div>
-      <div id="tab-map" class="hidden"></div>
+      <div id="tab-map"></div>
       <div id="tab-detail" class="hidden"></div>
+      <div id="tab-ranking" class="hidden"></div>
       <div id="tab-restaurant" class="hidden"></div>
     </div>
 
@@ -805,7 +805,7 @@ function renderResults() {
   renderDetail(scored, geocoded, unit);
   renderRestaurantTab(scored, geocoded);
   pendingMapData = {scored, geocoded};
-  switchTab('ranking');
+  switchTab('map');
 }
 
 function switchTab(name) {
