@@ -619,15 +619,24 @@ function renderEvent() {
   // Participant table
   renderParticipantTable();
 
-  // Search button
+  // Search button - count participants with station info filled
   const btnSearch = document.getElementById('btn-search');
   const hint = document.getElementById('search-hint');
-  if (count < 2) {
+  const readyCount = participants.filter(p => {
+    const isHr = p.pattern === '自宅→飲み会→自宅';
+    return p.home_location && (isHr || p.work_location);
+  }).length;
+  const incompleteCount = count - readyCount;
+  if (readyCount < 2) {
     btnSearch.disabled = true;
-    hint.textContent = `あと${2 - count}人追加すると検索できます`;
+    if (count >= 2 && incompleteCount > 0) {
+      hint.textContent = `駅情報が入力済みの参加者が${readyCount}人です。あと${2 - readyCount}人以上の駅情報を入力すると検索できます。`;
+    } else {
+      hint.textContent = `あと${2 - count}人追加すると検索できます`;
+    }
   } else {
     btnSearch.disabled = false;
-    hint.textContent = '';
+    hint.textContent = incompleteCount > 0 ? `${incompleteCount}人が駅情報未入力です（未入力の参加者を除いて検索します）` : '';
   }
 
   renderAd('ad-footer');
@@ -668,13 +677,18 @@ function renderParticipantTable() {
       dt += renderEditRowDesktop(p);
     } else {
       const isHr = p.pattern === '自宅→飲み会→自宅';
-      const workDisp = isHr ? '―' : escHtml(p.work_location || '-');
+      const workDisp = isHr ? '―' : escHtml(p.work_location || '');
       const patternDisp = isHr ? '自宅→飲み会→自宅' : '職場→飲み会→自宅';
-      dt += `<tr>
-        <td><strong>${escHtml(p.name)}</strong></td>
+      const noHome = !p.home_location;
+      const noWork = !isHr && !p.work_location;
+      const incomplete = noHome || noWork;
+      const homeCell = noHome ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : escHtml(p.home_location);
+      const workCell = isHr ? '―' : (noWork ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : workDisp);
+      dt += `<tr${incomplete ? ' style="background:#fff8e1;"' : ''}>
+        <td><strong>${escHtml(p.name)}</strong>${incomplete ? ' <span style="color:var(--warn);font-size:11px;">⚠</span>' : ''}</td>
         <td style="font-size:12px;color:var(--text-muted)">${patternDisp}</td>
-        <td>${escHtml(p.home_location || '-')}</td>
-        <td>${workDisp}</td>
+        <td>${homeCell}</td>
+        <td>${workCell}</td>
         <td class="actions-cell">
           <button class="btn btn-outline btn-sm" onclick="startEdit('${pid}')">編集</button>
           <button class="btn btn-danger btn-sm" onclick="deleteParticipant('${pid}')">削除</button>
@@ -698,9 +712,13 @@ function renderParticipantTable() {
       mb += renderEditRowMobile(p);
     } else {
       const isHr = p.pattern === '自宅→飲み会→自宅';
-      const workDisp = isHr ? '(自宅から)' : escHtml(p.work_location || '-');
-      mb += `<div class="p-card"><strong>${escHtml(p.name)}</strong>
-        <div class="caption" style="margin-top:4px;">自宅: ${escHtml(p.home_location||'-')} / 職場: ${workDisp}</div>
+      const noHome = !p.home_location;
+      const noWork = !isHr && !p.work_location;
+      const incomplete = noHome || noWork;
+      const homeDisp = noHome ? '<span style="color:var(--warn)">未入力</span>' : escHtml(p.home_location);
+      const workDisp = isHr ? '(自宅から)' : (noWork ? '<span style="color:var(--warn)">未入力</span>' : escHtml(p.work_location));
+      mb += `<div class="p-card"${incomplete ? ' style="border-color:var(--warn);background:#fff8e1;"' : ''}><strong>${escHtml(p.name)}</strong>${incomplete ? ' <span style="color:var(--warn);font-size:12px;">⚠ 駅情報が未入力</span>' : ''}
+        <div class="caption" style="margin-top:4px;">自宅: ${homeDisp} / 職場: ${workDisp}</div>
         <div class="p-card-actions">
           <button class="btn btn-outline btn-sm" onclick="startEdit('${pid}')">編集</button>
           <button class="btn btn-danger btn-sm" onclick="deleteParticipant('${pid}')">削除</button>
@@ -872,8 +890,6 @@ async function submitAddRow() {
   const isHr = pattern === '自宅→飲み会→自宅';
 
   if (!name) return alert('名前を入力してください。');
-  if (!home) return alert('自宅の最寄駅を選択してください。');
-  if (!isHr && !work) return alert('職場の最寄駅を選択してください。');
 
   try {
     await fetch('/api/participants', {
@@ -890,10 +906,10 @@ async function submitAddRow() {
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
     await reloadParticipants();
-    const remaining = 2 - participants.length;
+    const stationFilled = home || work;
     let hint;
-    if (remaining > 0) {
-      hint = `あと${remaining}人追加すると検索できます。`;
+    if (!stationFilled) {
+      hint = 'URLを共有して、各自で駅情報を入力してもらいましょう。';
     } else {
       hint = '続けて参加者を追加するか、全員そろったら「最適スポットを検索」ボタンで検索してください。';
     }
@@ -909,8 +925,6 @@ async function submitAddRowMobile() {
   const isHr = pattern === '自宅→飲み会→自宅';
 
   if (!name) return alert('名前を入力してください。');
-  if (!home) return alert('自宅の最寄駅を選択してください。');
-  if (!isHr && !work) return alert('職場の最寄駅を選択してください。');
 
   try {
     await fetch('/api/participants', {
@@ -927,10 +941,10 @@ async function submitAddRowMobile() {
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
     await reloadParticipants();
-    const remaining = 2 - participants.length;
+    const stationFilled = home || work;
     let hint;
-    if (remaining > 0) {
-      hint = `あと${remaining}人追加すると検索できます。`;
+    if (!stationFilled) {
+      hint = 'URLを共有して、各自で駅情報を入力してもらいましょう。';
     } else {
       hint = '続けて参加者を追加するか、全員そろったら「最適スポットを検索」ボタンで検索してください。';
     }
