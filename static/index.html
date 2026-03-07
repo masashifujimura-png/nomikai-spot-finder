@@ -785,14 +785,13 @@ td { white-space: nowrap; }
 
     <hr class="divider">
 
-    <div id="success-msg" class="msg msg-success hidden"></div>
-
     <!-- Section 1: Participants -->
     <div class="event-section">
       <div class="event-section-header">
         <span class="event-section-num">1</span>
         <h2 class="event-section-title">参加者一覧（<span id="participant-count">0</span>人）</h2>
       </div>
+      <div id="success-msg" class="msg msg-success hidden"></div>
       <p class="caption" style="margin-bottom:8px;">自分の情報を入力、または幹事がまとめて全員分を追加できます</p>
       <div id="share-url-block"></div>
       <div id="participant-table-wrap"></div>
@@ -806,21 +805,21 @@ td { white-space: nowrap; }
       </div>
       <div class="settings-panel">
         <p class="caption" style="margin-bottom:8px;">駅の候補を選ぶときに、何を重視するかを調整できます</p>
-        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">職場と自宅のバランス</label>
+        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">移動距離の重視ポイント</label>
         <div class="range-row">
-          <span class="range-edge">職場に近い</span>
+          <span class="range-edge">職場からの近さ重視</span>
           <input type="range" id="balance" min="0" max="1" step="0.05" value="0.5">
-          <span class="range-edge">家に帰りやすい</span>
+          <span class="range-edge">自宅への帰りやすさ重視</span>
         </div>
         <p class="caption" style="text-align:center;" id="balance-val">職場 50% / 自宅 50%</p>
         <div style="margin-top:12px;"></div>
-        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">効率と公平のバランス</label>
+        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">全体の最適化方針</label>
         <div class="range-row">
-          <span class="range-edge">効率重視</span>
-          <input type="range" id="fairness" min="0" max="1" step="0.05" value="0.3">
-          <span class="range-edge">公平重視</span>
+          <span class="range-edge">総移動時間の短さ重視</span>
+          <input type="range" id="fairness" min="0" max="1" step="0.05" value="0.5">
+          <span class="range-edge">移動時間の偏りの少なさ重視</span>
         </div>
-        <p class="caption" style="text-align:center;" id="fairness-val">効率 70% / 公平 30%</p>
+        <p class="caption" style="text-align:center;" id="fairness-val">効率 50% / 公平 50%</p>
       </div>
     </div>
 
@@ -1110,6 +1109,7 @@ function renderEvent() {
     shareBlock.innerHTML = `
       <div style="background:#fff8e1;border:1px solid var(--warn);border-radius:var(--radius);padding:12px 14px;margin:10px 0;">
         <p style="font-weight:600;color:#e65100;font-size:13px;margin-bottom:4px;">⚠ ${names} さんの駅情報が未入力です。URLを共有して入力してもらいましょう。</p>
+        <p style="font-size:12px;color:#795548;margin-bottom:6px;">※ 駅情報が入力済みの人だけでも検索できます。</p>
         <div class="code-block" style="background:white;">
           <span class="text" id="share-url">${escHtml(shareUrl)}</span>
           <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
@@ -1418,14 +1418,7 @@ async function submitAddRow() {
     document.getElementById('fixed-tabs').classList.add('hidden');
     document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
-    const stationFilled = home || work;
-    let hint;
-    if (!stationFilled) {
-      hint = 'URLを共有して、各自で駅情報を入力してもらいましょう。';
-    } else {
-      hint = '続けて参加者を追加するか、全員そろったら「最適スポットを検索」ボタンで検索してください。';
-    }
-    showSuccess(`${name} さんを追加しました。${hint}`);
+    showSuccess(`${name}さんが追加されました。`);
   } catch(e) { alert('エラーが発生しました'); }
 }
 
@@ -1455,14 +1448,7 @@ async function submitAddRowMobile() {
     document.getElementById('fixed-tabs').classList.add('hidden');
     document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
-    const stationFilled = home || work;
-    let hint;
-    if (!stationFilled) {
-      hint = 'URLを共有して、各自で駅情報を入力してもらいましょう。';
-    } else {
-      hint = '続けて参加者を追加するか、全員そろったら「最適スポットを検索」ボタンで検索してください。';
-    }
-    showSuccess(`${name} さんを追加しました。${hint}`);
+    showSuccess(`${name}さんが追加されました。`);
   } catch(e) { alert('エラーが発生しました'); }
 }
 
