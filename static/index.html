@@ -406,21 +406,6 @@ td { white-space: nowrap; }
 .lp-create-form {
   max-width: 420px;
 }
-.lp-create-input {
-  width: 100%;
-  padding: 14px 16px;
-  font-size: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: var(--radius);
-  margin-bottom: 10px;
-  outline: none;
-  background: white;
-  color: var(--text);
-}
-.lp-create-input:focus {
-  border-color: #FF6B35;
-  box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
-}
 .btn-cta-hero {
   display: block;
   width: 100%;
@@ -561,8 +546,6 @@ td { white-space: nowrap; }
   margin: 0 auto;
   text-align: center;
 }
-.lp-bottom-cta .lp-create-input { border-color: var(--border); }
-.lp-bottom-cta .lp-create-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,115,232,0.15); }
 .btn-cta-bottom {
   display: block;
   width: 100%;
@@ -692,8 +675,7 @@ td { white-space: nowrap; }
           <h1 class="lp-headline">また「私だけ遠い」って言われる前に。</h1>
           <p class="lp-headline-sub">全員の移動時間をデータで公平にする、幹事の新定番。</p>
           <div class="lp-create-form">
-            <input type="text" id="event-title" placeholder="イベント名を入力して、飲み会を作成" class="lp-create-input">
-            <button class="btn-cta-hero" onclick="createNomikai()" id="btn-create">無料で最適なスポットを探す</button>
+            <button class="btn-cta-hero" onclick="createNomikai()" id="btn-create">無料ですぐ始める →</button>
             <p class="lp-no-register">登録不要・完全無料</p>
           </div>
         </div>
@@ -772,10 +754,9 @@ td { white-space: nowrap; }
     <!-- Bottom CTA -->
     <div class="lp-section lp-section-alt">
       <h2 class="lp-section-title">さあ、公平な飲み会を始めよう。</h2>
-      <p style="text-align:center;color:var(--text-muted);margin-bottom:20px;">今すぐ無料で使えます。登録不要。</p>
       <div class="lp-bottom-cta">
-        <input type="text" id="event-title-bottom" placeholder="例: 歓迎会、忘年会、同窓会..." class="lp-create-input">
-        <button class="btn-cta-bottom" onclick="createNomikaiBottom()">無料で最適なスポットを探す</button>
+        <button class="btn-cta-bottom" onclick="createNomikaiBottom()">無料ですぐ始める →</button>
+        <p class="lp-no-register">登録不要・完全無料</p>
       </div>
     </div>
 
@@ -1007,7 +988,7 @@ function escHtml(s) {
 // Event management
 // ---------------------------------------------------------------------------
 async function createNomikai() {
-  const title = document.getElementById('event-title').value.trim() || '飲み会';
+  const title = '飲み会';
   const btn = document.getElementById('btn-create');
   btn.disabled = true; btn.textContent = '作成中...';
   try {
@@ -1024,12 +1005,10 @@ async function createNomikai() {
   } catch(e) {
     alert('エラーが発生しました');
   }
-  btn.disabled = false; btn.textContent = '無料で最適なスポットを探す';
+  btn.disabled = false; btn.textContent = '無料ですぐ始める →';
 }
 
 function createNomikaiBottom() {
-  const val = document.getElementById('event-title-bottom').value.trim();
-  if (val) document.getElementById('event-title').value = val;
   createNomikai();
 }
 
