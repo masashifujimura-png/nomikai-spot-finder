@@ -421,6 +421,58 @@ td { white-space: nowrap; }
   color: var(--text);
 }
 
+/* Pain points */
+.lp-pain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.lp-pain-card {
+  text-align: center;
+  padding: 24px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: white;
+}
+.lp-pain-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.lp-pain-card p { font-size: 0.9rem; line-height: 1.6; color: var(--text); }
+
+/* 3 Steps */
+.lp-steps-grid {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.lp-step-card {
+  text-align: center;
+  padding: 28px 16px 20px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  flex: 1;
+  position: relative;
+}
+.lp-step-num {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px; height: 28px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  font-size: 14px; font-weight: 700; line-height: 28px;
+}
+.lp-step-icon { font-size: 2.2rem; margin: 8px 0 10px; }
+.lp-step-card h3 { font-size: 0.95rem; margin-bottom: 6px; }
+.lp-step-card p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+.lp-step-arrow { font-size: 1.5rem; color: var(--text-muted); flex-shrink: 0; margin-top: 40px; }
+
 /* Features */
 .lp-features-grid {
   display: grid;
@@ -440,6 +492,29 @@ td { white-space: nowrap; }
 .lp-feature-card h3 { font-size: 0.95rem; margin-bottom: 10px; line-height: 1.5; }
 .lp-feature-card p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.7; }
 
+/* Bottom CTA */
+.lp-bottom-cta {
+  max-width: 480px;
+  margin: 0 auto;
+  text-align: center;
+}
+.lp-bottom-cta .lp-create-input { border-color: var(--border); }
+.lp-bottom-cta .lp-create-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,115,232,0.15); }
+.btn-cta-bottom {
+  display: block;
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #c8a84e, #b8942e);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-cta-bottom:hover { opacity: 0.9; }
+
 /* LP responsive */
 @media (max-width: 640px) {
   .lp-hero { margin: 0 -12px; padding: 0 16px; }
@@ -450,6 +525,10 @@ td { white-space: nowrap; }
   .lp-headline { font-size: 1.3rem; }
   .lp-headline-sub { font-size: 0.85rem; }
   .lp-create-form { max-width: 100%; }
+  .lp-pain-grid { grid-template-columns: 1fr; max-width: 280px; }
+  .lp-steps-grid { flex-direction: column; align-items: center; }
+  .lp-step-card { width: 100%; max-width: 280px; }
+  .lp-step-arrow { transform: rotate(90deg); margin-top: 0; }
   .lp-features-grid { grid-template-columns: 1fr; }
   .lp-section-alt { margin: 0 -12px; padding: 32px 16px; }
 }
@@ -557,9 +636,55 @@ td { white-space: nowrap; }
       </div>
     </div>
 
+    <!-- Pain points -->
+    <div class="lp-section">
+      <h2 class="lp-section-title">幹事さん、こんな悩みはありませんか？</h2>
+      <div class="lp-pain-grid">
+        <div class="lp-pain-card">
+          <div class="lp-pain-icon">&#x1f4cd;</div>
+          <p>遠い場所に<br><strong>不満が残る</strong></p>
+        </div>
+        <div class="lp-pain-card">
+          <div class="lp-pain-icon">&#x1f914;</div>
+          <p>みんなの中間地点が<br><strong>分からない</strong></p>
+        </div>
+        <div class="lp-pain-card">
+          <div class="lp-pain-icon">&#x1f62e;&#x200d;&#x1f4a8;</div>
+          <p>お店探しまで<br><strong>負担が大きい</strong></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 Steps -->
+    <div class="lp-section lp-section-alt">
+      <h2 class="lp-section-title">使い方はかんたん、3ステップ。</h2>
+      <div class="lp-steps-grid">
+        <div class="lp-step-card">
+          <div class="lp-step-num">1</div>
+          <div class="lp-step-icon">&#x1f4cb;</div>
+          <h3>イベント作成</h3>
+          <p>飲み会の名前を入力して<br>イベントページを作成</p>
+        </div>
+        <div class="lp-step-arrow">&#x276f;</div>
+        <div class="lp-step-card">
+          <div class="lp-step-num">2</div>
+          <div class="lp-step-icon">&#x1f465;</div>
+          <h3>参加者の情報入力</h3>
+          <p>URLを共有して<br>複数人で入力OK!</p>
+        </div>
+        <div class="lp-step-arrow">&#x276f;</div>
+        <div class="lp-step-card">
+          <div class="lp-step-num">3</div>
+          <div class="lp-step-icon">&#x1f389;</div>
+          <h3>「場所発見」</h3>
+          <p>全員にとって最適な<br>スポット（駅）を提案</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Features -->
     <div class="lp-section">
-      <h2 class="lp-section-title">幹事の「独断」を「みんなの納得」に。</h2>
+      <h2 class="lp-section-title">データに基づいて最適な場所をご提案。</h2>
       <div class="lp-features-grid">
         <div class="lp-feature-card">
           <div class="lp-feature-icon">&#x1f39b;</div>
@@ -576,6 +701,16 @@ td { white-space: nowrap; }
           <h3>外部サイトへ連携し<br>お店探しをサポート</h3>
           <p>候補の駅が決まったら、<br>周辺の飲食店を検索。<br>飲み放題・個室・人数で絞り込み。</p>
         </div>
+      </div>
+    </div>
+
+    <!-- Bottom CTA -->
+    <div class="lp-section lp-section-alt">
+      <h2 class="lp-section-title">今すぐ飲み会を計画する</h2>
+      <p style="text-align:center;color:var(--text-muted);margin-bottom:20px;">イベント名を入力して、無料で始めましょう。</p>
+      <div class="lp-bottom-cta">
+        <input type="text" id="event-title-bottom" placeholder="例: 歓迎会、忘年会、同窓会..." class="lp-create-input">
+        <button class="btn-cta-bottom" onclick="createNomikaiBottom()">無料で最適なスポットを探す</button>
       </div>
     </div>
 
@@ -813,6 +948,12 @@ async function createNomikai() {
     alert('エラーが発生しました');
   }
   btn.disabled = false; btn.textContent = '無料で最適なスポットを探す';
+}
+
+function createNomikaiBottom() {
+  const val = document.getElementById('event-title-bottom').value.trim();
+  if (val) document.getElementById('event-title').value = val;
+  createNomikai();
 }
 
 async function loadEvent(code) {
