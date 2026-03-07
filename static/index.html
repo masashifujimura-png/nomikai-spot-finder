@@ -608,12 +608,13 @@ td { white-space: nowrap; }
   font-size: 16px;
   line-height: 1;
 }
-.map-pin-station .map-pin-body { width: 44px; height: 44px; }
-.map-pin-station .map-pin-icon { font-size: 20px; }
+.map-pin-station .map-pin-body { width: 44px; height: 44px; border-radius: 50%; transform: none; }
+.map-pin-station .map-pin-icon { transform: none; font-size: 20px; }
 
-/* Mobile fixed bottom tabs */
+/* Mobile fixed bottom tabs - hidden on PC */
+.result-tabs-fixed { display: none; }
 @media (max-width: 640px) {
-  .result-tabs-fixed {
+  .result-tabs-fixed:not(.hidden) {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
     background: var(--bg); border-top: 1px solid var(--border);
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
@@ -797,14 +798,21 @@ td { white-space: nowrap; }
       <div id="participant-table-wrap"></div>
     </div>
 
-    <!-- Section 2: Settings -->
-    <div class="event-section">
-      <div class="event-section-header">
-        <span class="event-section-num">2</span>
-        <h2 class="event-section-title">検索設定</h2>
-      </div>
-      <div class="settings-panel">
-        <p class="caption" style="margin-bottom:8px;">駅の候補を選ぶときに、何を重視するかを調整できます</p>
+    <!-- Main search action -->
+    <button class="btn-search-main" id="btn-search" onclick="searchSpots()" disabled>
+      最適スポットを検索
+    </button>
+    <p class="caption" id="search-hint" style="text-align:center;"></p>
+
+    <!-- Results -->
+    <div id="results" class="hidden">
+      <hr class="divider">
+      <h2>検索結果</h2>
+      <div class="metrics" id="metrics"></div>
+
+      <!-- Settings sliders (inside results) -->
+      <div class="settings-panel" style="margin:16px 0;">
+        <p class="caption" style="margin-bottom:8px;">スライダーを動かすと結果がリアルタイムに変わります</p>
         <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">移動距離の重視ポイント</label>
         <div class="range-row">
           <span class="range-edge">職場からの近さ重視</span>
@@ -821,19 +829,6 @@ td { white-space: nowrap; }
         </div>
         <p class="caption" style="text-align:center;" id="fairness-val">効率 50% / 公平 50%</p>
       </div>
-    </div>
-
-    <!-- Main search action -->
-    <button class="btn-search-main" id="btn-search" onclick="searchSpots()" disabled>
-      最適スポットを検索
-    </button>
-    <p class="caption" id="search-hint" style="text-align:center;"></p>
-
-    <!-- Results -->
-    <div id="results" class="hidden">
-      <hr class="divider">
-      <h2>検索結果</h2>
-      <div class="metrics" id="metrics"></div>
 
       <div class="tabs" id="result-tabs">
         <div class="tab active" data-tab="map" onclick="switchTab('map')"><span class="tab-icon">&#x1f5fa;</span>地図</div>
@@ -901,8 +896,8 @@ let appConfig = {};
     await loadEvent(code);
   }
 
-  document.getElementById('balance').addEventListener('input', updateBalanceLabel);
-  document.getElementById('fairness').addEventListener('input', updateFairnessLabel);
+  document.getElementById('balance').addEventListener('input', () => { updateBalanceLabel(); debouncedReSearch(); });
+  document.getElementById('fairness').addEventListener('input', () => { updateFairnessLabel(); debouncedReSearch(); });
   updateBalanceLabel();
   updateFairnessLabel();
 
@@ -1580,10 +1575,19 @@ function updateFairnessLabel() {
 // ---------------------------------------------------------------------------
 // Search
 // ---------------------------------------------------------------------------
-async function searchSpots() {
+let reSearchTimer = null;
+function debouncedReSearch() {
+  if (!searchResults) return; // only re-search if results already exist
+  clearTimeout(reSearchTimer);
+  reSearchTimer = setTimeout(() => searchSpots(true), 400);
+}
+
+async function searchSpots(isReSearch = false) {
   const btn = document.getElementById('btn-search');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> 検索中...';
+  if (!isReSearch) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 検索中...';
+  }
 
   const balance = parseFloat(document.getElementById('balance').value);
   const fairness = parseFloat(document.getElementById('fairness').value);
@@ -1600,19 +1604,25 @@ async function searchSpots() {
       }),
     });
     if (!r.ok) {
-      const err = await r.json();
-      alert(err.detail || 'エラーが発生しました');
+      if (!isReSearch) {
+        const err = await r.json();
+        alert(err.detail || 'エラーが発生しました');
+      }
       return;
     }
     searchResults = await r.json();
     renderResults();
     document.getElementById('results').classList.remove('hidden');
-    document.getElementById('results').scrollIntoView({behavior: 'smooth'});
+    if (!isReSearch) {
+      document.getElementById('results').scrollIntoView({behavior: 'smooth'});
+    }
   } catch(e) {
-    alert('エラーが発生しました');
+    if (!isReSearch) alert('エラーが発生しました');
   } finally {
-    btn.disabled = false;
-    btn.textContent = '最適スポットを検索';
+    if (!isReSearch) {
+      btn.disabled = false;
+      btn.textContent = '最適スポットを検索';
+    }
   }
 }
 
@@ -1635,7 +1645,9 @@ function renderResults() {
   renderDetail(scored, geocoded, unit);
   renderRestaurantTab(scored, geocoded);
   pendingMapData = {scored, geocoded};
-  switchTab('map');
+  // Preserve current tab on re-search, default to map on first search
+  const activeTab = document.querySelector('#result-tabs .tab.active');
+  switchTab(activeTab ? activeTab.dataset.tab : 'map');
 
   // Show fixed bottom tabs on mobile
   document.getElementById('fixed-tabs').classList.remove('hidden');
@@ -1822,6 +1834,7 @@ function renderDetail(scored, geocoded, unit) {
 
     // Bar chart
     const maxTotal = Math.max(...s.details.map(d => d.total_val), 1);
+    html += '<div style="display:flex;gap:16px;font-size:12px;margin:8px 0 4px;"><span><span style="display:inline-block;width:12px;height:12px;background:#1e88e5;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>職場/自宅→駅</span><span><span style="display:inline-block;width:12px;height:12px;background:#43a047;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>駅→自宅</span></div>';
     html += '<div class="bar-chart">';
     s.details.forEach(d => {
       const w1 = (d.work_val / maxTotal * 100).toFixed(1);
