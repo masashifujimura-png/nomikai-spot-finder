@@ -341,10 +341,10 @@ td { white-space: nowrap; }
 .ptbl .actions-cell button { margin-left: 4px; }
 .ptbl .add-row td { border-bottom: none; }
 .ptbl .btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 50%; }
-.ptbl .btn-add-row { background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600; padding: 14px 16px; border-radius: 12px; width: 100%; margin-top: 8px; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
+.ptbl .btn-add-row { background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; cursor: pointer; font-size: 17px; font-weight: 700; padding: 18px 24px; border-radius: 12px; width: 100%; margin-top: 8px; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
 .ptbl .btn-add-row:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
 
-.btn-add-participant { display: block; width: 100%; margin-top: 8px; padding: 14px 16px; font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; border-radius: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
+.btn-add-participant { display: block; width: 100%; margin-top: 8px; padding: 18px 24px; font-size: 17px; font-weight: 700; background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; border-radius: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
 .btn-add-participant:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
 
 /* Participant cards (mobile) */
@@ -608,8 +608,10 @@ td { white-space: nowrap; }
   font-size: 16px;
   line-height: 1;
 }
-.map-pin-station .map-pin-body { width: 44px; height: 44px; border-radius: 50%; transform: none; }
-.map-pin-station .map-pin-icon { transform: none; font-size: 20px; }
+.map-pin-station .map-pin-body { width: 44px; height: 44px; }
+.map-pin-station .map-pin-icon { font-size: 20px; }
+.map-pin-first .map-pin-body { width: 56px; height: 56px; }
+.map-pin-first .map-pin-icon { font-size: 26px; }
 
 /* Mobile fixed bottom tabs - hidden on PC */
 .result-tabs-fixed { display: none; }
@@ -1104,7 +1106,7 @@ function renderEvent() {
     shareBlock.innerHTML = `
       <div style="background:#fff8e1;border:1px solid var(--warn);border-radius:var(--radius);padding:12px 14px;margin:10px 0;">
         <p style="font-weight:600;color:#e65100;font-size:13px;margin-bottom:4px;">⚠ ${names} さんの駅情報が未入力です。URLを共有して入力してもらいましょう。</p>
-        <p style="font-size:12px;color:#795548;margin-bottom:6px;">※ 駅情報が入力済みの人だけでも検索できます。</p>
+        <p style="font-size:12px;color:#795548;margin-bottom:6px;">※未入力の参加者を除いて最適スポットの検索が可能です。</p>
         <div class="code-block" style="background:white;">
           <span class="text" id="share-url">${escHtml(shareUrl)}</span>
           <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
@@ -1735,7 +1737,7 @@ function renderMap(scored, geocoded) {
 
   // Top 3 stations
   scored.slice(0, 3).forEach((s, i) => {
-    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, STATION_ICONS[i], true, placed);
+    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, STATION_ICONS[i], true, placed, i === 0);
     allPoints.push([s.lat, s.lon]);
   });
 
@@ -1782,7 +1784,7 @@ function renderMap(scored, geocoded) {
   }
 }
 
-function addPinMarker(map, lat, lon, color, label, icon, isStation, placed) {
+function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFirst = false) {
   let adjLat = lat, adjLon = lon;
   let dup = 0;
   for (const p of placed) {
@@ -1794,14 +1796,15 @@ function addPinMarker(map, lat, lon, color, label, icon, isStation, placed) {
     adjLon += 0.0012 * Math.sin(angle);
   }
   placed.push([lat, lon]);
-  const size = isStation ? [48, 52] : [36, 44];
-  const anchor = isStation ? [24, 52] : [18, 44];
+  const size = isFirst ? [60, 66] : isStation ? [48, 52] : [36, 44];
+  const anchor = isFirst ? [30, 66] : isStation ? [24, 52] : [18, 44];
+  const pinClass = isStation ? (isFirst ? 'map-pin-station map-pin-first' : 'map-pin-station') : '';
   const divIcon = L.divIcon({
     className: '',
     iconSize: size,
     iconAnchor: anchor,
     popupAnchor: [0, -anchor[1]],
-    html: `<div class="map-pin ${isStation ? 'map-pin-station' : ''}">
+    html: `<div class="map-pin ${pinClass}">
       <div class="map-pin-body" style="background:${color};">
         <span class="map-pin-icon">${icon}</span>
       </div>
