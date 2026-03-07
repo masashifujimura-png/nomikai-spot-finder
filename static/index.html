@@ -182,10 +182,16 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 .tab-icon { display: block; font-size: 20px; margin-bottom: 2px; }
 
 /* Metrics */
-.metrics { display: flex; gap: 16px; margin: 12px 0; flex-wrap: wrap; }
-.metric { background: linear-gradient(135deg, #e8f0fe, #f0f4ff); border-radius: var(--radius); padding: 14px 16px; flex: 1; min-width: 140px; border: 1px solid #c5d7f5; }
-.metric-label { font-size: 12px; color: #4a6fa5; font-weight: 500; }
-.metric-value { font-size: 1.3rem; font-weight: 700; color: #1a3a6b; }
+.metrics { display: flex; gap: 10px; margin: 12px 0; flex-wrap: nowrap; }
+.metric { background: linear-gradient(135deg, #e8f0fe, #f0f4ff); border-radius: var(--radius); padding: 10px 12px; flex: 1; min-width: 0; border: 1px solid #c5d7f5; text-align: center; }
+.metric-label { font-size: 11px; color: #4a6fa5; font-weight: 500; white-space: nowrap; }
+.metric-value { font-size: 1.1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) {
+  .metrics { gap: 6px; }
+  .metric { padding: 8px 6px; }
+  .metric-label { font-size: 10px; }
+  .metric-value { font-size: 0.95rem; }
+}
 
 /* Table */
 .table-wrap { overflow-x: auto; margin: 8px 0; }
@@ -268,7 +274,6 @@ td { white-space: nowrap; }
   .container { padding: 12px; }
   h1 { font-size: 1.4rem; }
   .shop-img { width: 80px; height: 60px; }
-  .metrics { flex-direction: column; }
   .form-row { flex-direction: column !important; }
 }
 
@@ -535,6 +540,47 @@ td { white-space: nowrap; }
   .lp-section-alt { margin: 0 -12px; padding: 32px 16px; }
 }
 
+/* Map pin markers */
+.map-pin {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 44px;
+  position: relative;
+}
+.map-pin-body {
+  width: 36px; height: 36px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  border: 2px solid #fff;
+}
+.map-pin-icon {
+  transform: rotate(45deg);
+  font-size: 16px;
+  line-height: 1;
+}
+.map-pin-station .map-pin-body { width: 44px; height: 44px; }
+.map-pin-station .map-pin-icon { font-size: 20px; }
+
+/* Mobile fixed bottom tabs */
+@media (max-width: 640px) {
+  .result-tabs-fixed {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
+    background: var(--bg); border-top: 1px solid var(--border);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    display: flex; gap: 4px;
+  }
+  .result-tabs-fixed .tab {
+    padding: 8px 4px; font-size: 12px; border-width: 1.5px;
+    min-width: 0; flex: 1;
+  }
+  .result-tabs-fixed .tab-icon { font-size: 18px; margin-bottom: 1px; }
+  body.has-fixed-tabs { padding-bottom: 80px; }
+  /* Hide inline tabs on mobile when fixed is shown */
+  body.has-fixed-tabs #result-tabs { display: none; }
+}
+
 /* Hidden */
 .hidden { display: none !important; }
 
@@ -728,7 +774,6 @@ td { white-space: nowrap; }
       <h2>検索結果</h2>
       <div class="metrics" id="metrics"></div>
 
-      <h3 style="margin:20px 0 10px; color:var(--text);">詳しく見る</h3>
       <div class="tabs" id="result-tabs">
         <div class="tab active" data-tab="map" onclick="switchTab('map')"><span class="tab-icon">&#x1f5fa;</span>地図</div>
         <div class="tab" data-tab="detail" onclick="switchTab('detail')"><span class="tab-icon">&#x1f4ca;</span>詳細比較</div>
@@ -740,6 +785,14 @@ td { white-space: nowrap; }
       <div id="tab-detail" class="hidden"></div>
       <div id="tab-ranking" class="hidden"></div>
       <div id="tab-restaurant" class="hidden"></div>
+    </div>
+
+    <!-- Mobile fixed bottom tabs (clone) -->
+    <div id="fixed-tabs" class="result-tabs-fixed hidden">
+      <div class="tab active" data-tab="map" onclick="switchTab('map')"><span class="tab-icon">&#x1f5fa;</span>地図</div>
+      <div class="tab" data-tab="detail" onclick="switchTab('detail')"><span class="tab-icon">&#x1f4ca;</span>詳細比較</div>
+      <div class="tab" data-tab="ranking" onclick="switchTab('ranking')"><span class="tab-icon">&#x1f3c6;</span>ランキング</div>
+      <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant')"><span class="tab-icon">&#x1f37a;</span>お店を探す</div>
     </div>
 
     <hr class="divider">
@@ -1260,6 +1313,8 @@ async function submitAddRow() {
     addingRow = false;
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
+    document.getElementById('fixed-tabs').classList.add('hidden');
+    document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
     const stationFilled = home || work;
     let hint;
@@ -1295,6 +1350,8 @@ async function submitAddRowMobile() {
     addingRow = false;
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
+    document.getElementById('fixed-tabs').classList.add('hidden');
+    document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
     const stationFilled = home || work;
     let hint;
@@ -1337,6 +1394,8 @@ async function deleteParticipant(id) {
     await fetch(`/api/participants/${id}`, {method: 'DELETE'});
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
+    document.getElementById('fixed-tabs').classList.add('hidden');
+    document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
   } catch(e) { alert('エラーが発生しました'); }
 }
@@ -1367,6 +1426,8 @@ async function saveParticipant(id) {
     editingId = null;
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
+    document.getElementById('fixed-tabs').classList.add('hidden');
+    document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
     showSuccess(`${name} さんの情報を更新しました。`);
   } catch(e) { alert('エラーが発生しました'); }
@@ -1398,6 +1459,8 @@ async function saveParticipantMobile(id) {
     editingId = null;
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
+    document.getElementById('fixed-tabs').classList.add('hidden');
+    document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
     showSuccess(`${name} さんの情報を更新しました。`);
   } catch(e) { alert('エラーが発生しました'); }
@@ -1485,16 +1548,19 @@ function renderResults() {
   renderRestaurantTab(scored, geocoded);
   pendingMapData = {scored, geocoded};
   switchTab('map');
+
+  // Show fixed bottom tabs on mobile
+  document.getElementById('fixed-tabs').classList.remove('hidden');
+  document.body.classList.add('has-fixed-tabs');
 }
 
 function switchTab(name) {
-  document.querySelectorAll('#result-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('#result-tabs .tab, #fixed-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   ['ranking','map','detail','restaurant'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
   });
   if (name === 'map') {
     if (pendingMapData) {
-      // タブが表示された直後に描画（コンテナサイズが確定してから）
       const data = pendingMapData;
       pendingMapData = null;
       setTimeout(() => renderMap(data.scored, data.geocoded), 50);
@@ -1565,9 +1631,11 @@ function renderMap(scored, geocoded) {
   const allPoints = [];
   const placed = [];
 
+  const STATION_ICONS = ['\u{1F37A}', '\u{1F37A}', '\u{1F37A}'];
+
   // Top 3 stations
   scored.slice(0, 3).forEach((s, i) => {
-    addMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, 8, placed);
+    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, STATION_ICONS[i], true, placed);
     allPoints.push([s.lat, s.lon]);
   });
 
@@ -1575,11 +1643,11 @@ function renderMap(scored, geocoded) {
   geocoded.forEach((g, pi) => {
     const c = PERSON_COLORS[pi % PERSON_COLORS.length];
     if (g.work_lat != null) {
-      addMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, 6, placed);
+      addPinMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, '\u{1F3E2}', false, placed);
       allPoints.push([g.work_lat, g.work_lon]);
     }
     if (g.home_lat != null) {
-      addMarker(map, g.home_lat, g.home_lon, c, `${g.name} 自宅`, 6, placed);
+      addPinMarker(map, g.home_lat, g.home_lon, c, `${g.name} 自宅`, '\u{1F3E0}', false, placed);
       allPoints.push([g.home_lat, g.home_lon]);
     }
   });
@@ -1590,12 +1658,12 @@ function renderMap(scored, geocoded) {
     const div = L.DomUtil.create('div', 'map-legend');
     let h = '<div style="font-weight:bold;margin-bottom:4px;">凡例</div>';
     scored.slice(0, 3).forEach((s, i) => {
-      h += `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin-right:6px;vertical-align:middle;"></span>${i+1}位: ${escHtml(s.name)}</div>`;
+      h += `<div>\u{1F37A} <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin-right:4px;vertical-align:middle;"></span>${i+1}位: ${escHtml(s.name)}</div>`;
     });
     geocoded.forEach((g, pi) => {
       const c = PERSON_COLORS[pi % PERSON_COLORS.length];
-      if (g.work_lat != null) h += `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:6px;vertical-align:middle;"></span>${escHtml(g.name)} 職場</div>`;
-      if (g.home_lat != null) h += `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:6px;vertical-align:middle;"></span>${escHtml(g.name)} 自宅</div>`;
+      if (g.work_lat != null) h += `<div>\u{1F3E2} <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:4px;vertical-align:middle;"></span>${escHtml(g.name)} 職場</div>`;
+      if (g.home_lat != null) h += `<div>\u{1F3E0} <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:4px;vertical-align:middle;"></span>${escHtml(g.name)} 自宅</div>`;
     });
     div.innerHTML = h;
     div.style.cssText = 'background:rgba(255,255,255,0.95);padding:10px 14px;border-radius:6px;box-shadow:0 1px 5px rgba(0,0,0,.3);font-size:12px;line-height:1.8;max-height:220px;overflow-y:auto;';
@@ -1614,7 +1682,7 @@ function renderMap(scored, geocoded) {
   }
 }
 
-function addMarker(map, lat, lon, color, label, radius, placed) {
+function addPinMarker(map, lat, lon, color, label, icon, isStation, placed) {
   let adjLat = lat, adjLon = lon;
   let dup = 0;
   for (const p of placed) {
@@ -1626,9 +1694,20 @@ function addMarker(map, lat, lon, color, label, radius, placed) {
     adjLon += 0.0012 * Math.sin(angle);
   }
   placed.push([lat, lon]);
-  L.circleMarker([adjLat, adjLon], {
-    radius, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
-  }).addTo(map).bindTooltip(label);
+  const size = isStation ? [48, 52] : [36, 44];
+  const anchor = isStation ? [24, 52] : [18, 44];
+  const divIcon = L.divIcon({
+    className: '',
+    iconSize: size,
+    iconAnchor: anchor,
+    popupAnchor: [0, -anchor[1]],
+    html: `<div class="map-pin ${isStation ? 'map-pin-station' : ''}">
+      <div class="map-pin-body" style="background:${color};">
+        <span class="map-pin-icon">${icon}</span>
+      </div>
+    </div>`
+  });
+  L.marker([adjLat, adjLon], {icon: divIcon}).addTo(map).bindTooltip(label);
 }
 
 // ---------------------------------------------------------------------------
