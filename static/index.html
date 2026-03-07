@@ -437,11 +437,12 @@ td { white-space: nowrap; }
 }
 .btn-cta-hero:hover { opacity: 0.9; }
 .lp-no-register {
-  font-size: 0.75rem;
-  color: #999;
-  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 10px;
   text-align: center;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
+  font-weight: 600;
 }
 .lp-hero-links {
   margin-top: 12px;
@@ -461,7 +462,7 @@ td { white-space: nowrap; }
   padding: 48px 0;
 }
 .lp-section-alt {
-  background: var(--bg-secondary);
+  background: #FFF8F0;
   margin: 0 -20px;
   padding: 48px 20px;
 }
@@ -723,22 +724,22 @@ td { white-space: nowrap; }
         <div class="lp-step-card">
           <div class="lp-step-num">1</div>
           <div class="lp-step-icon"><img src="/static/step-1-create.png" style="width:150px;height:150px;object-fit:contain;"></div>
-          <h3>飲み会に名前をつけよう</h3>
-          <p>30秒で完了。名前をつけてスタート。</p>
+          <h3>飲み会を作成する</h3>
+          <p>名前をつけてイベントページを作成。30秒で完了。</p>
         </div>
         <div class="lp-step-arrow">&#x276f;</div>
         <div class="lp-step-card">
           <div class="lp-step-num">2</div>
           <div class="lp-step-icon"><img src="/static/step-2-share.png" style="width:150px;height:150px;object-fit:contain;"></div>
-          <h3>みんなにURLを送るだけ</h3>
-          <p>送るだけでOK。幹事が全部やらなくていい。</p>
+          <h3>参加者を追加する</h3>
+          <p>自分で入力するか、URLを共有して各自で入力。幹事が全部やらなくていい。</p>
         </div>
         <div class="lp-step-arrow">&#x276f;</div>
         <div class="lp-step-card">
           <div class="lp-step-num">3</div>
           <div class="lp-step-icon"><img src="/static/step-3-find.png" style="width:150px;height:150px;object-fit:contain;"></div>
-          <h3>全員が納得できる駅が決まる</h3>
-          <p>データが公平な答えを出してくれる。</p>
+          <h3>駅が決まって、お店まで予約</h3>
+          <p>全員公平な駅が提案される。そのままホットペッパーでお店まで予約完了。</p>
         </div>
       </div>
     </div>
@@ -749,17 +750,17 @@ td { white-space: nowrap; }
       <p class="lp-section-sub">幹事が感謝される飲み会は、公平な場所選びから始まる。</p>
       <div class="lp-features-grid">
         <div class="lp-feature-card">
-          <div class="lp-feature-icon">&#x1f39b;</div>
+          <div class="lp-feature-icon"><img src="/static/feature-1-slider.png" style="width:150px;height:150px;object-fit:contain;"></div>
           <h3>全員が納得できる<br>根拠が出る</h3>
           <p>「公平さ重視」か「時短重視」か。<br>スライダー1つで、誰も損しない答えを導く。</p>
         </div>
         <div class="lp-feature-card">
-          <div class="lp-feature-icon">&#x1f5fa;</div>
+          <div class="lp-feature-icon"><img src="/static/feature-2-map.png" style="width:150px;height:150px;object-fit:contain;"></div>
           <h3>「なんで私だけ遠いの」を<br>地図で証明できる</h3>
           <p>全員の移動ルートと時間を地図で可視化。<br>数字で公平さを証明できるから、誰も文句を言えない。</p>
         </div>
         <div class="lp-feature-card">
-          <div class="lp-feature-icon">&#x1f37a;</div>
+          <div class="lp-feature-icon"><img src="/static/feature-3-reserve.png" style="width:150px;height:150px;object-fit:contain;"></div>
           <h3>場所が決まったら<br>そのままお店まで予約できる</h3>
           <p>ホットペッパーグルメと連携。<br>駅が決まった瞬間、周辺の店をそのまま検索・予約。</p>
         </div>
@@ -768,8 +769,8 @@ td { white-space: nowrap; }
 
     <!-- Bottom CTA -->
     <div class="lp-section lp-section-alt">
-      <h2 class="lp-section-title">今すぐ、幹事の悩みを終わりにする。</h2>
-      <p style="text-align:center;color:var(--text-muted);margin-bottom:20px;">イベント名を入力して、無料で始めましょう。</p>
+      <h2 class="lp-section-title">さあ、公平な飲み会を始めよう。</h2>
+      <p style="text-align:center;color:var(--text-muted);margin-bottom:20px;">今すぐ無料で使えます。登録不要。</p>
       <div class="lp-bottom-cta">
         <input type="text" id="event-title-bottom" placeholder="例: 歓迎会、忘年会、同窓会..." class="lp-create-input">
         <button class="btn-cta-bottom" onclick="createNomikaiBottom()">無料で最適なスポットを探す</button>
