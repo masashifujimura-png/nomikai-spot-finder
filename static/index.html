@@ -728,17 +728,12 @@ td { white-space: nowrap; }
     <h1 id="event-title-display"></h1>
     <div class="steps" id="event-steps"></div>
 
-    <p style="font-weight:600;margin-top:8px;">この飲み会の共有用URL（右のボタンでコピー）</p>
-    <div class="code-block">
-      <span class="text" id="share-url"></span>
-      <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
-    </div>
-
     <hr class="divider">
 
     <div id="success-msg" class="msg msg-success hidden"></div>
     <h2>参加者一覧（<span id="participant-count">0</span>人）</h2>
     <p class="caption">自分の情報を入力、または幹事がまとめて全員分を追加できます</p>
+    <div id="share-url-block"></div>
     <div id="participant-table-wrap"></div>
 
     <!-- Settings -->
@@ -997,12 +992,38 @@ function renderEvent() {
     <span class="step-arrow">→</span>
     <div><span class="step-badge ${s3?'':'muted'}">3</span><span class="step-title ${s3?'':'muted'}">最適スポット発見</span></div>`;
 
-  // Share URL
-  const baseUrl = location.origin;
-  document.getElementById('share-url').textContent = `${baseUrl}/?event=${code}`;
-
   // Participant count
   document.getElementById('participant-count').textContent = count;
+
+  // Share URL block (warn style if incomplete participants)
+  const baseUrl = location.origin;
+  const shareUrl = `${baseUrl}/?event=${code}`;
+  const incompleteNames = participants.filter(p => {
+    const isHr = p.pattern === '自宅→飲み会→自宅';
+    return !p.home_location || (!isHr && !p.work_location);
+  }).map(p => p.name);
+  const hasIncomplete = incompleteNames.length > 0;
+  const shareBlock = document.getElementById('share-url-block');
+  if (hasIncomplete) {
+    const names = incompleteNames.map(n => escHtml(n)).join('、');
+    shareBlock.innerHTML = `
+      <div style="background:#fff8e1;border:1px solid var(--warn);border-radius:var(--radius);padding:12px 14px;margin:10px 0;">
+        <p style="font-weight:600;color:#e65100;font-size:13px;margin-bottom:4px;">⚠ ${names} さんの駅情報が未入力です。URLを共有して入力してもらいましょう。</p>
+        <div class="code-block" style="background:white;">
+          <span class="text" id="share-url">${escHtml(shareUrl)}</span>
+          <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
+        </div>
+      </div>`;
+  } else {
+    shareBlock.innerHTML = `
+      <div style="margin:10px 0;">
+        <p style="font-weight:600;font-size:13px;margin-bottom:4px;">共有用URL（右のボタンでコピー）</p>
+        <div class="code-block">
+          <span class="text" id="share-url">${escHtml(shareUrl)}</span>
+          <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
+        </div>
+      </div>`;
+  }
 
   // Participant table
   renderParticipantTable();
@@ -1122,30 +1143,10 @@ function renderParticipantTable() {
   }
   mb += '</div>';
 
-  // Check for incomplete participants
-  const incompleteNames = participants.filter(p => {
-    const isHr = p.pattern === '自宅→飲み会→自宅';
-    return !p.home_location || (!isHr && !p.work_location);
-  }).map(p => p.name);
-
-  let shareHint = '';
-  if (incompleteNames.length > 0) {
-    const shareUrl = `${location.origin}/?event=${currentEvent._code}`;
-    const names = incompleteNames.map(n => escHtml(n)).join('、');
-    shareHint = `<div class="msg msg-warn" style="margin-top:12px;">
-      <strong>⚠ ${names} さんの駅情報が未入力です。</strong><br>
-      <span style="font-size:13px;">URLを共有して、各自で駅情報を入力してもらいましょう。</span>
-      <div class="code-block" style="margin-top:8px;background:white;">
-        <span class="text">${escHtml(shareUrl)}</span>
-        <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
-      </div>
-    </div>`;
-  }
-
   if (!count && !addingRow) {
     wrap.innerHTML = '<div class="msg msg-info">まだ参加者がいません。下のボタンから追加してください。</div>' + dt + mb;
   } else {
-    wrap.innerHTML = dt + mb + shareHint;
+    wrap.innerHTML = dt + mb;
   }
 
   // Setup autocomplete for active inputs
