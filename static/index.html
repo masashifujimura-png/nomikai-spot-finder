@@ -360,8 +360,8 @@ td { white-space: nowrap; }
 
 /* LP Hero - simple with inline form */
 .lp-hero {
-  background: #3a3a3a;
-  color: white;
+  background: #FFF8F0;
+  color: #2D2D2D;
   margin: 0 -20px;
   padding: 0 20px;
 }
@@ -394,12 +394,14 @@ td { white-space: nowrap; }
   line-height: 1.5;
   margin-bottom: 8px;
   font-weight: 900;
+  color: #2D2D2D;
 }
 .lp-headline-sub {
   font-size: 0.95rem;
   line-height: 1.6;
   margin-bottom: 24px;
-  opacity: 0.85;
+  opacity: 1;
+  color: #555;
 }
 .lp-create-form {
   max-width: 420px;
@@ -416,8 +418,8 @@ td { white-space: nowrap; }
   color: var(--text);
 }
 .lp-create-input:focus {
-  border-color: #c8a84e;
-  box-shadow: 0 0 0 3px rgba(200,168,78,0.2);
+  border-color: #FF6B35;
+  box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
 }
 .btn-cta-hero {
   display: block;
@@ -425,15 +427,22 @@ td { white-space: nowrap; }
   padding: 16px 24px;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(135deg, #c8a84e, #b8942e);
+  background: #FF6B35;
   color: white;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
   text-align: center;
 }
 .btn-cta-hero:hover { opacity: 0.9; }
+.lp-no-register {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 6px;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
 .lp-hero-links {
   margin-top: 12px;
   font-size: 13px;
@@ -442,10 +451,10 @@ td { white-space: nowrap; }
   gap: 4px;
 }
 .lp-hero-links a {
-  color: rgba(255,255,255,0.7);
+  color: #888;
   text-decoration: none;
 }
-.lp-hero-links a:hover { color: white; text-decoration: underline; }
+.lp-hero-links a:hover { color: #FF6B35; text-decoration: underline; }
 
 /* LP Sections */
 .lp-section {
@@ -549,10 +558,10 @@ td { white-space: nowrap; }
   padding: 16px 24px;
   font-size: 16px;
   font-weight: 700;
-  background: linear-gradient(135deg, #c8a84e, #b8942e);
+  background: #FF6B35;
   color: white;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 12px;
   cursor: pointer;
   transition: opacity 0.2s;
 }
@@ -750,7 +759,7 @@ td { white-space: nowrap; }
 
     <!-- Bottom CTA -->
     <div class="lp-section lp-section-alt">
-      <h2 class="lp-section-title">今すぐ飲み会を計画する</h2>
+      <h2 class="lp-section-title">今すぐ、幹事の悩みを終わりにする。</h2>
       <p style="text-align:center;color:var(--text-muted);margin-bottom:20px;">イベント名を入力して、無料で始めましょう。</p>
       <div class="lp-bottom-cta">
         <input type="text" id="event-title-bottom" placeholder="例: 歓迎会、忘年会、同窓会..." class="lp-create-input">
