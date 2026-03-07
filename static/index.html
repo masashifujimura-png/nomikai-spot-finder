@@ -503,7 +503,7 @@ td { white-space: nowrap; }
 /* 3 Steps */
 .lp-steps-grid {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
   gap: 16px;
   max-width: 800px;
@@ -517,6 +517,8 @@ td { white-space: nowrap; }
   border-radius: 16px;
   flex: 1;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 .lp-step-num {
   position: absolute;
@@ -531,7 +533,7 @@ td { white-space: nowrap; }
 }
 .lp-step-icon { font-size: 2.2rem; margin: 8px 0 10px; }
 .lp-step-card h3 { font-size: 0.95rem; margin-bottom: 6px; }
-.lp-step-card p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+.lp-step-card p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; flex: 1; }
 .lp-step-arrow { font-size: 1.5rem; color: var(--text-muted); flex-shrink: 0; margin-top: 40px; }
 
 /* Features */
