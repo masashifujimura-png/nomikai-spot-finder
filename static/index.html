@@ -315,175 +315,111 @@ td { white-space: nowrap; }
   .ptbl-mobile { display: block; }
 }
 
-/* LP Hero */
+/* LP Hero - simple with inline form */
 .lp-hero {
-  background: url('/static/hero-phone.png') center/cover no-repeat;
+  background: #3a3a3a;
   color: white;
   margin: 0 -20px;
-  border-radius: 0 0 24px 24px;
-  position: relative;
-  overflow: hidden;
-}
-.lp-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, rgba(0,0,0,0.15) 0%, rgba(30,15,60,0.45) 40%, rgba(58,28,113,0.85) 100%);
-  border-radius: 0 0 24px 24px;
+  padding: 0 20px;
 }
 .lp-hero-inner {
   max-width: 960px;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  position: relative;
-  z-index: 1;
-}
-.lp-hero-text {
-  flex: 1;
-  text-align: right;
-  padding: 56px 40px 56px 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-end;
+  gap: 32px;
+  padding: 40px 0;
 }
 .lp-hero-visual {
-  flex: 0 0 280px;
+  flex: 0 0 240px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 0 24px 32px;
 }
 .lp-hero-img {
   width: 100%;
-  max-width: 260px;
+  max-width: 220px;
   height: auto;
   display: block;
   filter: drop-shadow(0 8px 24px rgba(0,0,0,0.4));
 }
+.lp-hero-text {
+  flex: 1;
+}
 .lp-headline {
-  font-size: 2.2rem;
-  line-height: 1.4;
+  font-size: 1.6rem;
+  line-height: 1.5;
   margin-bottom: 8px;
   font-weight: 900;
-  letter-spacing: 0.02em;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
 }
 .lp-headline-sub {
-  font-size: 1.5rem;
-  line-height: 1.5;
+  font-size: 0.95rem;
+  line-height: 1.6;
   margin-bottom: 24px;
-  font-weight: 900;
-  opacity: 0.95;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  opacity: 0.85;
+}
+.lp-create-form {
+  max-width: 420px;
+}
+.lp-create-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  outline: none;
+  background: white;
+  color: var(--text);
+}
+.lp-create-input:focus {
+  border-color: #c8a84e;
+  box-shadow: 0 0 0 3px rgba(200,168,78,0.2);
 }
 .btn-cta-hero {
-  display: inline-block;
-  padding: 16px 36px;
+  display: block;
+  width: 100%;
+  padding: 16px 24px;
   font-size: 16px;
   font-weight: 700;
-  background: white;
-  color: #3a1c71;
+  background: linear-gradient(135deg, #c8a84e, #b8942e);
+  color: white;
   border: none;
-  border-radius: 50px;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: opacity 0.2s;
+  text-align: center;
 }
-.btn-cta-hero:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+.btn-cta-hero:hover { opacity: 0.9; }
+.lp-hero-links {
+  margin-top: 12px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
+.lp-hero-links a {
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+}
+.lp-hero-links a:hover { color: white; text-decoration: underline; }
 
 /* LP Sections */
 .lp-section {
-  padding: 56px 0;
+  padding: 48px 0;
 }
 .lp-section-alt {
   background: var(--bg-secondary);
   margin: 0 -20px;
-  padding: 56px 20px;
+  padding: 48px 20px;
 }
 .lp-section-title {
   text-align: center;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 900;
-  margin-bottom: 36px;
+  margin-bottom: 32px;
   color: var(--text);
-  letter-spacing: 0.02em;
 }
-
-/* Pain points */
-.lp-pain-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  max-width: 700px;
-  margin: 0 auto;
-}
-.lp-pain-card {
-  text-align: center;
-  padding: 24px 16px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: white;
-}
-.lp-pain-icon { font-size: 2.5rem; margin-bottom: 12px; }
-.lp-pain-card p { font-size: 0.9rem; line-height: 1.6; color: var(--text); }
-
-.btn-cta-section {
-  padding: 14px 40px;
-  font-size: 15px;
-  font-weight: 700;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-}
-.btn-cta-section:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
-}
-
-/* 3 Steps */
-.lp-steps-grid {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-.lp-step-card {
-  text-align: center;
-  padding: 24px 16px;
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  flex: 1;
-  position: relative;
-}
-.lp-step-num {
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 28px;
-  background: var(--primary);
-  color: white;
-  border-radius: 50%;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 28px;
-}
-.lp-step-icon { font-size: 2.2rem; margin: 8px 0 10px; }
-.lp-step-card h3 { font-size: 0.95rem; margin-bottom: 6px; }
-.lp-step-card p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
-.lp-step-arrow { font-size: 1.5rem; color: var(--text-muted); flex-shrink: 0; }
 
 /* Features */
 .lp-features-grid {
@@ -498,44 +434,22 @@ td { white-space: nowrap; }
   padding: 24px 16px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: var(--bg-secondary);
+  background: white;
 }
 .lp-feature-icon { font-size: 2.5rem; margin-bottom: 12px; }
 .lp-feature-card h3 { font-size: 0.95rem; margin-bottom: 10px; line-height: 1.5; }
 .lp-feature-card p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.7; }
 
-/* Create form (bottom CTA) */
-.lp-create-form {
-  max-width: 480px;
-  margin: 0 auto;
-}
-.lp-create-input {
-  width: 100%;
-  padding: 14px 16px;
-  font-size: 15px;
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 12px;
-  outline: none;
-  background: white;
-}
-.lp-create-input:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
-}
-
 /* LP responsive */
 @media (max-width: 640px) {
-  .lp-hero { margin: 0 -12px; }
-  .lp-hero-inner { flex-direction: column; }
-  .lp-hero-text { text-align: center; align-items: center; padding: 40px 20px 16px; }
-  .lp-hero-visual { flex: 0 0 auto; padding: 0 0 24px; }
-  .lp-hero-img { max-width: 200px; }
-  .lp-headline { font-size: 1.4rem; }
-  .lp-headline-sub { font-size: 1.1rem; }
-  .lp-pain-grid { grid-template-columns: 1fr; max-width: 300px; }
-  .lp-steps-grid { flex-direction: column; }
-  .lp-step-arrow { transform: rotate(90deg); }
+  .lp-hero { margin: 0 -12px; padding: 0 16px; }
+  .lp-hero-inner { flex-direction: column; gap: 20px; padding: 32px 0; }
+  .lp-hero-visual { flex: 0 0 auto; }
+  .lp-hero-img { max-width: 180px; }
+  .lp-hero-text { text-align: center; }
+  .lp-headline { font-size: 1.3rem; }
+  .lp-headline-sub { font-size: 0.85rem; }
+  .lp-create-form { max-width: 100%; }
   .lp-features-grid { grid-template-columns: 1fr; }
   .lp-section-alt { margin: 0 -12px; padding: 32px 16px; }
 }
@@ -626,98 +540,42 @@ td { white-space: nowrap; }
   <!-- Top page (LP) -->
   <div id="page-top">
 
-    <!-- 1. Hero -->
+    <!-- Hero with inline create form -->
     <div class="lp-hero">
       <div class="lp-hero-inner">
         <div class="lp-hero-visual">
           <img src="/static/hero-hand.png" alt="飲み会スポットファインダー" class="lp-hero-img">
         </div>
         <div class="lp-hero-text">
-          <h1 class="lp-headline">全員が、笑顔で集まる、<br>笑顔で帰る。</h1>
-          <p class="lp-headline-sub">みんなに「やさしい」駅探し。</p>
-          <button class="btn btn-cta-hero" onclick="document.getElementById('lp-create').scrollIntoView({behavior:'smooth'})">無料で飲み会を作成する</button>
+          <h1 class="lp-headline">「最適な飲み会スポットを、公平に見つける。」</h1>
+          <p class="lp-headline-sub">全員の職場と自宅から、最良の集合場所を特定。</p>
+          <div class="lp-create-form">
+            <input type="text" id="event-title" placeholder="イベント名を入力して、飲み会を作成" class="lp-create-input">
+            <button class="btn-cta-hero" onclick="createNomikai()" id="btn-create">無料で最適なスポットを探す</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 2. Pain points -->
+    <!-- Features -->
     <div class="lp-section">
-      <h2 class="lp-section-title">幹事さん、こんな悩みありませんか？</h2>
-      <div class="lp-pain-grid">
-        <div class="lp-pain-card">
-          <div class="lp-pain-icon">&#x1f4cd;</div>
-          <p>場所が遠くて<br><strong>不満が出がち</strong></p>
-        </div>
-        <div class="lp-pain-card">
-          <div class="lp-pain-icon">&#x1f914;</div>
-          <p>みんなに近い場所って<br><strong>どこか分からない</strong></p>
-        </div>
-        <div class="lp-pain-card">
-          <div class="lp-pain-icon">&#x1f62e;&#x200d;&#x1f4a8;</div>
-          <p>お店探しまで<br><strong>全部幹事の負担</strong></p>
-        </div>
-      </div>
-      <div style="text-align:center;margin-top:24px;">
-        <button class="btn btn-cta-section" onclick="document.getElementById('lp-create').scrollIntoView({behavior:'smooth'})">無料で飲み会を計画する</button>
-      </div>
-    </div>
-
-    <!-- 3. 3 Steps -->
-    <div class="lp-section lp-section-alt">
-      <h2 class="lp-section-title">使い方はかんたん、3ステップ。</h2>
-      <div class="lp-steps-grid">
-        <div class="lp-step-card">
-          <div class="lp-step-num">1</div>
-          <div class="lp-step-icon">&#x1f4cb;</div>
-          <h3>イベント作成</h3>
-          <p>飲み会の名前を入力して<br>イベントページを作成</p>
-        </div>
-        <div class="lp-step-arrow">&#x276f;</div>
-        <div class="lp-step-card">
-          <div class="lp-step-num">2</div>
-          <div class="lp-step-icon">&#x1f465;</div>
-          <h3>参加者の情報入力</h3>
-          <p>URLを共有して<br>複数人で入力OK!</p>
-        </div>
-        <div class="lp-step-arrow">&#x276f;</div>
-        <div class="lp-step-card">
-          <div class="lp-step-num">3</div>
-          <div class="lp-step-icon">&#x1f389;</div>
-          <h3>「場所発見」</h3>
-          <p>全員にとって最適な<br>スポット（駅）を提案</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4. Features -->
-    <div class="lp-section">
-      <h2 class="lp-section-title">データに基づいて最適な場所をご提案。</h2>
+      <h2 class="lp-section-title">幹事の「独断」を「みんなの納得」に。</h2>
       <div class="lp-features-grid">
         <div class="lp-feature-card">
           <div class="lp-feature-icon">&#x1f39b;</div>
-          <h3>2本のスライダーで<br>究極のこだわり調整</h3>
-          <p>「効率性」vs「公平性」と「職場近く」vs「自宅近く」。<br>2つのスライダーを指一本でコントロール。<br>全員の「納得」を実現します。</p>
+          <h3>2本のスライダーで<br>こだわり調整</h3>
+          <p>「効率性」vs「公平性」と<br>「職場近く」vs「自宅近く」。<br>2つのスライダーで全員の納得を実現。</p>
         </div>
         <div class="lp-feature-card">
           <div class="lp-feature-icon">&#x1f5fa;</div>
           <h3>地図で全員のルートが<br>一目瞭然</h3>
-          <p>提案された駅と各参加者の経路を地図上で確認。<br>移動時間もランキング形式で比較できます。</p>
+          <p>提案された駅と各参加者の経路を地図上で確認。<br>移動時間もランキングで比較。</p>
         </div>
         <div class="lp-feature-card">
           <div class="lp-feature-icon">&#x1f37a;</div>
-          <h3>お店探しへ<br>スムーズ連携</h3>
-          <p>候補の駅が決まったら、周辺の飲食店を検索。<br>飲み放題・個室・人数など条件で絞り込めます。</p>
+          <h3>外部サイトへ連携し<br>お店探しをサポート</h3>
+          <p>候補の駅が決まったら、<br>周辺の飲食店を検索。<br>飲み放題・個室・人数で絞り込み。</p>
         </div>
-      </div>
-    </div>
-
-    <!-- 5. Final CTA -->
-    <div class="lp-section lp-section-alt" id="lp-create">
-      <h2 class="lp-section-title">今すぐ飲み会を計画する</h2>
-      <p style="text-align:center;color:var(--text-muted);margin-bottom:20px;">イベント名を入力して、無料で始めましょう。</p>
-      <div class="lp-create-form">
-        <input type="text" id="event-title" placeholder="例: 歓迎会、忘年会、同窓会..." class="lp-create-input">
-        <button class="btn btn-cta-hero" onclick="createNomikai()" id="btn-create" style="width:100%;">無料で飲み会を作成する</button>
       </div>
     </div>
 
@@ -954,7 +812,7 @@ async function createNomikai() {
   } catch(e) {
     alert('エラーが発生しました');
   }
-  btn.disabled = false; btn.textContent = '作成';
+  btn.disabled = false; btn.textContent = '無料で最適なスポットを探す';
 }
 
 async function loadEvent(code) {
