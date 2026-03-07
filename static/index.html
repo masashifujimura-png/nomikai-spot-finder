@@ -341,8 +341,11 @@ td { white-space: nowrap; }
 .ptbl .actions-cell button { margin-left: 4px; }
 .ptbl .add-row td { border-bottom: none; }
 .ptbl .btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 50%; }
-.ptbl .btn-add-row { background: white; color: var(--primary); border: 2px dashed var(--primary); cursor: pointer; font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: var(--radius); width: 100%; margin-top: 8px; transition: all 0.2s; }
-.ptbl .btn-add-row:hover { background: #e8f0fe; border-style: solid; }
+.ptbl .btn-add-row { background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600; padding: 14px 16px; border-radius: 12px; width: 100%; margin-top: 8px; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
+.ptbl .btn-add-row:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
+
+.btn-add-participant { display: block; width: 100%; margin-top: 8px; padding: 14px 16px; font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; border-radius: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
+.btn-add-participant:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
 
 /* Participant cards (mobile) */
 .p-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; background: white; }
@@ -769,7 +772,15 @@ td { white-space: nowrap; }
 
   <!-- Event page -->
   <div id="page-event" class="hidden">
-    <h1 id="event-title-display"></h1>
+    <div id="event-title-wrap" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+      <h1 id="event-title-display" onclick="startEditTitle()" style="margin:0;cursor:pointer;" title="クリックで編集"></h1>
+      <button onclick="startEditTitle()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted);padding:4px;" title="イベント名を編集">✏️</button>
+    </div>
+    <div id="event-title-edit" class="hidden" style="display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+      <input type="text" id="event-title-input" style="font-size:1.4rem;font-weight:700;text-align:center;padding:4px 12px;border:2px solid var(--primary);border-radius:var(--radius);max-width:300px;">
+      <button onclick="saveTitle()" class="btn btn-sm" style="background:var(--primary);color:white;">保存</button>
+      <button onclick="cancelEditTitle()" class="btn btn-sm btn-outline">取消</button>
+    </div>
     <div class="steps" id="event-steps"></div>
 
     <hr class="divider">
@@ -1017,6 +1028,34 @@ function createNomikaiBottom() {
   createNomikai();
 }
 
+function startEditTitle() {
+  const ev = currentEvent;
+  document.getElementById('event-title-input').value = ev.title;
+  document.getElementById('event-title-wrap').style.display = 'none';
+  document.getElementById('event-title-edit').style.display = 'flex';
+  document.getElementById('event-title-input').focus();
+}
+function cancelEditTitle() {
+  document.getElementById('event-title-wrap').style.display = 'flex';
+  document.getElementById('event-title-edit').style.display = 'none';
+}
+async function saveTitle() {
+  const title = document.getElementById('event-title-input').value.trim();
+  if (!title) return;
+  try {
+    const r = await fetch(`/api/events/${currentEvent._code}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({title}),
+    });
+    if (!r.ok) throw new Error('API error');
+    currentEvent.title = title;
+    renderEvent();
+  } catch(e) {
+    alert('タイトルの更新に失敗しました');
+  }
+}
+
 async function loadEvent(code) {
   document.getElementById('page-top').classList.add('hidden');
   document.getElementById('page-event').classList.remove('hidden');
@@ -1041,6 +1080,8 @@ function renderEvent() {
   const count = participants.length;
 
   document.getElementById('event-title-display').textContent = '「' + ev.title + '」';
+  document.getElementById('event-title-wrap').style.display = 'flex';
+  document.getElementById('event-title-edit').style.display = 'none';
 
 
   // Steps
@@ -1199,7 +1240,7 @@ function renderParticipantTable() {
     mb += renderAddRowMobile();
   }
   if (!addingRow && editingId === null) {
-    mb += '<button class="btn btn-outline btn-full" onclick="showAddRow()" style="margin-top:8px;border:2px dashed var(--primary);color:var(--primary);font-weight:600;">＋ 参加者を追加</button>';
+    mb += '<button class="btn-add-participant" onclick="showAddRow()">＋ 参加者を追加</button>';
   }
   mb += '</div>';
 

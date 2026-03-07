@@ -25,6 +25,7 @@ alter table participants enable row level security;
 
 create policy "Anyone can read events" on events for select using (true);
 create policy "Anyone can create events" on events for insert with check (true);
+create policy "Anyone can update events" on events for update using (true);
 
 create policy "Anyone can read participants" on participants for select using (true);
 create policy "Anyone can create participants" on participants for insert with check (true);

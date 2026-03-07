@@ -534,6 +534,10 @@ class CreateEventReq(BaseModel):
     title: str = "飲み会"
 
 
+class UpdateEventReq(BaseModel):
+    title: str
+
+
 class AddParticipantReq(BaseModel):
     event_id: str
     name: str
@@ -601,6 +605,17 @@ def api_create_event(req: CreateEventReq):
     code = _generate_code()
     rows = _sb_request("POST", "events", body={"event_code": code, "title": req.title or "飲み会"})
     return rows[0]
+
+
+@app.patch("/api/events/{code}")
+def api_update_event(code: str, req: UpdateEventReq):
+    rows = _sb_request("GET", "events", params={
+        "select": "id", "event_code": f"eq.{code}", "limit": "1",
+    })
+    if not rows:
+        raise HTTPException(status_code=404, detail="Event not found")
+    _sb_request("PATCH", f"events?id=eq.{rows[0]['id']}", body={"title": req.title})
+    return {"ok": True}
 
 
 @app.get("/api/events/{code}")
