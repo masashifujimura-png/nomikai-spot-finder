@@ -1114,7 +1114,7 @@ function renderEvent() {
     shareBlock.innerHTML = `
       <div style="background:#fff8e1;border:1px solid var(--warn);border-radius:var(--radius);padding:12px 14px;margin:10px 0;">
         <p style="font-weight:600;color:#e65100;font-size:13px;margin-bottom:4px;">⚠ ${names} さんの駅情報が未入力です。URLを共有して入力してもらいましょう。</p>
-        <p style="font-size:12px;color:#795548;margin-bottom:6px;">※未入力の参加者を除いて最適スポットの検索が可能です。</p>
+        <p style="font-size:12px;color:#795548;margin-bottom:6px;">※未入力の参加者を除いた最適スポットの検索も可能です。</p>
         <div class="code-block" style="background:white;">
           <span class="text" id="share-url">${escHtml(shareUrl)}</span>
           <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
