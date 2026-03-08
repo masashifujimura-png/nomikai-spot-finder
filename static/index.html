@@ -341,8 +341,8 @@ td { white-space: nowrap; }
 .ptbl .actions-cell button { margin-left: 4px; }
 .ptbl .add-row td { border-bottom: none; }
 .ptbl .btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 50%; }
-.ptbl .btn-add-row { background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; cursor: pointer; font-size: 17px; font-weight: 700; padding: 18px 24px; border-radius: 12px; width: 100%; margin-top: 8px; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
-.ptbl .btn-add-row:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
+.btn-add-row { background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; cursor: pointer; font-size: 17px; font-weight: 700; padding: 18px 24px; border-radius: 12px; width: 100%; margin-top: 8px; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
+.btn-add-row:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
 
 .btn-add-participant { display: block; width: 100%; margin-top: 8px; padding: 18px 24px; font-size: 17px; font-weight: 700; background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; border-radius: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 4px 12px rgba(26,115,232,0.3); }
 .btn-add-participant:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
@@ -799,8 +799,8 @@ td { white-space: nowrap; }
     <!-- Section 1: Participants -->
     <div class="event-section">
       <div class="event-section-header">
-        <span class="event-section-num">1</span>
-        <h2 class="event-section-title">参加者一覧（<span id="participant-count">0</span>人）</h2>
+        <span class="event-section-num">2</span>
+        <h2 class="event-section-title">参加者情報を入力（<span id="participant-count">0</span>人）</h2>
       </div>
       <div id="success-msg" class="msg msg-success hidden"></div>
       <p class="caption" style="margin-bottom:8px;">自分の情報を入力、または幹事がまとめて全員分を追加できます</p>
@@ -810,7 +810,7 @@ td { white-space: nowrap; }
 
     <!-- Main search action -->
     <button class="btn-search-main" id="btn-search" onclick="searchSpots()" disabled>
-      最適スポットを検索
+      ③ 最適スポットを発見
     </button>
     <p class="caption" id="search-hint" style="text-align:center;"></p>
 
@@ -1091,11 +1091,11 @@ function renderEvent() {
   // Steps
   const s2 = count > 0 || count === 0, s3 = count >= 2;
   document.getElementById('event-steps').innerHTML = `
-    <div><span class="step-badge done">✓</span><span class="step-title" style="color:var(--success)">作成済み</span></div>
+    <div><span class="step-badge done">✓</span><span class="step-title" style="color:var(--success)">飲み会作成済み</span></div>
     <span class="step-arrow">→</span>
     <div><span class="step-badge ${s2?'':'muted'}">2</span><span class="step-title ${s2?'':'muted'}">参加者情報を入力（現在 ${count}人）</span></div>
     <span class="step-arrow">→</span>
-    <div><span class="step-badge ${s3?'':'muted'}">3</span><span class="step-title ${s3?'':'muted'}">最適スポット発見</span></div>`;
+    <div><span class="step-badge ${s3?'':'muted'}">3</span><span class="step-title ${s3?'':'muted'}">最適スポットを発見</span></div>`;
 
   // Participant count
   document.getElementById('participant-count').textContent = count;
@@ -1631,7 +1631,7 @@ async function searchSpots(isReSearch = false) {
   } finally {
     if (!isReSearch) {
       btn.disabled = false;
-      btn.textContent = '最適スポットを検索';
+      btn.textContent = '③ 最適スポットを発見';
     }
   }
 }
