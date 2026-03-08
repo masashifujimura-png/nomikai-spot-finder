@@ -389,7 +389,7 @@ details summary::-webkit-details-marker { display: none; }
   max-width: 960px;
   margin: 0 auto;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 32px;
   padding: 16px 0;
 }
@@ -402,9 +402,10 @@ details summary::-webkit-details-marker { display: none; }
 .lp-hero-img {
   width: 100%;
   max-width: 360px;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
   display: block;
-  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
 }
 .lp-hero-text {
   flex: 1;
