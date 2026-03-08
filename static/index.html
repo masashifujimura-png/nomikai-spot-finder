@@ -1781,12 +1781,8 @@ function renderMap(scored, geocoded) {
   };
   legend.addTo(map);
 
-  if (allPoints.length > 1 && scored.length) {
-    const c = L.latLng(scored[0].lat, scored[0].lon);
-    // 全ポイントが収まるズームを適用し、中心を1位に移動
-    map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: false});
-    const zoom = map.getZoom();
-    map.setView(c, zoom, {animate: false});
+  if (allPoints.length > 1) {
+    map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: true});
   } else if (allPoints.length === 1) {
     map.setView(allPoints[0], 13);
   }
