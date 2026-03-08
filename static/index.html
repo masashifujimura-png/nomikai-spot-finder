@@ -50,7 +50,7 @@
 :root {
   --primary: #1a73e8;
   --primary-dark: #1557b0;
-  --success: #06C755;
+  --success: #4CAF50;
   --danger: #e53935;
   --warn: #ff9800;
   --bg: #ffffff;
@@ -291,6 +291,7 @@ td { white-space: nowrap; }
 /* Messages */
 .msg { padding: 10px 14px; border-radius: var(--radius); margin: 8px 0; font-size: 14px; }
 .msg-success { background: #e8f5e9; color: #2e7d32; }
+details summary::-webkit-details-marker { display: none; }
 .msg-error { background: #ffebee; color: #c62828; }
 .msg-info { background: #e3f2fd; color: #1565c0; }
 .msg-warn { background: #fff3e0; color: #e65100; }
@@ -1136,29 +1137,20 @@ function renderEvent() {
       <button class="btn btn-sm" style="background:#555;color:white;border:none;flex:1;" onclick="shareViaEmail()">メールで共有</button>
     </div>`;
 
-  if (hasIncomplete) {
-    const names = incompleteNames.map(n => escHtml(n)).join('、');
-    shareBlock.innerHTML = `
-      <div style="background:#fff8e1;border:1px solid var(--warn);border-radius:var(--radius);padding:12px 14px;margin:10px 0;">
-        <p style="font-weight:600;color:#e65100;font-size:13px;margin-bottom:4px;">⚠ ${names} さんの駅情報が未入力です。URLを共有して入力してもらいましょう。</p>
-        <p style="font-size:12px;color:#795548;margin-bottom:6px;">※未入力の参加者を除いた最適スポットの検索も可能です。</p>
-        ${shareButtons}
-      </div>`;
-  } else if (count > 0) {
-    shareBlock.innerHTML = `
-      <details style="margin:10px 0;">
-        <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--primary);">共有用URLを表示</summary>
-        <div style="margin-top:8px;">
+  const warningHtml = hasIncomplete ? `
+        <p style="font-weight:600;color:#e65100;font-size:13px;margin-bottom:4px;">⚠ ${incompleteNames.map(n => escHtml(n)).join('、')} さんの駅情報が未入力です。URLを共有して入力してもらいましょう。</p>
+        <p style="font-size:12px;color:#795548;margin-bottom:6px;">※未入力の参加者を除いた最適スポットの検索も可能です。</p>` : '';
+  shareBlock.innerHTML = `
+      <details ${hasIncomplete ? 'open' : ''} style="margin:10px 0;border:1px solid var(--border);border-radius:var(--radius);padding:0;">
+        <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--primary);padding:12px 14px;margin:0;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+          共有用URL（参加者にURLを共有して入力してもらえます）
+          <span style="font-size:11px;transition:transform .2s;">▼</span>
+        </summary>
+        <div style="padding:0 14px 12px;">
+          ${warningHtml}
           ${shareButtons}
         </div>
       </details>`;
-  } else {
-    shareBlock.innerHTML = `
-      <div style="margin:10px 0;">
-        <p style="font-weight:600;font-size:13px;margin-bottom:4px;">共有用URL（参加者にURLを共有して入力してもらえます）</p>
-        ${shareButtons}
-      </div>`;
-  }
 
   // Participant table
   renderParticipantTable();
