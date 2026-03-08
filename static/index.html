@@ -415,14 +415,17 @@ details summary::-webkit-details-marker { display: none; }
   margin-bottom: 8px;
   font-weight: 900;
   color: #2D2D2D;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .lp-headline-sub {
-  font-size: 1.3rem;
-  font-weight: 900;
+  font-size: 1rem;
+  font-weight: 600;
   line-height: 1.6;
   margin-bottom: 24px;
-  opacity: 1;
   color: #555;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .lp-create-form {
   max-width: 420px;
@@ -490,6 +493,8 @@ details summary::-webkit-details-marker { display: none; }
   font-weight: 900;
   margin-bottom: 32px;
   color: var(--text);
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 .lp-section-sub {
   text-align: center;
@@ -499,30 +504,30 @@ details summary::-webkit-details-marker { display: none; }
   margin-bottom: 32px;
 }
 
-/* List layout (shared by pain, steps, features) */
+/* Card/list layout (shared by pain, steps, features) */
 .lp-list-grid {
-  max-width: 640px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 860px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+}
+.lp-list-grid.lp-list-2col {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 640px;
 }
 .lp-list-item {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 20px;
+  text-align: center;
+  padding: 28px 16px 20px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: white;
 }
-.lp-list-icon { flex-shrink: 0; }
-.lp-list-text h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+.lp-list-icon { margin-bottom: 8px; }
+.lp-list-text h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
 .lp-list-text p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
 .lp-step-arrow {
-  display: flex;
-  justify-content: center;
-  margin: -8px 0;
+  display: none;
 }
 .lp-step-arrow::after {
   content: '';
@@ -564,8 +569,12 @@ details summary::-webkit-details-marker { display: none; }
   .lp-headline { font-size: 1.25rem; word-break: keep-all; overflow-wrap: break-word; }
   .lp-headline-sub { font-size: 0.85rem; }
   .lp-create-form { max-width: 100%; }
-  .lp-list-item { gap: 14px; padding: 16px; }
-  .lp-list-icon img { width: 60px !important; height: 60px !important; }
+  .lp-list-grid { grid-template-columns: 1fr; max-width: 100%; gap: 16px; }
+  .lp-list-grid.lp-list-2col { grid-template-columns: 1fr; }
+  .lp-list-item { display: flex; align-items: center; gap: 14px; padding: 16px; text-align: left; }
+  .lp-list-icon { margin-bottom: 0; }
+  .lp-list-icon img { width: 70px !important; height: 70px !important; }
+  .lp-step-arrow { display: flex; justify-content: center; margin: -4px 0; }
   .lp-section { padding: 48px 0; }
   .lp-section-alt { margin: 0 -12px; padding: 32px 16px; }
 }
@@ -685,7 +694,7 @@ details summary::-webkit-details-marker { display: none; }
     </div>
 
     <!-- Demo section -->
-    <div class="lp-section" style="text-align:center;">
+    <div class="lp-section" style="text-align:center;padding:24px 0;">
       <button class="btn-cta-demo" id="btn-demo" onclick="toggleDemo()">まずはデモで体験 ▼</button>
       <div id="demo-section" class="hidden">
         <div class="demo-wrap">
@@ -717,21 +726,21 @@ details summary::-webkit-details-marker { display: none; }
       <h2 class="lp-section-title">幹事さん、こんな悩みはありませんか？</h2>
       <div class="lp-list-grid">
         <div class="lp-list-item">
-          <div class="lp-list-icon"><img src="/static/pain-1-far.png" style="width:80px;height:80px;object-fit:contain;"></div>
+          <div class="lp-list-icon"><img src="/static/pain-1-far.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
             <h3>場所が誰かに偏りがち</h3>
             <p>「田中さん、また埼玉から来るのに渋谷にしたら怒られそう…」</p>
           </div>
         </div>
         <div class="lp-list-item">
-          <div class="lp-list-icon"><img src="/static/pain-2-where.png" style="width:80px;height:80px;object-fit:contain;"></div>
+          <div class="lp-list-icon"><img src="/static/pain-2-where.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
             <h3>根拠のない場所選び</h3>
             <p>「Googleマップで調べても、なんか納得感がないんだよな…」</p>
           </div>
         </div>
         <div class="lp-list-item">
-          <div class="lp-list-icon"><img src="/static/pain-3-tired.png" style="width:80px;height:80px;object-fit:contain;"></div>
+          <div class="lp-list-icon"><img src="/static/pain-3-tired.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
             <h3>幹事だけが消耗する</h3>
             <p>「場所決めただけで疲れた。もう店は適当でいいや…」</p>
@@ -743,9 +752,9 @@ details summary::-webkit-details-marker { display: none; }
     <!-- 2 Steps -->
     <div class="lp-section lp-section-alt">
       <h2 class="lp-section-title">たった2ステップで、場所が決まる。</h2>
-      <div class="lp-list-grid">
+      <div class="lp-list-grid lp-list-2col">
         <div class="lp-list-item">
-          <div class="lp-list-icon"><img src="/static/step-2-share.png" style="width:80px;height:80px;object-fit:contain;"></div>
+          <div class="lp-list-icon"><img src="/static/step-2-share.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
             <h3>みんなの最寄り駅を入れる</h3>
             <p>自分で入力しても、URLを共有して各自で入力でもOK。幹事が全部やらなくていい。</p>
@@ -753,7 +762,7 @@ details summary::-webkit-details-marker { display: none; }
         </div>
         <div class="lp-step-arrow"></div>
         <div class="lp-list-item">
-          <div class="lp-list-icon"><img src="/static/step-3-find.png" style="width:80px;height:80px;object-fit:contain;"></div>
+          <div class="lp-list-icon"><img src="/static/step-3-find.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
             <h3>駅が決まって、お店まで予約</h3>
             <p>全員が来やすい駅が提案される。そのままホットペッパーでお店予約まで完了。</p>
@@ -767,21 +776,21 @@ details summary::-webkit-details-marker { display: none; }
       <h2 class="lp-section-title">データが、幹事の味方になる。</h2>
       <div class="lp-list-grid">
         <div class="lp-list-item">
-          <div class="lp-list-icon"><img src="/static/feature-1-slider.png" style="width:80px;height:80px;object-fit:contain;"></div>
+          <div class="lp-list-icon"><img src="/static/feature-1-slider.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
             <h3>状況に合わせて、自分たちで調整できる</h3>
             <p>「帰りやすさ重視」か「時短重視」か。スライダー1つで、みんなにぴったりの答えが出る。</p>
           </div>
         </div>
         <div class="lp-list-item">
-          <div class="lp-list-icon"><img src="/static/feature-2-map.png" style="width:80px;height:80px;object-fit:contain;"></div>
+          <div class="lp-list-icon"><img src="/static/feature-2-map.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
             <h3>移動時間をデータで見える化</h3>
             <p>誰がどれだけ移動するか地図で一目瞭然。データが示すから、みんなが納得。</p>
           </div>
         </div>
         <div class="lp-list-item">
-          <div class="lp-list-icon"><img src="/static/feature-3-reserve.png" style="width:80px;height:80px;object-fit:contain;"></div>
+          <div class="lp-list-icon"><img src="/static/feature-3-reserve.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
             <h3>場所が決まったら、そのままお店予約</h3>
             <p>ホットペッパーグルメと連携。駅が決まった瞬間、周辺のお店をそのまま検索・予約。</p>
