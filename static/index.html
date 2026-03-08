@@ -184,8 +184,8 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 /* Metrics */
 .metrics { display: flex; gap: 10px; margin: 12px 0; flex-wrap: nowrap; }
 .metric { background: linear-gradient(135deg, #FFF3ED, #FFF8F0); border-radius: var(--radius); padding: 10px 12px; flex: 1; min-width: 0; border: 1px solid #FFD4BC; text-align: center; }
-.metric-label { font-size: 11px; color: #4a6fa5; font-weight: 500; white-space: nowrap; }
-.metric-value { font-size: 1.1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric-label { font-size: 11px; color: #9B5A3C; font-weight: 500; white-space: nowrap; }
+.metric-value { font-size: 1.1rem; font-weight: 700; color: #5C2E0E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) {
   .metrics { gap: 6px; }
   .metric { padding: 8px 6px; }
@@ -318,6 +318,21 @@ td { white-space: nowrap; }
   h1 { font-size: 1.4rem; }
   .shop-img { width: 80px; height: 60px; }
   .form-row { flex-direction: column !important; }
+  /* Steps: shrink text on mobile */
+  .step-title { font-size: 12px; }
+  .step-badge { width: 22px; height: 22px; font-size: 11px; margin-right: 3px; }
+  .step-arrow { font-size: 14px; }
+  .steps { gap: 6px; }
+  /* Title edit: wrap buttons */
+  #event-title-edit { flex-wrap: wrap; justify-content: center; }
+  #event-title-input { width: 100% !important; max-width: 100% !important; }
+  /* Slider labels: smaller text */
+  .range-edge { font-size: 10px; min-width: 55px; }
+  /* Share buttons: allow wrap */
+  /* Map: taller on mobile */
+  #map-container { height: 360px; }
+  /* Bar chart: wider names */
+  .bar-name { width: 50px; font-size: 12px; }
 }
 
 /* Bar chart */
