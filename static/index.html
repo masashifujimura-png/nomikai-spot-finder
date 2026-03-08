@@ -61,6 +61,7 @@
   --radius: 8px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: hidden; }
 body {
   font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-weight: 400;
@@ -489,12 +490,11 @@ details summary::-webkit-details-marker { display: none; }
 }
 .lp-section-title {
   text-align: center;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 900;
   margin-bottom: 32px;
   color: var(--text);
-  word-break: keep-all;
-  overflow-wrap: break-word;
+  white-space: nowrap;
 }
 .lp-section-sub {
   text-align: center;
@@ -513,7 +513,7 @@ details summary::-webkit-details-marker { display: none; }
   margin: 0 auto;
 }
 .lp-list-grid.lp-list-2col {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   max-width: 640px;
 }
 .lp-list-item {
@@ -527,7 +527,9 @@ details summary::-webkit-details-marker { display: none; }
 .lp-list-text h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
 .lp-list-text p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
 .lp-step-arrow {
-  display: none;
+  display: flex;
+  justify-content: center;
+  margin: -8px 0;
 }
 .lp-step-arrow::after {
   content: '';
@@ -561,20 +563,23 @@ details summary::-webkit-details-marker { display: none; }
 
 /* LP responsive */
 @media (max-width: 640px) {
-  .lp-hero { margin: 0 -12px; padding: 0 16px; }
-  .lp-hero-inner { flex-direction: column; gap: 20px; padding: 32px 0; }
+  .container { padding: 0 12px 16px; }
+  .lp-hero { margin: 0 -12px; padding: 0 16px; overflow: hidden; }
+  .lp-section-alt { margin: 0 -12px; }
+  .lp-hero-inner { flex-direction: column; gap: 20px; padding: 32px 0; width: 100%; box-sizing: border-box; }
   .lp-hero-visual { flex: 0 0 auto; }
   .lp-hero-img { max-width: 216px; }
-  .lp-hero-text { text-align: center; }
-  .lp-headline { font-size: 1.25rem; word-break: keep-all; overflow-wrap: break-word; }
+  .lp-hero-text { text-align: center; width: 100%; box-sizing: border-box; padding: 0 4px; }
+  .lp-headline { font-size: 1.2rem; word-break: keep-all; overflow-wrap: break-word; }
   .lp-headline-sub { font-size: 0.85rem; }
   .lp-create-form { max-width: 100%; }
+  .lp-section-title { font-size: 1rem; white-space: normal; word-break: keep-all; }
   .lp-list-grid { grid-template-columns: 1fr; max-width: 100%; gap: 16px; }
   .lp-list-grid.lp-list-2col { grid-template-columns: 1fr; }
   .lp-list-item { display: flex; align-items: center; gap: 14px; padding: 16px; text-align: left; }
   .lp-list-icon { margin-bottom: 0; }
   .lp-list-icon img { width: 70px !important; height: 70px !important; }
-  .lp-step-arrow { display: flex; justify-content: center; margin: -4px 0; }
+  .lp-step-arrow { margin: -4px 0; }
   .lp-section { padding: 48px 0; }
   .lp-section-alt { margin: 0 -12px; padding: 32px 16px; }
 }
@@ -684,7 +689,7 @@ details summary::-webkit-details-marker { display: none; }
           <img src="/static/hero-hand.png" alt="飲み会スポットファインダー" class="lp-hero-img">
         </div>
         <div class="lp-hero-text">
-          <h1 class="lp-headline">場所選びがうまくいくと、飲み会はうまくいく。</h1>
+          <h1 class="lp-headline">場所選びがうまくいくと、<br>飲み会はうまくいく。</h1>
           <p class="lp-headline-sub">みんなの最寄り駅を入れるだけ。みんなが来やすい場所を自動で提案。幹事の場所探しが、ぐっと楽になる。</p>
           <div class="lp-create-form">
             <button class="btn-cta-hero" onclick="createNomikai()" id="btn-create">登録不要・完全無料ですぐ始める →</button>
