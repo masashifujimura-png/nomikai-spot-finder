@@ -48,8 +48,8 @@
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root {
-  --primary: #1a73e8;
-  --primary-dark: #1557b0;
+  --primary: #FF6B35;
+  --primary-dark: #E85A2A;
   --success: #4caf50;
   --danger: #e53935;
   --warn: #ff9800;
@@ -126,7 +126,7 @@ h3 { font-size: 1.1rem; margin: 16px 0 8px; }
 }
 .btn-primary { background: var(--primary); color: white; }
 .btn-primary:hover { background: var(--primary-dark); }
-.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+.btn-primary:disabled { background: #FFBDA0; cursor: not-allowed; }
 .btn-sm { padding: 4px 12px; font-size: 13px; }
 .btn-danger { background: var(--danger); color: white; }
 .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
@@ -140,7 +140,7 @@ input[type="text"], input[type="number"], select {
   width: 100%; padding: 8px 12px; border: 1px solid var(--border);
   border-radius: var(--radius); font-size: 14px; outline: none;
 }
-input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,0.15); }
+input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(255,107,53,0.15); }
 
 /* Station autocomplete */
 .autocomplete-wrap { position: relative; }
@@ -174,16 +174,16 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
   background: white; color: var(--text);
   border: 2px solid var(--border); transition: all 0.15s;
 }
-.tab:hover { border-color: var(--primary); color: var(--primary); background: #f0f6ff; }
+.tab:hover { border-color: var(--primary); color: var(--primary); background: #FFF8F0; }
 .tab.active {
   background: var(--primary); color: white; border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(26,115,232,0.25);
+  box-shadow: 0 2px 8px rgba(255,107,53,0.25);
 }
 .tab-icon { display: block; font-size: 20px; margin-bottom: 2px; }
 
 /* Metrics */
 .metrics { display: flex; gap: 10px; margin: 12px 0; flex-wrap: nowrap; }
-.metric { background: linear-gradient(135deg, #e8f0fe, #f0f4ff); border-radius: var(--radius); padding: 10px 12px; flex: 1; min-width: 0; border: 1px solid #c5d7f5; text-align: center; }
+.metric { background: linear-gradient(135deg, #FFF3ED, #FFF8F0); border-radius: var(--radius); padding: 10px 12px; flex: 1; min-width: 0; border: 1px solid #FFD4BC; text-align: center; }
 .metric-label { font-size: 11px; color: #4a6fa5; font-weight: 500; white-space: nowrap; }
 .metric-value { font-size: 1.1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) {
@@ -257,16 +257,16 @@ td { white-space: nowrap; }
   display: block; width: 100%;
   padding: 18px 24px;
   font-size: 17px; font-weight: 700;
-  background: linear-gradient(135deg, #1a73e8, #1557b0);
+  background: linear-gradient(135deg, #FF6B35, #E85A2A);
   color: white; border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 4px 12px rgba(26,115,232,0.3);
+  box-shadow: 0 4px 12px rgba(255,107,53,0.3);
   margin: 20px 0 4px;
 }
-.btn-search-main:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
-.btn-search-main:disabled { background: #93c5fd; box-shadow: none; transform: none; cursor: not-allowed; }
+.btn-search-main:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(255,107,53,0.4); }
+.btn-search-main:disabled { background: #FFBDA0; box-shadow: none; transform: none; cursor: not-allowed; }
 
 /* Sidebar (settings panel) */
 .settings-panel {
@@ -341,10 +341,10 @@ td { white-space: nowrap; }
 .ptbl .actions-cell button { margin-left: 4px; }
 .ptbl .add-row td { border-bottom: none; }
 .ptbl .btn-icon { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 50%; }
-.btn-add-row { background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius); transition: opacity 0.2s; }
+.btn-add-row { background: linear-gradient(135deg, #FF6B35, #E85A2A); color: white; border: none; cursor: pointer; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius); transition: opacity 0.2s; }
 .btn-add-row:hover { opacity: 0.85; }
 
-.btn-add-participant { display: block; width: 100%; margin-top: 8px; padding: 10px 16px; font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #1a73e8, #1557b0); color: white; border: none; border-radius: var(--radius); cursor: pointer; transition: opacity 0.2s; }
+.btn-add-participant { display: block; width: 100%; margin-top: 8px; padding: 10px 16px; font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #FF6B35, #E85A2A); color: white; border: none; border-radius: var(--radius); cursor: pointer; transition: opacity 0.2s; }
 .btn-add-participant:hover { opacity: 0.85; }
 
 /* Participant cards (mobile) */
