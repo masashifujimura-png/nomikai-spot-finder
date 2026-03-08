@@ -636,6 +636,7 @@ details summary::-webkit-details-marker { display: none; }
 .map-pin-first .map-pin-body { width: 56px; height: 56px; }
 .map-pin-first .map-pin-icon { font-size: 26px; }
 .map-pin-first .map-pin-body::after { width: 20px; height: 20px; bottom: -9px; }
+.rank-tooltip { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.2); white-space: nowrap; }
 
 /* Mobile fixed bottom tabs - hidden on PC */
 .result-tabs-fixed { display: none; }
@@ -906,6 +907,8 @@ let hpResults = null;
 let hpPage = 0;
 let mapInstance = null;
 let pendingMapData = null;
+let mapAllPoints = null;
+let mapFirstStation = null;
 let appConfig = {};
 
 // ---------------------------------------------------------------------------
@@ -1458,6 +1461,7 @@ async function submitAddRow() {
     document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
     showSuccess(`${name}さんが追加されました。`);
+    document.querySelector('.event-section-header').scrollIntoView({behavior: 'smooth'});
   } catch(e) { alert('エラーが発生しました'); }
 }
 
@@ -1488,6 +1492,7 @@ async function submitAddRowMobile() {
     document.body.classList.remove('has-fixed-tabs');
     await reloadParticipants();
     showSuccess(`${name}さんが追加されました。`);
+    document.querySelector('.event-section-header').scrollIntoView({behavior: 'smooth'});
   } catch(e) { alert('エラーが発生しました'); }
 }
 
@@ -1709,7 +1714,23 @@ function switchTab(name) {
       pendingMapData = null;
       setTimeout(() => renderMap(data.scored, data.geocoded), 50);
     } else if (mapInstance) {
-      setTimeout(() => mapInstance.invalidateSize(), 100);
+      setTimeout(() => {
+        mapInstance.invalidateSize();
+        if (mapAllPoints && mapAllPoints.length > 1 && mapFirstStation) {
+          const first = L.latLng(mapFirstStation[0], mapFirstStation[1]);
+          mapInstance.fitBounds(L.latLngBounds(mapAllPoints), {padding: [50, 50], animate: false});
+          const optZoom = mapInstance.getZoom();
+          mapInstance.setView(first, optZoom, {animate: false});
+          let z = optZoom;
+          const allLatLngs = mapAllPoints.map(p => L.latLng(p[0], p[1]));
+          while (z > 5) {
+            const vb = mapInstance.getBounds();
+            if (allLatLngs.every(ll => vb.contains(ll))) break;
+            z--;
+            mapInstance.setView(first, z, {animate: false});
+          }
+        }
+      }, 100);
     }
   }
 }
@@ -1756,7 +1777,7 @@ const STATION_COLORS = ["#e53935", "#ff9800", "#9c27b0"];
 const PERSON_COLORS = ["#1e88e5", "#43a047", "#f4511e", "#8e24aa", "#00acc1", "#c0ca33", "#6d4c41", "#d81b60", "#3949ab", "#00897b", "#ffb300", "#546e7a"];
 
 function renderMap(scored, geocoded) {
-  document.getElementById('tab-map').innerHTML = '<div id="map-container"></div>';
+  document.getElementById('tab-map').innerHTML = '<div id="map-container"></div><div id="map-legend-wrap"></div>';
 
   if (typeof L === 'undefined') {
     document.getElementById('tab-map').innerHTML = '<div class="msg msg-warn">地図ライブラリを読み込み中です。しばらくしてから「地図」タブを再度クリックしてください。</div>';
@@ -1777,9 +1798,9 @@ function renderMap(scored, geocoded) {
 
   const STATION_ICONS = ['\u{1F37A}', '\u{1F37A}', '\u{1F37A}'];
 
-  // Top 3 stations
+  // Top 3 stations with permanent rank labels
   scored.slice(0, 3).forEach((s, i) => {
-    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, STATION_ICONS[i], true, placed, i === 0);
+    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, STATION_ICONS[i], true, placed, i === 0, `${i+1}位:${s.name}`);
     allPoints.push([s.lat, s.lon]);
   });
 
@@ -1796,39 +1817,28 @@ function renderMap(scored, geocoded) {
     }
   });
 
-  // Legend - auto-position to avoid markers
-  // Find which corner has fewest nearby points
-  function bestLegendPosition(pts, bounds) {
-    if (!bounds || pts.length === 0) return 'bottomright';
-    const cLat = (bounds.getNorth() + bounds.getSouth()) / 2;
-    const cLon = (bounds.getEast() + bounds.getWest()) / 2;
-    const corners = {topright: 0, topleft: 0, bottomright: 0, bottomleft: 0};
-    pts.forEach(p => {
-      if (p[0] >= cLat && p[1] >= cLon) corners.topright++;
-      if (p[0] >= cLat && p[1] < cLon) corners.topleft++;
-      if (p[0] < cLat && p[1] >= cLon) corners.bottomright++;
-      if (p[0] < cLat && p[1] < cLon) corners.bottomleft++;
-    });
-    return Object.entries(corners).sort((a, b) => a[1] - b[1])[0][0];
-  }
-  const legendPos = bestLegendPosition(allPoints, allPoints.length > 1 ? L.latLngBounds(allPoints) : null);
-  const legend = L.control({position: legendPos});
-  legend.onAdd = function() {
-    const div = L.DomUtil.create('div', 'map-legend');
-    let h = '<div style="font-weight:bold;margin-bottom:4px;">凡例</div>';
-    scored.slice(0, 3).forEach((s, i) => {
-      h += `<div>\u{1F37A} <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin-right:4px;vertical-align:middle;"></span>${i+1}位: ${escHtml(s.name)}</div>`;
-    });
-    geocoded.forEach((g, pi) => {
-      const c = PERSON_COLORS[pi % PERSON_COLORS.length];
-      if (g.work_lat != null) h += `<div>\u{1F3E2} <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:4px;vertical-align:middle;"></span>${escHtml(g.name)} 職場</div>`;
-      if (g.home_lat != null) h += `<div>\u{1F3E0} <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:4px;vertical-align:middle;"></span>${escHtml(g.name)} 自宅</div>`;
-    });
-    div.innerHTML = h;
-    div.style.cssText = 'background:rgba(255,255,255,0.95);padding:10px 14px;border-radius:6px;box-shadow:0 1px 5px rgba(0,0,0,.3);font-size:12px;line-height:1.8;max-height:220px;overflow-y:auto;';
-    return div;
-  };
-  legend.addTo(map);
+  // Legend - render outside map as collapsible toggle
+  let legendHtml = '';
+  scored.slice(0, 3).forEach((s, i) => {
+    legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;">\u{1F37A}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin:0 4px;"></span>${i+1}位</span>`;
+  });
+  geocoded.forEach((g, pi) => {
+    const c = PERSON_COLORS[pi % PERSON_COLORS.length];
+    legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:4px;"></span>${escHtml(g.name)}（\u{1F3E2}職場 \u{1F3E0}自宅）</span>`;
+  });
+  document.getElementById('map-legend-wrap').innerHTML = `
+    <details style="margin-top:6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">
+      <summary style="cursor:pointer;padding:8px 12px;font-weight:600;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+        凡例 <span style="font-size:11px;">▼</span>
+      </summary>
+      <div style="padding:6px 12px 10px;display:flex;flex-wrap:wrap;gap:4px 0;line-height:1.8;">
+        ${legendHtml}
+      </div>
+    </details>`;
+
+  // Store points for tab-switch zoom restore
+  mapAllPoints = allPoints;
+  mapFirstStation = scored.length ? [scored[0].lat, scored[0].lon] : null;
 
   if (allPoints.length > 1 && scored.length) {
     const first = L.latLng(scored[0].lat, scored[0].lon);
@@ -1853,7 +1863,7 @@ function renderMap(scored, geocoded) {
   }
 }
 
-function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFirst = false) {
+function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFirst = false, rankLabel = null) {
   let adjLat = lat, adjLon = lon;
   let dup = 0;
   for (const p of placed) {
@@ -1879,7 +1889,12 @@ function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFi
       </div>
     </div>`
   });
-  L.marker([adjLat, adjLon], {icon: divIcon}).addTo(map).bindTooltip(label);
+  const marker = L.marker([adjLat, adjLon], {icon: divIcon}).addTo(map);
+  if (rankLabel) {
+    marker.bindTooltip(rankLabel, {permanent: true, direction: 'top', offset: [0, -anchor[1] - 4], className: 'rank-tooltip'});
+  } else {
+    marker.bindTooltip(label);
+  }
 }
 
 // ---------------------------------------------------------------------------
