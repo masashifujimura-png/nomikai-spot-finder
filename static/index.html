@@ -1109,25 +1109,37 @@ function renderEvent() {
   }).map(p => p.name);
   const hasIncomplete = incompleteNames.length > 0;
   const shareBlock = document.getElementById('share-url-block');
+  const shareButtons = `
+    <div class="code-block" style="${hasIncomplete ? 'background:white;' : ''}">
+      <span class="text" id="share-url">${escHtml(shareUrl)}</span>
+      <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-sm" style="background:#06C755;color:white;border:none;flex:1;" onclick="shareViaLine()">LINEで共有</button>
+      <button class="btn btn-sm" style="background:#555;color:white;border:none;flex:1;" onclick="shareViaEmail()">メールで共有</button>
+    </div>`;
+
   if (hasIncomplete) {
     const names = incompleteNames.map(n => escHtml(n)).join('、');
     shareBlock.innerHTML = `
       <div style="background:#fff8e1;border:1px solid var(--warn);border-radius:var(--radius);padding:12px 14px;margin:10px 0;">
         <p style="font-weight:600;color:#e65100;font-size:13px;margin-bottom:4px;">⚠ ${names} さんの駅情報が未入力です。URLを共有して入力してもらいましょう。</p>
         <p style="font-size:12px;color:#795548;margin-bottom:6px;">※未入力の参加者を除いた最適スポットの検索も可能です。</p>
-        <div class="code-block" style="background:white;">
-          <span class="text" id="share-url">${escHtml(shareUrl)}</span>
-          <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
-        </div>
+        ${shareButtons}
       </div>`;
+  } else if (count > 0) {
+    shareBlock.innerHTML = `
+      <details style="margin:10px 0;">
+        <summary style="cursor:pointer;font-weight:600;font-size:13px;color:var(--primary);">共有用URLを表示</summary>
+        <div style="margin-top:8px;">
+          ${shareButtons}
+        </div>
+      </details>`;
   } else {
     shareBlock.innerHTML = `
       <div style="margin:10px 0;">
-        <p style="font-weight:600;font-size:13px;margin-bottom:4px;">共有用URL（右のボタンでコピー）</p>
-        <div class="code-block">
-          <span class="text" id="share-url">${escHtml(shareUrl)}</span>
-          <button class="btn btn-outline btn-sm" onclick="copyShareUrl()">コピー</button>
-        </div>
+        <p style="font-weight:600;font-size:13px;margin-bottom:4px;">共有用URL（参加者にURLを共有して入力してもらえます）</p>
+        ${shareButtons}
       </div>`;
   }
 
@@ -1162,6 +1174,19 @@ function copyShareUrl() {
   navigator.clipboard.writeText(text).then(() => {
     showSuccess('URLをコピーしました');
   });
+}
+function shareViaLine() {
+  const url = document.getElementById('share-url').textContent;
+  const title = currentEvent.title || '飲み会';
+  const text = `「${title}」の参加情報を入力してください！`;
+  window.open(`https://line.me/R/share?text=${encodeURIComponent(text + '\n' + url)}`, '_blank');
+}
+function shareViaEmail() {
+  const url = document.getElementById('share-url').textContent;
+  const title = currentEvent.title || '飲み会';
+  const subject = `【飲み会スポットファインダー】「${title}」への参加`;
+  const body = `「${title}」の参加情報を入力してください。\n\n${url}`;
+  window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
 }
 
 function showSuccess(msg) {
@@ -1762,8 +1787,23 @@ function renderMap(scored, geocoded) {
     }
   });
 
-  // Legend
-  const legend = L.control({position: 'bottomright'});
+  // Legend - auto-position to avoid markers
+  // Find which corner has fewest nearby points
+  function bestLegendPosition(pts, bounds) {
+    if (!bounds || pts.length === 0) return 'bottomright';
+    const cLat = (bounds.getNorth() + bounds.getSouth()) / 2;
+    const cLon = (bounds.getEast() + bounds.getWest()) / 2;
+    const corners = {topright: 0, topleft: 0, bottomright: 0, bottomleft: 0};
+    pts.forEach(p => {
+      if (p[0] >= cLat && p[1] >= cLon) corners.topright++;
+      if (p[0] >= cLat && p[1] < cLon) corners.topleft++;
+      if (p[0] < cLat && p[1] >= cLon) corners.bottomright++;
+      if (p[0] < cLat && p[1] < cLon) corners.bottomleft++;
+    });
+    return Object.entries(corners).sort((a, b) => a[1] - b[1])[0][0];
+  }
+  const legendPos = bestLegendPosition(allPoints, allPoints.length > 1 ? L.latLngBounds(allPoints) : null);
+  const legend = L.control({position: legendPos});
   legend.onAdd = function() {
     const div = L.DomUtil.create('div', 'map-legend');
     let h = '<div style="font-weight:bold;margin-bottom:4px;">凡例</div>';
@@ -1782,7 +1822,22 @@ function renderMap(scored, geocoded) {
   legend.addTo(map);
 
   if (allPoints.length > 1) {
-    map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: true});
+    // Fit all points first to get correct zoom level
+    map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: false});
+    // Then recenter on #1 station at the same zoom, expanding bounds if needed
+    if (scored.length) {
+      const firstCenter = L.latLng(scored[0].lat, scored[0].lon);
+      const zoom = map.getZoom();
+      map.setView(firstCenter, zoom, {animate: true});
+      // Ensure all points still visible - expand bounds to include mirrored points around #1
+      const bounds = L.latLngBounds(allPoints);
+      allPoints.forEach(p => {
+        const mirrorLat = 2 * scored[0].lat - p[0];
+        const mirrorLon = 2 * scored[0].lon - p[1];
+        bounds.extend([mirrorLat, mirrorLon]);
+      });
+      map.fitBounds(bounds, {padding: [50, 50], animate: true});
+    }
   } else if (allPoints.length === 1) {
     map.setView(allPoints[0], 13);
   }
