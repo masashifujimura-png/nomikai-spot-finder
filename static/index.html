@@ -523,7 +523,9 @@ details summary::-webkit-details-marker { display: none; }
   border-radius: 16px;
   background: white;
 }
-.lp-list-icon { margin-bottom: 8px; }
+.lp-list-icon { margin-bottom: 8px; flex-shrink: 0; }
+.lp-list-2col .lp-list-item { display: flex; align-items: center; gap: 20px; text-align: left; }
+.lp-list-2col .lp-list-icon { margin-bottom: 0; }
 .lp-list-text h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
 .lp-list-text p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
 .lp-step-arrow {
