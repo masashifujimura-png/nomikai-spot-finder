@@ -1013,18 +1013,18 @@ function renderDemoMap(scored, geocoded) {
   const placed = [];
 
   scored.slice(0, 3).forEach((s, i) => {
-    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, '\u{1F37A}', true, placed, i === 0, `${i+1}位:${s.name}`);
+    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, '\u{1F37A}', true, placed, i === 0, `${i+1}位:${s.name}`, 1000 - i * 100);
     allPoints.push([s.lat, s.lon]);
   });
 
   geocoded.forEach((g, pi) => {
     const c = PERSON_COLORS[pi % PERSON_COLORS.length];
     if (g.work_lat != null) {
-      addPinMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, '\u{1F3E2}', false, placed);
+      addPinMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, '\u{1F3E2}', false, placed, false, null, 400);
       allPoints.push([g.work_lat, g.work_lon]);
     }
     if (g.home_lat != null) {
-      addPinMarker(map, g.home_lat, g.home_lon, c, `${g.name} 自宅`, '\u{1F3E0}', false, placed);
+      addPinMarker(map, g.home_lat, g.home_lon, c, `${g.name} 自宅`, '\u{1F3E0}', false, placed, false, null, 500);
       allPoints.push([g.home_lat, g.home_lon]);
     }
   });
@@ -1032,7 +1032,7 @@ function renderDemoMap(scored, geocoded) {
   // Legend
   let legendHtml = '';
   scored.slice(0, 3).forEach((s, i) => {
-    legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;">\u{1F37A}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin:0 4px;"></span>${i+1}位</span>`;
+    legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;">\u{1F37A}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin:0 4px;"></span>${i+1}位: ${escHtml(s.name)}</span>`;
   });
   geocoded.forEach((g, pi) => {
     const c = PERSON_COLORS[pi % PERSON_COLORS.length];
@@ -1958,19 +1958,19 @@ function renderMap(scored, geocoded) {
 
   // Top 3 stations with permanent rank labels
   scored.slice(0, 3).forEach((s, i) => {
-    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, STATION_ICONS[i], true, placed, i === 0, `${i+1}位:${s.name}`);
+    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, STATION_ICONS[i], true, placed, i === 0, `${i+1}位:${s.name}`, 1000 - i * 100);
     allPoints.push([s.lat, s.lon]);
   });
 
-  // Participants
+  // Participants (work=400, home=500 — below stations but home above work)
   geocoded.forEach((g, pi) => {
     const c = PERSON_COLORS[pi % PERSON_COLORS.length];
     if (g.work_lat != null) {
-      addPinMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, '\u{1F3E2}', false, placed);
+      addPinMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, '\u{1F3E2}', false, placed, false, null, 400);
       allPoints.push([g.work_lat, g.work_lon]);
     }
     if (g.home_lat != null) {
-      addPinMarker(map, g.home_lat, g.home_lon, c, `${g.name} 自宅`, '\u{1F3E0}', false, placed);
+      addPinMarker(map, g.home_lat, g.home_lon, c, `${g.name} 自宅`, '\u{1F3E0}', false, placed, false, null, 500);
       allPoints.push([g.home_lat, g.home_lon]);
     }
   });
@@ -1978,7 +1978,7 @@ function renderMap(scored, geocoded) {
   // Legend - render outside map as collapsible toggle
   let legendHtml = '';
   scored.slice(0, 3).forEach((s, i) => {
-    legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;">\u{1F37A}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin:0 4px;"></span>${i+1}位</span>`;
+    legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;">\u{1F37A}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin:0 4px;"></span>${i+1}位: ${escHtml(s.name)}</span>`;
   });
   geocoded.forEach((g, pi) => {
     const c = PERSON_COLORS[pi % PERSON_COLORS.length];
@@ -2021,16 +2021,17 @@ function renderMap(scored, geocoded) {
   }
 }
 
-function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFirst = false, rankLabel = null) {
+function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFirst = false, rankLabel = null, zIndexOffset = 0) {
   let adjLat = lat, adjLon = lon;
+  // Check for nearby existing markers — offset THIS marker if conflict found
   let dup = 0;
   for (const p of placed) {
     if (Math.abs(lat - p[0]) < 0.0005 && Math.abs(lon - p[1]) < 0.0005) dup++;
   }
   if (dup > 0) {
     const angle = dup * (2 * Math.PI / 6);
-    adjLat += 0.0012 * Math.cos(angle);
-    adjLon += 0.0012 * Math.sin(angle);
+    adjLat += 0.0015 * Math.cos(angle);
+    adjLon += 0.0015 * Math.sin(angle);
   }
   placed.push([lat, lon]);
   const size = isFirst ? [60, 66] : isStation ? [48, 52] : [36, 44];
@@ -2047,11 +2048,11 @@ function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFi
       </div>
     </div>`
   });
-  const marker = L.marker([adjLat, adjLon], {icon: divIcon}).addTo(map);
+  const marker = L.marker([adjLat, adjLon], {icon: divIcon, zIndexOffset}).addTo(map);
   if (rankLabel) {
-    marker.bindTooltip(rankLabel, {permanent: true, direction: 'top', offset: [0, -anchor[1] - 4], className: 'rank-tooltip'});
+    marker.bindTooltip(rankLabel, {permanent: false, direction: 'top', offset: [0, -anchor[1] - 4], className: 'rank-tooltip'});
   } else {
-    marker.bindTooltip(label);
+    marker.bindTooltip(label, {className: 'rank-tooltip'});
   }
 }
 

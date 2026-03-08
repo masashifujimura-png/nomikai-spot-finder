@@ -668,8 +668,8 @@ def api_delete_participant(pid: str):
 
 
 DEMO_PARTICIPANTS = [
-    {"name": "Aさん", "pattern": "職場→飲み会→自宅", "work_location": "大手町", "home_location": "品川"},
-    {"name": "Bさん", "pattern": "職場→飲み会→自宅", "work_location": "新宿", "home_location": "町田"},
+    {"name": "Aさん", "pattern": "職場→飲み会→自宅", "work_location": "外苑前", "home_location": "渋谷"},
+    {"name": "Bさん", "pattern": "職場→飲み会→自宅", "work_location": "高円寺", "home_location": "京橋"},
 ]
 
 
