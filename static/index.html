@@ -1185,7 +1185,7 @@ function shareViaEmail() {
   const url = document.getElementById('share-url').textContent;
   const title = currentEvent.title || '飲み会';
   const subject = `【${title}】集合場所を決めよう！`;
-  const body = `「${title}」の集合場所を決めましょう！\n\nみんなの自宅・職場の最寄り駅を入力すると、全員にとって最適な駅が見つかります。\n下のリンクから参加情報を入力してください。\n\n${url}`;
+  const body = `「${title}」の集合場所を決めよう！\nみんなの自宅・職場の最寄り駅を入力すると、全員にとって最適な駅が見つかります。\n下のリンクから参加情報を入力してね！\n\n${url}`;
   window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
 }
 
