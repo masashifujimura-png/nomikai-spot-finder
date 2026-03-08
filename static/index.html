@@ -462,7 +462,7 @@ details summary::-webkit-details-marker { display: none; }
 .demo-slider-group span { font-size: 11px; color: var(--text-muted); }
 .demo-rank-list { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .demo-rank-item { flex: 1; min-width: 100px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); text-align: center; }
-.demo-rank-item.first { background: #fff8e1; border-color: #ffd54f; }
+.demo-rank-item.first { background: #e8f0fe; border-color: var(--primary); }
 .demo-rank-num { font-size: 11px; font-weight: 700; color: var(--text-muted); }
 .demo-rank-name { font-size: 15px; font-weight: 700; margin: 2px 0; }
 .demo-rank-time { font-size: 11px; color: var(--text-secondary); }
@@ -527,6 +527,7 @@ details summary::-webkit-details-marker { display: none; }
 .lp-list-2col .lp-list-item { display: flex; align-items: center; gap: 20px; text-align: left; }
 .lp-list-2col .lp-list-icon { margin-bottom: 0; }
 .lp-list-text h3 { font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; line-height: 1.5; }
+.lp-list-pain .lp-list-text h3 { font-size: 0.78rem; }
 .lp-list-text p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
 .lp-step-arrow {
   display: flex;
@@ -702,8 +703,8 @@ details summary::-webkit-details-marker { display: none; }
 
     <!-- Demo section -->
     <div class="lp-section" style="text-align:center;padding:24px 0;">
-      <button class="btn-cta-demo" id="btn-demo" onclick="toggleDemo()">まずはデモで体験 ▼</button>
-      <div id="demo-section" class="hidden">
+      <button class="btn-cta-demo" id="btn-demo" onclick="toggleDemo()">デモを閉じる ▲</button>
+      <div id="demo-section"
         <div class="demo-wrap">
           <p class="demo-scenario">Aさん（大手町勤務・大宮在住）、Bさん（品川勤務・横浜在住）、Cさん（新宿勤務・吉祥寺在住）の3人で飲み会。最適な駅は？</p>
           <div class="demo-sliders">
@@ -731,7 +732,7 @@ details summary::-webkit-details-marker { display: none; }
     <!-- Pain points -->
     <div class="lp-section">
       <h2 class="lp-section-title">幹事さん、こんな悩みはありませんか？</h2>
-      <div class="lp-list-grid">
+      <div class="lp-list-grid lp-list-pain">
         <div class="lp-list-item">
           <div class="lp-list-icon"><img src="/static/pain-1-far.png" style="width:100px;height:100px;object-fit:contain;"></div>
           <div class="lp-list-text">
@@ -1079,6 +1080,8 @@ function renderDemoMap(scored, geocoded) {
   const code = params.get('event');
   if (code) {
     await loadEvent(code);
+  } else {
+    runDemoSearch();
   }
 
   document.getElementById('balance').addEventListener('input', () => { updateBalanceLabel(); debouncedReSearch(); });
