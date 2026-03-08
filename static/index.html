@@ -443,6 +443,25 @@ details summary::-webkit-details-marker { display: none; }
   text-align: center;
 }
 .btn-cta-hero:hover { opacity: 0.9; }
+.btn-cta-demo {
+  padding: 12px 32px; font-size: 15px; font-weight: 700;
+  background: white; color: var(--primary); border: 2px solid var(--primary);
+  border-radius: 12px; cursor: pointer; transition: all 0.2s;
+}
+.btn-cta-demo:hover { background: var(--primary); color: white; }
+.demo-wrap { text-align: left; margin-top: 16px; }
+.demo-scenario { font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.6; }
+.demo-sliders { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+.demo-slider-group { flex: 1; min-width: 200px; }
+.demo-slider-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+.demo-slider-group input[type="range"] { width: 100%; }
+.demo-slider-group span { font-size: 11px; color: var(--text-muted); }
+.demo-rank-list { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.demo-rank-item { flex: 1; min-width: 100px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); text-align: center; }
+.demo-rank-item.first { background: #fff8e1; border-color: #ffd54f; }
+.demo-rank-num { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+.demo-rank-name { font-size: 15px; font-weight: 700; margin: 2px 0; }
+.demo-rank-time { font-size: 11px; color: var(--text-secondary); }
 .lp-no-register {
   font-size: 0.85rem;
   color: #666;
@@ -720,6 +739,34 @@ details summary::-webkit-details-marker { display: none; }
       </div>
     </div>
 
+    <!-- Demo section -->
+    <div class="lp-section" style="text-align:center;">
+      <button class="btn-cta-demo" id="btn-demo" onclick="toggleDemo()">まずはデモで体験 ▼</button>
+      <div id="demo-section" class="hidden">
+        <div class="demo-wrap">
+          <p class="demo-scenario">Aさん（大手町勤務・大宮在住）、Bさん（品川勤務・横浜在住）、Cさん（新宿勤務・吉祥寺在住）の3人で飲み会。最適な駅は？</p>
+          <div class="demo-sliders">
+            <div class="demo-slider-group">
+              <label>職場↔自宅の重み</label>
+              <input type="range" id="demo-balance" min="0" max="1" step="0.1" value="0.5" oninput="demoBalanceLabel();debouncedDemoSearch()">
+              <span id="demo-balance-val">職場 50% / 自宅 50%</span>
+            </div>
+            <div class="demo-slider-group">
+              <label>効率↔公平の重み</label>
+              <input type="range" id="demo-fairness" min="0" max="1" step="0.1" value="0.5" oninput="demoFairnessLabel();debouncedDemoSearch()">
+              <span id="demo-fairness-val">効率 50% / 公平 50%</span>
+            </div>
+          </div>
+          <div id="demo-results"></div>
+          <div id="demo-map-container" style="height:360px;border-radius:var(--radius);margin:8px 0;"></div>
+          <div id="demo-legend-wrap"></div>
+          <div style="margin-top:16px;">
+            <button class="btn-cta-hero" onclick="createNomikai()">自分の飲み会で試してみる →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Pain points -->
     <div class="lp-section">
       <h2 class="lp-section-title">幹事さん、こんな悩みはありませんか？</h2>
@@ -910,6 +957,144 @@ let pendingMapData = null;
 let mapAllPoints = null;
 let mapFirstStation = null;
 let appConfig = {};
+
+// ---------------------------------------------------------------------------
+// Demo
+// ---------------------------------------------------------------------------
+let demoMapInstance = null;
+let demoSearchTimer = null;
+
+function toggleDemo() {
+  const sec = document.getElementById('demo-section');
+  const btn = document.getElementById('btn-demo');
+  if (sec.classList.contains('hidden')) {
+    sec.classList.remove('hidden');
+    btn.textContent = 'デモを閉じる ▲';
+    runDemoSearch();
+  } else {
+    sec.classList.add('hidden');
+    btn.textContent = 'まずはデモで体験 ▼';
+  }
+}
+
+function demoBalanceLabel() {
+  const v = parseFloat(document.getElementById('demo-balance').value);
+  document.getElementById('demo-balance-val').textContent = `職場 ${Math.round((1-v)*100)}% / 自宅 ${Math.round(v*100)}%`;
+}
+function demoFairnessLabel() {
+  const v = parseFloat(document.getElementById('demo-fairness').value);
+  document.getElementById('demo-fairness-val').textContent = `効率 ${Math.round((1-v)*100)}% / 公平 ${Math.round(v*100)}%`;
+}
+function debouncedDemoSearch() {
+  clearTimeout(demoSearchTimer);
+  demoSearchTimer = setTimeout(() => runDemoSearch(), 400);
+}
+
+async function runDemoSearch() {
+  const balance = parseFloat(document.getElementById('demo-balance').value);
+  const fairness = parseFloat(document.getElementById('demo-fairness').value);
+  try {
+    const r = await fetch('/api/demo-search', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        work_weight: 1 - balance,
+        home_weight: balance,
+        fairness_weight: fairness,
+      }),
+    });
+    const data = await r.json();
+    renderDemoResults(data.scored, data.geocoded);
+  } catch(e) {
+    document.getElementById('demo-results').innerHTML = '<p style="color:red;">デモデータの取得に失敗しました。</p>';
+  }
+}
+
+function renderDemoResults(scored, geocoded) {
+  // Rank cards
+  let html = '<div class="demo-rank-list">';
+  scored.slice(0, 3).forEach((s, i) => {
+    html += `<div class="demo-rank-item ${i===0?'first':''}">
+      <div class="demo-rank-num">${i+1}位</div>
+      <div class="demo-rank-name">${escHtml(s.name)}</div>
+      <div class="demo-rank-time">平均 ${s.avg_total_val.toFixed(1)}分</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('demo-results').innerHTML = html;
+
+  // Map
+  renderDemoMap(scored, geocoded);
+}
+
+function renderDemoMap(scored, geocoded) {
+  if (typeof L === 'undefined') return;
+  if (demoMapInstance) { demoMapInstance.remove(); demoMapInstance = null; }
+
+  const center = scored.length ? [scored[0].lat, scored[0].lon] : [35.68, 139.76];
+  const map = L.map('demo-map-container', {center, zoom: 12, scrollWheelZoom: false});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18
+  }).addTo(map);
+  demoMapInstance = map;
+
+  const allPoints = [];
+  const placed = [];
+
+  scored.slice(0, 3).forEach((s, i) => {
+    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, '\u{1F37A}', true, placed, i === 0, `${i+1}位:${s.name}`);
+    allPoints.push([s.lat, s.lon]);
+  });
+
+  geocoded.forEach((g, pi) => {
+    const c = PERSON_COLORS[pi % PERSON_COLORS.length];
+    if (g.work_lat != null) {
+      addPinMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, '\u{1F3E2}', false, placed);
+      allPoints.push([g.work_lat, g.work_lon]);
+    }
+    if (g.home_lat != null) {
+      addPinMarker(map, g.home_lat, g.home_lon, c, `${g.name} 自宅`, '\u{1F3E0}', false, placed);
+      allPoints.push([g.home_lat, g.home_lon]);
+    }
+  });
+
+  // Legend
+  let legendHtml = '';
+  scored.slice(0, 3).forEach((s, i) => {
+    legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;">\u{1F37A}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin:0 4px;"></span>${i+1}位</span>`;
+  });
+  geocoded.forEach((g, pi) => {
+    const c = PERSON_COLORS[pi % PERSON_COLORS.length];
+    legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:4px;"></span>${escHtml(g.name)}（\u{1F3E2}職場 \u{1F3E0}自宅）</span>`;
+  });
+  document.getElementById('demo-legend-wrap').innerHTML = `
+    <details style="margin-top:6px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;">
+      <summary style="cursor:pointer;padding:8px 12px;font-weight:600;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+        凡例 <span style="font-size:11px;">▼</span>
+      </summary>
+      <div style="padding:6px 12px 10px;display:flex;flex-wrap:wrap;gap:4px 0;line-height:1.8;">
+        ${legendHtml}
+      </div>
+    </details>`;
+
+  if (allPoints.length > 1 && scored.length) {
+    const first = L.latLng(scored[0].lat, scored[0].lon);
+    map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: false});
+    const optZoom = map.getZoom();
+    map.setView(first, optZoom, {animate: false});
+    let z = optZoom;
+    const allLatLngs = allPoints.map(p => L.latLng(p[0], p[1]));
+    while (z > 5) {
+      const vb = map.getBounds();
+      if (allLatLngs.every(ll => vb.contains(ll))) break;
+      z--;
+      map.setView(first, z, {animate: false});
+    }
+    map.setView(first, z, {animate: true});
+  } else if (allPoints.length > 1) {
+    map.fitBounds(L.latLngBounds(allPoints), {padding: [50, 50], animate: true});
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Init

@@ -560,6 +560,12 @@ class SearchReq(BaseModel):
     fairness_weight: float = 0.3
 
 
+class DemoSearchReq(BaseModel):
+    work_weight: float = 0.5
+    home_weight: float = 0.5
+    fairness_weight: float = 0.3
+
+
 class RestaurantReq(BaseModel):
     lat: float
     lon: float
@@ -659,6 +665,53 @@ def api_update_participant(pid: str, req: UpdateParticipantReq):
 def api_delete_participant(pid: str):
     _sb_request("DELETE", f"participants?id=eq.{pid}")
     return {"ok": True}
+
+
+DEMO_PARTICIPANTS = [
+    {"name": "Aさん", "pattern": "職場→飲み会→自宅", "work_location": "大手町", "home_location": "大宮"},
+    {"name": "Bさん", "pattern": "職場→飲み会→自宅", "work_location": "品川", "home_location": "横浜"},
+    {"name": "Cさん", "pattern": "職場→飲み会→自宅", "work_location": "新宿", "home_location": "吉祥寺"},
+]
+
+
+@app.post("/api/demo-search")
+def api_demo_search(req: DemoSearchReq):
+    geocoded = []
+    for p in DEMO_PARTICIPANTS:
+        entry = geocode_participant(p)
+        if entry["work_lat"] is not None or entry["home_lat"] is not None:
+            geocoded.append(entry)
+
+    if len(geocoded) < 2:
+        raise HTTPException(status_code=400, detail="デモデータのジオコードに失敗しました")
+
+    stations = find_candidate_stations(geocoded)
+    if not stations:
+        raise HTTPException(status_code=400, detail="周辺に駅が見つかりませんでした")
+
+    stations = _prefilter_stations(stations, geocoded, req.work_weight, req.home_weight, top_n=30)
+    scored = score_stations(stations, geocoded, req.work_weight, req.home_weight,
+                            fairness_weight=req.fairness_weight)
+
+    top_n = min(5, len(scored))
+    top_stations = scored[:top_n]
+
+    return {
+        "scored": top_stations,
+        "geocoded": [
+            {
+                "name": g["name"],
+                "pattern": g["pattern"],
+                "work_lat": g.get("work_lat"),
+                "work_lon": g.get("work_lon"),
+                "work_station": g.get("work_station"),
+                "home_lat": g.get("home_lat"),
+                "home_lon": g.get("home_lon"),
+                "home_station": g.get("home_station"),
+            }
+            for g in geocoded
+        ],
+    }
 
 
 @app.post("/api/search")
