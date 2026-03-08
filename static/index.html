@@ -1178,14 +1178,14 @@ function copyShareUrl() {
 function shareViaLine() {
   const url = document.getElementById('share-url').textContent;
   const title = currentEvent.title || '飲み会';
-  const text = `「${title}」の参加情報を入力してください！`;
+  const text = `「${title}」の集合場所を決めよう！\nみんなの自宅・職場の最寄り駅を入力すると、全員にとって最適な駅が見つかります。\n下のリンクから参加情報を入力してね！`;
   window.open(`https://line.me/R/share?text=${encodeURIComponent(text + '\n' + url)}`, '_blank');
 }
 function shareViaEmail() {
   const url = document.getElementById('share-url').textContent;
   const title = currentEvent.title || '飲み会';
-  const subject = `【飲み会スポットファインダー】「${title}」への参加`;
-  const body = `「${title}」の参加情報を入力してください。\n\n${url}`;
+  const subject = `【${title}】集合場所を決めよう！`;
+  const body = `「${title}」の集合場所を決めましょう！\n\nみんなの自宅・職場の最寄り駅を入力すると、全員にとって最適な駅が見つかります。\n下のリンクから参加情報を入力してください。\n\n${url}`;
   window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
 }
 
