@@ -82,8 +82,8 @@ h1, h2, h3 { font-weight: 900; }
   display: flex; align-items: center; gap: 14px; cursor: pointer;
 }
 .site-header-icon {
-  height: 56px;
-  width: 56px;
+  height: 64px;
+  width: 64px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -199,13 +199,13 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 /* Metrics */
 .metrics { display: flex; gap: 10px; margin: 12px 0; flex-wrap: nowrap; }
 .metric { background: #fff; border-radius: var(--radius); padding: 10px 14px; flex: 1; min-width: 0; border: 1px solid var(--border); border-top: 3px solid var(--border); text-align: center; }
-.metric.rank-1 { border-top-color: #B8860B; }
-.metric.rank-2 { border-top-color: #A8B0B8; }
-.metric.rank-3 { border-top-color: #CD7F32; }
+.metric.rank-1 { border-top-color: #E6AA14; }
+.metric.rank-2 { border-top-color: #A0B4C0; }
+.metric.rank-3 { border-top-color: #D9885A; }
 .medal { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-.medal.rank-1 { background: linear-gradient(135deg, #D4A017, #B8860B); box-shadow: 0 1px 3px rgba(184,134,11,0.3); }
-.medal.rank-2 { background: linear-gradient(135deg, #B8C0C8, #8E959C); box-shadow: 0 1px 3px rgba(142,149,156,0.3); }
-.medal.rank-3 { background: linear-gradient(135deg, #D99A56, #CD7F32); box-shadow: 0 1px 3px rgba(205,127,50,0.3); }
+.medal.rank-1 { background: linear-gradient(135deg, #F0C040, #E6AA14); box-shadow: 0 1px 3px rgba(230,170,20,0.3); }
+.medal.rank-2 { background: linear-gradient(135deg, #B8C8D4, #A0B4C0); box-shadow: 0 1px 3px rgba(160,180,192,0.3); }
+.medal.rank-3 { background: linear-gradient(135deg, #E8A070, #D9885A); box-shadow: 0 1px 3px rgba(217,136,90,0.3); }
 .metric-value { font-size: 1.1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .metric-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 .slider-toggle-summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 10px 16px; list-style: none; display: flex; align-items: center; gap: 6px; user-select: none; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); color: var(--primary); }
@@ -515,9 +515,9 @@ details summary::-webkit-details-marker { display: none; }
 .demo-slider-group span { font-size: 11px; color: var(--text-muted); }
 .demo-rank-list { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .demo-rank-item { flex: 1; min-width: 80px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); border-top: 3px solid var(--border); background: #fff; text-align: center; }
-.demo-rank-item.rank-1 { border-top-color: #B8860B; }
-.demo-rank-item.rank-2 { border-top-color: #A8B0B8; }
-.demo-rank-item.rank-3 { border-top-color: #CD7F32; }
+.demo-rank-item.rank-1 { border-top-color: #E6AA14; }
+.demo-rank-item.rank-2 { border-top-color: #A0B4C0; }
+.demo-rank-item.rank-3 { border-top-color: #D9885A; }
 .demo-rank-name { font-size: 15px; font-weight: 700; margin: 2px 0; }
 .demo-rank-time { font-size: 11px; color: var(--text-secondary); }
 .lp-hero-links {
@@ -654,7 +654,7 @@ details summary::-webkit-details-marker { display: none; }
 
 /* Map pin markers - SVG teardrop style */
 .map-pin { position: relative; }
-.rank-tooltip { font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.2); white-space: nowrap; }
+.rank-tooltip { font-weight: 700; font-size: 12px; padding: 3px 10px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,0,0,.25); white-space: nowrap; background: #fff; color: #333; border: 1px solid #e0e0e0; }
 
 /* Mobile fixed bottom tabs - hidden on PC */
 .result-tabs-fixed { display: none; }
@@ -1090,7 +1090,7 @@ function renderDemoMap(scored, geocoded) {
   const placed = [];
 
   scored.slice(0, 3).forEach((s, i) => {
-    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, MAP_ICON_BEER, true, placed, i === 0, `${i+1}位:${s.name}`, 1000 - i * 100);
+    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, MAP_ICON_BEER, true, placed, i === 0, `${i+1}位:${s.name}`, 1000 - i * 100, i);
     allPoints.push([s.lat, s.lon]);
   });
 
@@ -2071,7 +2071,7 @@ function renderRanking(scored, geocoded, unit) {
 // ---------------------------------------------------------------------------
 // Map tab
 // ---------------------------------------------------------------------------
-const STATION_COLORS = ["#B8860B", "#8E959C", "#CD7F32"];
+const STATION_COLORS = ["#E6AA14", "#A0B4C0", "#D9885A"];
 const PERSON_COLORS = ["#1e88e5", "#43a047", "#f4511e", "#8e24aa", "#00acc1", "#c0ca33", "#6d4c41", "#d81b60", "#3949ab", "#00897b", "#ffb300", "#546e7a"];
 
 function renderMap(scored, geocoded) {
@@ -2096,7 +2096,7 @@ function renderMap(scored, geocoded) {
 
   // Top 3 stations with permanent rank labels
   scored.slice(0, 3).forEach((s, i) => {
-    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, MAP_ICON_BEER, true, placed, i === 0, `${i+1}位:${s.name}`, 1000 - i * 100);
+    addPinMarker(map, s.lat, s.lon, STATION_COLORS[i], `${i+1}位: ${s.name}`, MAP_ICON_BEER, true, placed, i === 0, `${i+1}位:${s.name}`, 1000 - i * 100, i);
     allPoints.push([s.lat, s.lon]);
   });
 
@@ -2160,7 +2160,10 @@ function renderMap(scored, geocoded) {
   refreshIcons();
 }
 
-function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFirst = false, rankLabel = null, zIndexOffset = 0) {
+// Directions to try for permanent tooltips to avoid overlap
+const TOOLTIP_DIRS = ['top', 'right', 'left', 'bottom'];
+
+function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFirst = false, rankLabel = null, zIndexOffset = 0, rankIndex = -1) {
   let adjLat = lat, adjLon = lon;
   let dup = 0;
   for (const p of placed) {
@@ -2184,7 +2187,10 @@ function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFi
   });
   const marker = L.marker([adjLat, adjLon], {icon: divIcon, zIndexOffset}).addTo(map);
   if (rankLabel) {
-    marker.bindTooltip(rankLabel, {permanent: false, direction: 'top', offset: [0, -h - 4], className: 'rank-tooltip'});
+    // Top 3 stations: permanent tooltip, vary direction to reduce overlap
+    const dir = rankIndex >= 0 ? TOOLTIP_DIRS[rankIndex % TOOLTIP_DIRS.length] : 'top';
+    const offsets = {top: [0, -h - 4], right: [w / 2 + 4, -h / 2], left: [-w / 2 - 4, -h / 2], bottom: [0, 4]};
+    marker.bindTooltip(rankLabel, {permanent: true, direction: dir, offset: offsets[dir], className: 'rank-tooltip'});
   } else {
     marker.bindTooltip(label, {className: 'rank-tooltip'});
   }
