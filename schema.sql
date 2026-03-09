@@ -35,3 +35,16 @@ create policy "Anyone can delete participants" on participants for delete using 
 -- インデックス
 create index idx_events_code on events(event_code);
 create index idx_participants_event on participants(event_id);
+
+-- 利用件数カウンター
+create table usage_counts (
+  key text primary key,
+  count bigint not null default 0
+);
+
+alter table usage_counts enable row level security;
+create policy "Anyone can read usage_counts" on usage_counts for select using (true);
+create policy "Anyone can update usage_counts" on usage_counts for update using (true);
+
+-- 初期レコード挿入
+insert into usage_counts (key, count) values ('search', 0);

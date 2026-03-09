@@ -562,6 +562,11 @@ details summary::-webkit-details-marker { display: none; }
   border-top: 14px solid var(--primary);
 }
 
+/* Usage count */
+.usage-count-section { text-align: center; padding: 20px 16px; }
+.usage-count-text { font-size: 15px; color: var(--text-muted); }
+.usage-count-text strong { font-size: 20px; color: var(--text); font-weight: 700; }
+
 /* Bottom CTA */
 .lp-bottom-cta {
   max-width: 480px;
@@ -833,6 +838,11 @@ details summary::-webkit-details-marker { display: none; }
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Usage count -->
+    <div id="usage-count-section" class="usage-count-section" style="display:none;">
+      <p class="usage-count-text">これまでに<strong id="usage-count-num">0</strong>件の飲み会の場所決めをサポートしました</p>
     </div>
 
     <!-- Bottom CTA -->
@@ -1108,6 +1118,10 @@ function renderDemoMap(scored, geocoded) {
     const r = await fetch('/api/config');
     appConfig = await r.json();
     injectAdsAndAnalytics();
+    if (appConfig.usage_count >= 100) {
+      document.getElementById('usage-count-num').textContent = appConfig.usage_count.toLocaleString();
+      document.getElementById('usage-count-section').style.display = '';
+    }
   } catch(e) {}
 
   const params = new URLSearchParams(location.search);

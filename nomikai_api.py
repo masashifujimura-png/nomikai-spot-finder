@@ -108,6 +108,28 @@ def _generate_code(length=6):
     return "".join(random.choices(chars, k=length))
 
 
+def _increment_usage_count():
+    """Increment the search usage counter by 1."""
+    try:
+        rows = _sb_request("GET", "usage_counts", params={"key": "eq.search", "select": "count"})
+        if rows:
+            new_count = rows[0]["count"] + 1
+            _sb_request("PATCH", "usage_counts", body={"count": new_count}, params={"key": "eq.search"})
+    except Exception:
+        pass  # Don't fail search if counter update fails
+
+
+def _get_usage_count():
+    """Get the current search usage count."""
+    try:
+        rows = _sb_request("GET", "usage_counts", params={"key": "eq.search", "select": "count"})
+        if rows:
+            return rows[0]["count"]
+    except Exception:
+        pass
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # Haversine
 # ---------------------------------------------------------------------------
@@ -603,6 +625,7 @@ def api_config():
         "adsense_client": ADSENSE_CLIENT,
         "ga_id": GA_ID,
         "has_hotpepper": bool(HOTPEPPER_API_KEY),
+        "usage_count": _get_usage_count(),
     }
 
 
@@ -788,6 +811,8 @@ def api_search(req: SearchReq):
 
             routes.append(person_routes)
         s["routes"] = routes
+
+    _increment_usage_count()
 
     return {
         "scored": top_stations,
