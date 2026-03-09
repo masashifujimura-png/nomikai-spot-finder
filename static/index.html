@@ -1010,10 +1010,11 @@ function renderDemoResults(scored, geocoded) {
   // Rank cards
   let html = '<div class="demo-rank-list">';
   scored.slice(0, 3).forEach((s, i) => {
+    const totalVal = s.details ? s.details.reduce((sum, d) => sum + d.total_val, 0) : s.avg_total_val * 2;
     html += `<div class="demo-rank-item rank-${i+1}">
       <div class="medal rank-${i+1}">${i+1}</div>
       <div class="demo-rank-name">${escHtml(s.name)}</div>
-      <div class="demo-rank-time">平均${s.avg_total_val.toFixed(1)}分</div>
+      <div class="demo-rank-time">総計${totalVal.toFixed(1)}分 <span class="metric-br">/ </span>平均${s.avg_total_val.toFixed(1)}分</div>
     </div>`;
   });
   html += '</div>';
