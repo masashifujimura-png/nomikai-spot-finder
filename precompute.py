@@ -71,26 +71,37 @@ def main():
         name_to_gcds.setdefault(name, []).append(gcd)
     dup_names = {name for name, gcds in name_to_gcds.items() if len(gcds) > 1}
 
-    # gcd → 代表路線名（そのgcdに属する最初のline_cd の路線名）
-    gcd_to_line = {}
-    for scd, gcd_val, lc in zip(
-        sdf["station_cd"].astype(int), sdf["station_g_cd"].astype(int),
-        sdf["line_cd"].astype(int),
+    # 都道府県コード → 都道府県名
+    PREF_NAMES = {
+        1: "北海道", 2: "青森", 3: "岩手", 4: "宮城", 5: "秋田", 6: "山形", 7: "福島",
+        8: "茨城", 9: "栃木", 10: "群馬", 11: "埼玉", 12: "千葉", 13: "東京", 14: "神奈川",
+        15: "新潟", 16: "富山", 17: "石川", 18: "福井", 19: "山梨", 20: "長野",
+        21: "岐阜", 22: "静岡", 23: "愛知", 24: "三重",
+        25: "滋賀", 26: "京都", 27: "大阪", 28: "兵庫", 29: "奈良", 30: "和歌山",
+        31: "鳥取", 32: "島根", 33: "岡山", 34: "広島", 35: "山口",
+        36: "徳島", 37: "香川", 38: "愛媛", 39: "高知",
+        40: "福岡", 41: "佐賀", 42: "長崎", 43: "熊本", 44: "大分", 45: "宮崎", 46: "鹿児島", 47: "沖縄",
+    }
+
+    # gcd → 都道府県名（そのgcdに属する最初のpref_cd）
+    gcd_to_pref = {}
+    for gcd_val, pref_cd in zip(
+        sdf["station_g_cd"].astype(int), sdf["pref_cd"].astype(int),
     ):
-        if int(gcd_val) not in gcd_to_line:
-            ln = line_names.get(int(lc), "")
-            if ln:
-                gcd_to_line[int(gcd_val)] = ln
+        if int(gcd_val) not in gcd_to_pref:
+            pref_name = PREF_NAMES.get(int(pref_cd), "")
+            if pref_name:
+                gcd_to_pref[int(gcd_val)] = pref_name
 
     # station_db: display_name → (lat, lon)
-    # 重複駅は "京橋（東京メトロ銀座線）" のように路線名で区別
+    # 重複駅は "京橋（東京）" のように都道府県名で区別
     station_db = {}
     name_to_gcd = {}
     gcd_to_name = {}
     for gcd, (name, lat, lon) in gcd_info.items():
         if name in dup_names:
-            ln = gcd_to_line.get(gcd, "")
-            display = f"{name}（{ln}）" if ln else name
+            pref = gcd_to_pref.get(gcd, "")
+            display = f"{name}（{pref}）" if pref else name
         else:
             display = name
         # 表示名がまだ衝突する場合はスキップ（最初の出現を優先）

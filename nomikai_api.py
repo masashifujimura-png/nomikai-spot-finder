@@ -222,7 +222,7 @@ def _geocode_station(station_name):
         return None, None, "", None
     sdb = _station_db()
     ntg = _name_to_gcd()
-    # 完全一致（"京橋（東京メトロ銀座線）" など表示名そのまま）
+    # 完全一致（"京橋（東京）" など表示名そのまま）
     if name in sdb:
         lat, lon = sdb[name]
         gcd = ntg.get(name)
@@ -592,7 +592,7 @@ def api_stations(q: str = ""):
     q = q.rstrip("駅").strip()
     if not q:
         return []
-    results = [n for n in names if q in n]
+    results = [n for n in names if n.startswith(q) or n.split("（")[0].startswith(q)]
     return results[:30]
 
 
@@ -669,7 +669,7 @@ def api_delete_participant(pid: str):
 
 DEMO_PARTICIPANTS = [
     {"name": "Aさん", "pattern": "職場→飲み会→自宅", "work_location": "外苑前", "home_location": "渋谷"},
-    {"name": "Bさん", "pattern": "職場→飲み会→自宅", "work_location": "高円寺", "home_location": "京橋（東京メトロ銀座線）"},
+    {"name": "Bさん", "pattern": "職場→飲み会→自宅", "work_location": "高円寺", "home_location": "京橋（東京）"},
 ]
 
 
