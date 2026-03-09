@@ -662,23 +662,24 @@ details summary::-webkit-details-marker { display: none; }
 @media (max-width: 640px) {
   .result-tabs-fixed:not(.hidden) {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
-    background: #fff; border-top: 2px solid #2563eb;
-    padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+    background: #f8fafc;
+    padding: 0 0 calc(0px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 24px rgba(0,0,0,0.15);
     display: flex; gap: 0;
   }
   .result-tabs-fixed .tab {
-    flex: 1; min-width: 0; padding: 5px 2px 4px; font-size: 10px; font-weight: 500;
+    flex: 1; min-width: 0; padding: 6px 2px 5px; font-size: 10px; font-weight: 600;
     background: transparent; border: none; border-radius: 0;
     color: #b0b0b0; box-shadow: none;
     display: flex; flex-direction: column; align-items: center; gap: 1px;
     transition: all 0.15s;
+    border-top: 3px solid transparent;
   }
   .result-tabs-fixed .tab:hover { color: #2563eb; }
   .result-tabs-fixed .tab.active {
-    color: #2563eb; font-weight: 700;
+    background: #dbeafe; color: #2563eb; font-weight: 700;
+    border-top: 3px solid #2563eb;
   }
-  .result-tabs-fixed .tab.active .tab-icon svg { fill: #2563eb; stroke: #fff; }
   .result-tabs-fixed .tab-icon { display: flex; justify-content: center; line-height: 1; }
   .result-tabs-fixed .tab-icon svg { width: 20px; height: 20px; }
   body.has-fixed-tabs { padding-bottom: 72px; }
