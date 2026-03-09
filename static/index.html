@@ -864,12 +864,12 @@ details summary::-webkit-details-marker { display: none; }
 
   <!-- Event page -->
   <div id="page-event" class="hidden">
-    <div id="event-title-wrap" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
+    <div id="event-title-wrap" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <h1 id="event-title-display" onclick="startEditTitle()" style="margin:0;cursor:pointer;" title="クリックで編集"></h1>
       <button onclick="startEditTitle()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;" title="イベント名を編集"><i data-lucide="pencil" style="width:18px;height:18px;"></i></button>
     </div>
-    <div id="event-title-edit" style="display:none;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;">
-      <input type="text" id="event-title-input" style="font-size:1.4rem;font-weight:700;text-align:center;padding:4px 12px;border:2px solid var(--primary);border-radius:var(--radius);max-width:300px;">
+    <div id="event-title-edit" style="display:none;align-items:center;gap:8px;margin-bottom:8px;">
+      <input type="text" id="event-title-input" style="font-size:1.4rem;font-weight:700;padding:4px 12px;border:2px solid var(--primary);border-radius:var(--radius);max-width:300px;">
       <button onclick="saveTitle()" class="btn btn-sm" style="background:var(--primary);color:white;">保存</button>
       <button onclick="cancelEditTitle()" class="btn btn-sm btn-outline">取消</button>
     </div>
