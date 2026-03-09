@@ -873,7 +873,7 @@ details summary::-webkit-details-marker { display: none; }
     <!-- Section 1: Participants -->
     <div class="event-section">
       <div class="event-section-header">
-        <span class="event-section-num">2</span>
+        <span class="event-section-num">1</span>
         <h2 class="event-section-title">参加者情報を入力（<span id="participant-count">0</span>人）</h2>
       </div>
       <div id="success-msg" class="msg msg-success hidden"></div>
@@ -884,7 +884,7 @@ details summary::-webkit-details-marker { display: none; }
 
     <!-- Main search action -->
     <button class="btn-search-main is-disabled" id="btn-search" onclick="handleSearchClick()">
-      ③ 最適スポットを発見
+      ② 最適スポットを発見
     </button>
     <p class="caption" id="search-hint" style="text-align:center;"></p>
 
@@ -1331,9 +1331,9 @@ function renderEvent() {
   document.getElementById('event-steps').innerHTML = `
     <div><span class="step-badge done">✓</span><span class="step-title" style="color:var(--success)">飲み会作成済み</span></div>
     <span class="step-arrow">→</span>
-    <div><span class="step-badge ${s2?'':'muted'}">2</span><span class="step-title ${s2?'':'muted'}">参加者情報を入力（現在 ${count}人）</span></div>
+    <div><span class="step-badge ${s2?'':'muted'}">1</span><span class="step-title ${s2?'':'muted'}">参加者情報を入力（現在 ${count}人）</span></div>
     <span class="step-arrow">→</span>
-    <div><span class="step-badge ${s3?'':'muted'}">3</span><span class="step-title ${s3?'':'muted'}">最適スポットを発見</span></div>`;
+    <div><span class="step-badge ${s3?'':'muted'}">2</span><span class="step-title ${s3?'':'muted'}">最適スポットを発見</span></div>`;
 
   // Participant count
   document.getElementById('participant-count').textContent = count;
@@ -1908,7 +1908,7 @@ async function searchSpots(isReSearch = false) {
   } finally {
     if (!isReSearch) {
       btn.disabled = false;
-      btn.textContent = '③ 最適スポットを発見';
+      btn.textContent = '② 最適スポットを発見';
     }
   }
 }
