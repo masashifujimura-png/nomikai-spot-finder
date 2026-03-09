@@ -998,20 +998,20 @@ const MAP_ICON_HOME = '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/
 const MAP_ICON_BUILDING = '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2 M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2 M10 6h4 M10 10h4 M10 14h4 M10 18h4"/>';
 
 // Build teardrop SVG pin with white circle + icon inside
+let _pinIdCounter = 0;
 function buildPinSvg(color, iconPath, w, h) {
-  // Teardrop pin: top is a circle, bottom tapers to a point
+  const uid = 'ds' + (++_pinIdCounter);
   const cx = w / 2, r = w * 0.4;
   const tipY = h;
   const circleY = r + 2;
-  // Icon is drawn inside the white circle
   const iconSize = r * 1.1;
   const iconOffset = circleY - iconSize / 2;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <defs><filter id="ds" x="-20%" y="-10%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.3"/></filter></defs>
+    <defs><filter id="${uid}" x="-20%" y="-10%" width="140%" height="140%"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.3"/></filter></defs>
     <path d="M${cx},${tipY} C${cx - r * 0.6},${tipY - h * 0.22} ${cx - r - 2},${circleY + r * 0.5} ${cx - r - 2},${circleY}
              A${r + 2},${r + 2} 0 1 1 ${cx + r + 2},${circleY}
              C${cx + r + 2},${circleY + r * 0.5} ${cx + r * 0.6},${tipY - h * 0.22} ${cx},${tipY}Z"
-          fill="${color}" filter="url(#ds)"/>
+          fill="${color}" filter="url(#${uid})"/>
     <circle cx="${cx}" cy="${circleY}" r="${r * 0.78}" fill="white"/>
     <svg x="${cx - iconSize/2}" y="${iconOffset}" width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24"
          fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -2307,7 +2307,7 @@ function renderRestaurantTab(scored, geocoded) {
       <select id="hp-station">${options}</select>
     </div>
     <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap;">
-      <label><input type="checkbox" id="hp-free-drink" checked> 飲み放題あり</label>
+      <label><input type="checkbox" id="hp-free-drink"> 飲み放題あり</label>
       <label><input type="checkbox" id="hp-private-room"> 個室あり</label>
     </div>
     <div class="form-group">
@@ -2321,6 +2321,8 @@ function renderRestaurantTab(scored, geocoded) {
     </div>
     <button class="btn btn-primary btn-full" onclick="searchRestaurants()">お店を検索</button>
     <div id="hp-results"></div>`;
+  // デフォルト条件で自動検索
+  setTimeout(() => searchRestaurants(), 100);
 }
 
 async function searchRestaurants() {
