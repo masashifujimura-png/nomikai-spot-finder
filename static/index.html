@@ -914,21 +914,19 @@ details summary::-webkit-details-marker { display: none; }
           <span id="slider-toggle-arrow">▲</span> スライダーで条件を調整
         </summary>
       <div class="settings-panel">
-        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">職場↔自宅の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">職場から飲み会場所への移動と、飲み会場所から自宅への移動、どちらを重視するか調整できます</span></span></label>
+        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:4px;">職場↔自宅の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">職場から飲み会場所への移動と、飲み会場所から自宅への移動、どちらを重視するか調整できます</span></span><span class="caption" style="margin-left:auto;font-weight:400;" id="balance-val">職場 50% / 自宅 50%</span></label>
         <div class="range-row">
           <span class="range-edge">職場からの近さ重視</span>
           <input type="range" id="balance" min="0" max="1" step="0.05" value="0.5">
           <span class="range-edge">自宅への帰りやすさ重視</span>
         </div>
-        <p class="caption" style="text-align:center;" id="balance-val">職場 50% / 自宅 50%</p>
-        <div style="margin-top:12px;"></div>
-        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">効率↔公平の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">全員の合計移動時間を短くするか、特定の人だけ遠くならないよう均等さを重視するか調整できます</span></span></label>
+        <div style="margin-top:10px;"></div>
+        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:4px;">効率↔公平の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">全員の合計移動時間を短くするか、特定の人だけ遠くならないよう均等さを重視するか調整できます</span></span><span class="caption" style="margin-left:auto;font-weight:400;" id="fairness-val">効率 50% / 公平 50%</span></label>
         <div class="range-row">
           <span class="range-edge">総移動時間の短さ重視</span>
           <input type="range" id="fairness" min="0" max="1" step="0.05" value="0.5">
           <span class="range-edge">移動時間の偏りの少なさ重視</span>
         </div>
-        <p class="caption" style="text-align:center;" id="fairness-val">効率 50% / 公平 50%</p>
       </div>
       </details>
 
