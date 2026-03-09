@@ -638,18 +638,25 @@ details summary::-webkit-details-marker { display: none; }
 @media (max-width: 640px) {
   .result-tabs-fixed:not(.hidden) {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 999;
-    background: var(--bg); border-top: 1px solid var(--border);
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
-    display: flex; gap: 4px;
+    background: #fff; border-top: 2px solid var(--border);
+    padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+    display: flex;
   }
   .result-tabs-fixed .tab {
-    padding: 8px 4px; font-size: 12px; border-width: 1.5px;
-    min-width: 0; flex: 1;
+    flex: 1; min-width: 0; padding: 6px 2px 4px; font-size: 10px; font-weight: 500;
+    background: transparent; border: none; border-radius: 0;
+    color: var(--text-muted); box-shadow: none;
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    transition: color 0.15s;
   }
-  .result-tabs-fixed .tab-icon { font-size: 18px; margin-bottom: 1px; }
-  body.has-fixed-tabs { padding-bottom: 80px; }
-  /* Hide inline tabs on mobile when fixed is shown */
+  .result-tabs-fixed .tab:hover { background: transparent; border: none; color: var(--primary); }
+  .result-tabs-fixed .tab.active {
+    background: transparent; border: none; box-shadow: none;
+    color: var(--primary); font-weight: 600;
+  }
+  .result-tabs-fixed .tab-icon { font-size: 20px; display: block; line-height: 1; }
+  body.has-fixed-tabs { padding-bottom: 72px; }
   body.has-fixed-tabs #result-tabs { display: none; }
 }
 
