@@ -2168,11 +2168,11 @@ function renderDetail(scored, geocoded, unit) {
 
   // Fairness analysis
   html += '<h3>公平性分析</h3><p class="caption">各駅で最も移動時間が長い人と短い人の差（小さいほど公平）</p>';
-  html += '<div class="table-wrap"><table class="fairness-table"><thead><tr><th>駅名</th><th>平均(' + unit + ')</th><th>最短(' + unit + ')</th><th>最長(' + unit + ')</th><th>差(' + unit + ')</th><th>標準偏差</th></tr></thead><tbody>';
+  html += '<div class="table-wrap"><table class="fairness-table"><thead><tr><th>駅名</th><th>平均(' + unit + ')</th><th>最短(' + unit + ')</th><th>最長(' + unit + ')</th><th>標準偏差</th></tr></thead><tbody>';
   scored.slice(0, 5).forEach(s => {
     const vals = s.details.map(d => d.total_val);
     const mn = Math.min(...vals), mx = Math.max(...vals);
-    html += `<tr><td>${escHtml(s.name)}</td><td>${s.avg_total_val.toFixed(1)}</td><td>${mn.toFixed(1)}</td><td>${mx.toFixed(1)}</td><td>${(mx-mn).toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td></tr>`;
+    html += `<tr><td>${escHtml(s.name)}</td><td>${s.avg_total_val.toFixed(1)}</td><td>${mn.toFixed(1)}</td><td>${mx.toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td></tr>`;
   });
   html += '</tbody></table></div>';
 
