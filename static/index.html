@@ -959,6 +959,7 @@ details summary::-webkit-details-marker { display: none; }
     <div class="footer-links">
       <a href="/static/terms.html">利用規約</a>
       <a href="/static/privacy.html">プライバシーポリシー</a>
+      <a href="https://forms.gle/PLACEHOLDER" target="_blank" rel="noopener">ご意見・お問い合わせ</a>
     </div>
     <p class="footer-credit">Powered by <a href="https://webservice.recruit.co.jp/doc/hotpepper/reference.html" target="_blank" rel="noopener">ホットペッパーグルメ Webサービス</a></p>
     <p class="footer-copy">&copy; 2026 飲み会スポットファインダー</p>
@@ -2224,7 +2225,7 @@ function renderDetail(scored, geocoded, unit) {
       <div class="expander-body ${i===0?'open':''}" id="${id}">`;
 
     // Table
-    html += '<p style="font-weight:600;font-size:14px;margin:8px 0 4px;">参加者別移動時間</p>';
+    html += '<p style="font-weight:600;font-size:13px;margin:8px 0 4px;">参加者別移動時間</p>';
     html += '<div class="table-wrap"><table><thead><tr><th>名前</th><th>行き(' + unit + ')</th><th>帰り(' + unit + ')</th><th>合計(' + unit + ')</th></tr></thead><tbody>';
     s.details.forEach(d => {
       html += `<tr><td>${escHtml(d.name)}</td><td>${d.work_val.toFixed(1)}</td><td>${d.home_val.toFixed(1)}</td><td>${d.total_val.toFixed(1)}</td></tr>`;
@@ -2251,9 +2252,9 @@ function renderDetail(scored, geocoded, unit) {
 
     // Routes
     if (s.routes) {
-      html += '<h3 style="margin-top:12px;">経路</h3>';
+      html += '<p style="font-weight:600;font-size:13px;margin:12px 0 4px;">経路</p>';
       s.routes.forEach(r => {
-        html += `<div style="margin-bottom:8px;"><strong>${escHtml(r.name)}</strong>`;
+        html += `<div style="margin-bottom:8px;"><strong style="font-size:14px;">${escHtml(r.name)}</strong>`;
         if (r.to_route) {
           html += `<div class="route-text" style="margin-left:12px;">${escHtml(r.from_label)}→飲み会｜${escHtml(r.to_route)}(${r.to_time}${unit})</div>`;
         }
