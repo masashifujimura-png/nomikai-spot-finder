@@ -71,7 +71,7 @@ def main():
         name_to_gcds.setdefault(name, []).append(gcd)
     dup_names = {name for name, gcds in name_to_gcds.items() if len(gcds) > 1}
 
-    # 都道府県コード → 都道府県名
+    # 都道府県コード → 都道府県名（短縮形: 東京, 大阪 など）
     PREF_NAMES = {
         1: "北海道", 2: "青森", 3: "岩手", 4: "宮城", 5: "秋田", 6: "山形", 7: "福島",
         8: "茨城", 9: "栃木", 10: "群馬", 11: "埼玉", 12: "千葉", 13: "東京", 14: "神奈川",
@@ -82,26 +82,97 @@ def main():
         36: "徳島", 37: "香川", 38: "愛媛", 39: "高知",
         40: "福岡", 41: "佐賀", 42: "長崎", 43: "熊本", 44: "大分", 45: "宮崎", 46: "鹿児島", 47: "沖縄",
     }
+    # 都道府県コード → 都道府県名（正式名: 住所から除去用）
+    PREF_FULL = {
+        1:"北海道",2:"青森県",3:"岩手県",4:"宮城県",5:"秋田県",6:"山形県",7:"福島県",
+        8:"茨城県",9:"栃木県",10:"群馬県",11:"埼玉県",12:"千葉県",13:"東京都",14:"神奈川県",
+        15:"新潟県",16:"富山県",17:"石川県",18:"福井県",19:"山梨県",20:"長野県",
+        21:"岐阜県",22:"静岡県",23:"愛知県",24:"三重県",25:"滋賀県",26:"京都府",27:"大阪府",
+        28:"兵庫県",29:"奈良県",30:"和歌山県",31:"鳥取県",32:"島根県",33:"岡山県",34:"広島県",
+        35:"山口県",36:"徳島県",37:"香川県",38:"愛媛県",39:"高知県",40:"福岡県",41:"佐賀県",
+        42:"長崎県",43:"熊本県",44:"大分県",45:"宮崎県",46:"鹿児島県",47:"沖縄県",
+    }
 
-    # gcd → 都道府県名（そのgcdに属する最初のpref_cd）
+    import re
+
+    def _extract_city(address, pref_cd):
+        """住所から市区町村を抽出（政令指定都市は市+区）"""
+        addr = address
+        pref_full = PREF_FULL.get(pref_cd, "")
+        if pref_full and addr.startswith(pref_full):
+            addr = addr[len(pref_full):]
+        m = re.match(r"(.+?市)(.+?区)", addr)
+        if m:
+            return m.group(1) + m.group(2)
+        m = re.match(r"(.+?[市区町村郡])", addr)
+        return m.group(1) if m else ""
+
+    # gcd → 都道府県名, 市区町村, 代表路線名
     gcd_to_pref = {}
-    for gcd_val, pref_cd in zip(
-        sdf["station_g_cd"].astype(int), sdf["pref_cd"].astype(int),
+    gcd_to_city = {}
+    gcd_to_line = {}
+    for scd, gcd_val, pref_cd, addr, lc in zip(
+        sdf["station_cd"].astype(int), sdf["station_g_cd"].astype(int),
+        sdf["pref_cd"].astype(int),
+        sdf["address"].fillna("").astype(str),
+        sdf["line_cd"].astype(int),
     ):
-        if int(gcd_val) not in gcd_to_pref:
+        gv = int(gcd_val)
+        if gv not in gcd_to_pref:
             pref_name = PREF_NAMES.get(int(pref_cd), "")
             if pref_name:
-                gcd_to_pref[int(gcd_val)] = pref_name
+                gcd_to_pref[gv] = pref_name
+            city = _extract_city(str(addr), int(pref_cd))
+            gcd_to_city[gv] = city
+            ln = line_names.get(int(lc), "")
+            if ln:
+                gcd_to_line[gv] = ln
 
     # station_db: display_name → (lat, lon)
-    # 重複駅は "京橋（東京）" のように都道府県名で区別
+    # 同名駅の区別: 都道府県 → 市区町村 → 路線名 の順にフォールバック
+    #  - 異なる都道府県: "京橋（東京）" vs "京橋（大阪）"
+    #  - 同一都道府県・異なる市区町村: "柚木（富士市）" vs "柚木（静岡市葵区）"
+    #  - 同一市区町村: "琴似（JR函館本線）" vs "琴似（札幌市営地下鉄東西線）"
+
+    # まず同名駅をグループ化して適切なサフィックスを決定
+    gcd_suffix = {}  # gcd → suffix string
+    for name, gcds in name_to_gcds.items():
+        if len(gcds) < 2:
+            continue
+        # 都道府県で区別できるかチェック
+        pref_map = {}  # pref → [gcd, ...]
+        for gcd in gcds:
+            p = gcd_to_pref.get(gcd, "")
+            pref_map.setdefault(p, []).append(gcd)
+
+        for pref, pref_gcds in pref_map.items():
+            if len(pref_gcds) == 1:
+                # この都道府県に1つだけ → 都道府県名で十分
+                gcd_suffix[pref_gcds[0]] = pref
+            else:
+                # 同一都道府県に複数 → 市区町村で区別を試みる
+                city_map = {}  # city → [gcd, ...]
+                for gcd in pref_gcds:
+                    c = gcd_to_city.get(gcd, "")
+                    city_map.setdefault(c, []).append(gcd)
+
+                for city, city_gcds in city_map.items():
+                    if len(city_gcds) == 1:
+                        # 市区町村で区別できた
+                        gcd_suffix[city_gcds[0]] = city if city else pref
+                    else:
+                        # 同一市区町村 → 路線名にフォールバック
+                        for gcd in city_gcds:
+                            ln = gcd_to_line.get(gcd, "")
+                            gcd_suffix[gcd] = ln if ln else pref
+
     station_db = {}
     name_to_gcd = {}
     gcd_to_name = {}
     for gcd, (name, lat, lon) in gcd_info.items():
         if name in dup_names:
-            pref = gcd_to_pref.get(gcd, "")
-            display = f"{name}（{pref}）" if pref else name
+            suffix = gcd_suffix.get(gcd, "")
+            display = f"{name}（{suffix}）" if suffix else name
         else:
             display = name
         # 表示名がまだ衝突する場合はスキップ（最初の出現を優先）
