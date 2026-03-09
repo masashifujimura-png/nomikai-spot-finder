@@ -129,7 +129,8 @@ h3 { font-size: 1.1rem; margin: 16px 0 8px; }
 .btn-primary:hover { background: var(--primary-dark); }
 .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
 .btn-sm { padding: 4px 12px; font-size: 13px; }
-.btn-danger { background: var(--danger); color: white; }
+.btn-danger { background: transparent; color: var(--danger); border: 1.5px solid var(--danger); }
+.btn-danger:hover { background: var(--danger); color: white; }
 .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
 .btn-outline:hover { background: var(--bg-secondary); }
 .btn-full { width: 100%; }
@@ -2125,7 +2126,7 @@ function renderDetail(scored, geocoded, unit) {
       <div class="expander-body ${i===0?'open':''}" id="${id}">`;
 
     // Table
-    html += '<div class="table-wrap"><table><thead><tr><th>名前</th><th>職場/自宅→駅(' + unit + ')</th><th>駅→自宅(' + unit + ')</th><th>合計(' + unit + ')</th></tr></thead><tbody>';
+    html += '<div class="table-wrap"><table><thead><tr><th>名前</th><th>行き(' + unit + ')</th><th>帰り(' + unit + ')</th><th>合計(' + unit + ')</th></tr></thead><tbody>';
     s.details.forEach(d => {
       html += `<tr><td>${escHtml(d.name)}</td><td>${d.work_val.toFixed(1)}</td><td>${d.home_val.toFixed(1)}</td><td>${d.total_val.toFixed(1)}</td></tr>`;
     });
