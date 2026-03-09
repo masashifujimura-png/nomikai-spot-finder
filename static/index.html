@@ -1954,10 +1954,8 @@ function switchTab(name, userClick) {
 function renderRanking(scored, geocoded, unit) {
   let cols = ['順位','駅名',`平均(${unit})`,`最大(${unit})`,'偏差'];
   geocoded.forEach(g => {
-    const isHr = g.pattern && g.pattern.startsWith('自宅');
-    const from = isHr ? '自宅→' : '職場→';
-    cols.push(`${g.name}(${from})`);
-    cols.push(`${g.name}(→自宅)`);
+    cols.push(`${g.name}(行き)`);
+    cols.push(`${g.name}(帰り)`);
   });
 
   let html = '<div class="table-wrap"><table><thead><tr>' + cols.map(c => `<th>${escHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
