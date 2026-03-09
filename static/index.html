@@ -184,22 +184,21 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 
 /* Metrics */
 .metrics { display: flex; gap: 10px; margin: 12px 0; flex-wrap: nowrap; }
-.metric { background: #fff; border-radius: var(--radius); padding: 10px 14px; flex: 1; min-width: 0; border: 1px solid var(--border); border-left: 4px solid var(--border); display: flex; align-items: center; gap: 10px; }
-.metric.rank-1 { border-left-color: #B8860B; }
-.metric.rank-2 { border-left-color: #A8B0B8; }
-.metric.rank-3 { border-left-color: #CD7F32; }
-.medal { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; min-width: 28px; border-radius: 50%; font-size: 13px; font-weight: 700; color: #fff; }
+.metric { background: #fff; border-radius: var(--radius); padding: 10px 14px; flex: 1; min-width: 0; border: 1px solid var(--border); border-top: 3px solid var(--border); text-align: center; }
+.metric.rank-1 { border-top-color: #B8860B; }
+.metric.rank-2 { border-top-color: #A8B0B8; }
+.metric.rank-3 { border-top-color: #CD7F32; }
+.medal { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
 .medal.rank-1 { background: linear-gradient(135deg, #D4A017, #B8860B); box-shadow: 0 1px 3px rgba(184,134,11,0.3); }
 .medal.rank-2 { background: linear-gradient(135deg, #B8C0C8, #8E959C); box-shadow: 0 1px 3px rgba(142,149,156,0.3); }
 .medal.rank-3 { background: linear-gradient(135deg, #D99A56, #CD7F32); box-shadow: 0 1px 3px rgba(205,127,50,0.3); }
-.metric-text { flex: 1; min-width: 0; }
 .metric-value { font-size: 1.1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.metric-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 @media (max-width: 640px) {
   .metrics { gap: 6px; }
-  .metric { padding: 8px 8px; gap: 8px; }
-  .medal { width: 24px; height: 24px; min-width: 24px; font-size: 11px; }
-  .metric-value { font-size: 0.95rem; }
+  .metric { padding: 8px 6px; }
+  .medal { width: 24px; height: 24px; font-size: 11px; }
+  .metric-value { font-size: 0.9rem; }
   .metric-sub { font-size: 10px; }
 }
 
@@ -471,13 +470,12 @@ details summary::-webkit-details-marker { display: none; }
 .demo-slider-group input[type="range"] { width: 100%; }
 .demo-slider-group span { font-size: 11px; color: var(--text-muted); }
 .demo-rank-list { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
-.demo-rank-item { flex: 1; min-width: 100px; padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border); border-left: 4px solid var(--border); background: #fff; display: flex; align-items: center; gap: 10px; }
-.demo-rank-item.rank-1 { border-left-color: #B8860B; }
-.demo-rank-item.rank-2 { border-left-color: #A8B0B8; }
-.demo-rank-item.rank-3 { border-left-color: #CD7F32; }
-.demo-rank-text { flex: 1; min-width: 0; }
-.demo-rank-name { font-size: 15px; font-weight: 700; margin: 0; }
-.demo-rank-time { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+.demo-rank-item { flex: 1; min-width: 80px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); border-top: 3px solid var(--border); background: #fff; text-align: center; }
+.demo-rank-item.rank-1 { border-top-color: #B8860B; }
+.demo-rank-item.rank-2 { border-top-color: #A8B0B8; }
+.demo-rank-item.rank-3 { border-top-color: #CD7F32; }
+.demo-rank-name { font-size: 15px; font-weight: 700; margin: 2px 0; }
+.demo-rank-time { font-size: 11px; color: var(--text-secondary); }
 .lp-hero-links {
   margin-top: 12px;
   font-size: 13px;
@@ -869,7 +867,11 @@ details summary::-webkit-details-marker { display: none; }
       <div class="metrics" id="metrics"></div>
 
       <!-- Settings sliders (inside results) -->
-      <div class="settings-panel" style="margin:16px 0;">
+      <details id="slider-toggle" open style="margin:16px 0;">
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;padding:8px 0;list-style:none;display:flex;align-items:center;justify-content:space-between;user-select:none;">
+          条件を調整 <span style="font-size:11px;" id="slider-toggle-arrow">▲</span>
+        </summary>
+      <div class="settings-panel">
         <p class="caption" style="margin-bottom:8px;">スライダーを動かすと結果がリアルタイムに変わります</p>
         <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">移動距離の重視ポイント</label>
         <div class="range-row">
@@ -887,12 +889,13 @@ details summary::-webkit-details-marker { display: none; }
         </div>
         <p class="caption" style="text-align:center;" id="fairness-val">効率 50% / 公平 50%</p>
       </div>
+      </details>
 
       <div class="tabs" id="result-tabs">
-        <div class="tab active" data-tab="map" onclick="switchTab('map')"><span class="tab-icon">&#x1f5fa;</span>地図</div>
-        <div class="tab" data-tab="detail" onclick="switchTab('detail')"><span class="tab-icon">&#x1f4ca;</span>詳細比較</div>
-        <div class="tab" data-tab="ranking" onclick="switchTab('ranking')"><span class="tab-icon">&#x1f3c6;</span>ランキング</div>
-        <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant')"><span class="tab-icon">&#x1f37a;</span>お店を探す</div>
+        <div class="tab active" data-tab="map" onclick="switchTab('map',true)"><span class="tab-icon">&#x1f5fa;</span>地図</div>
+        <div class="tab" data-tab="detail" onclick="switchTab('detail',true)"><span class="tab-icon">&#x1f4ca;</span>詳細比較</div>
+        <div class="tab" data-tab="ranking" onclick="switchTab('ranking',true)"><span class="tab-icon">&#x1f3c6;</span>ランキング</div>
+        <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant',true)"><span class="tab-icon">&#x1f37a;</span>お店を探す</div>
       </div>
 
       <div id="tab-map"></div>
@@ -903,10 +906,10 @@ details summary::-webkit-details-marker { display: none; }
 
     <!-- Mobile fixed bottom tabs (clone) -->
     <div id="fixed-tabs" class="result-tabs-fixed hidden">
-      <div class="tab active" data-tab="map" onclick="switchTab('map')"><span class="tab-icon">&#x1f5fa;</span>地図</div>
-      <div class="tab" data-tab="detail" onclick="switchTab('detail')"><span class="tab-icon">&#x1f4ca;</span>詳細比較</div>
-      <div class="tab" data-tab="ranking" onclick="switchTab('ranking')"><span class="tab-icon">&#x1f3c6;</span>ランキング</div>
-      <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant')"><span class="tab-icon">&#x1f37a;</span>お店を探す</div>
+      <div class="tab active" data-tab="map" onclick="switchTab('map',true)"><span class="tab-icon">&#x1f5fa;</span>地図</div>
+      <div class="tab" data-tab="detail" onclick="switchTab('detail',true)"><span class="tab-icon">&#x1f4ca;</span>詳細比較</div>
+      <div class="tab" data-tab="ranking" onclick="switchTab('ranking',true)"><span class="tab-icon">&#x1f3c6;</span>ランキング</div>
+      <div class="tab" data-tab="restaurant" onclick="switchTab('restaurant',true)"><span class="tab-icon">&#x1f37a;</span>お店を探す</div>
     </div>
 
     <hr class="divider">
@@ -996,13 +999,10 @@ function renderDemoResults(scored, geocoded) {
   // Rank cards
   let html = '<div class="demo-rank-list">';
   scored.slice(0, 3).forEach((s, i) => {
-    const totalVal = s.details ? s.details.reduce((sum, d) => sum + d.total_val, 0) : s.avg_total_val * 2;
     html += `<div class="demo-rank-item rank-${i+1}">
       <div class="medal rank-${i+1}">${i+1}</div>
-      <div class="demo-rank-text">
-        <div class="demo-rank-name">${escHtml(s.name)}</div>
-        <div class="demo-rank-time">移動時間：総計${totalVal.toFixed(1)}分 / 平均${s.avg_total_val.toFixed(1)}分</div>
-      </div>
+      <div class="demo-rank-name">${escHtml(s.name)}</div>
+      <div class="demo-rank-time">平均${s.avg_total_val.toFixed(1)}分</div>
     </div>`;
   });
   html += '</div>';
@@ -1103,6 +1103,11 @@ function renderDemoMap(scored, geocoded) {
   document.getElementById('fairness').addEventListener('input', () => { updateFairnessLabel(); debouncedReSearch(); });
   updateBalanceLabel();
   updateFairnessLabel();
+
+  // Slider toggle arrow state
+  document.getElementById('slider-toggle').addEventListener('toggle', function() {
+    document.getElementById('slider-toggle-arrow').textContent = this.open ? '▲' : '▼';
+  });
 
 })();
 
@@ -1856,17 +1861,15 @@ function renderResults() {
   const best = scored[0];
   const unit = '分';
 
-  // Metrics — top 3 stations with medal icons
+  // Metrics — top 3 stations with medal icons (vertical layout)
   let metricsHtml = '';
   scored.slice(0, 3).forEach((s, i) => {
     const rank = i + 1;
     const totalVal = s.details ? s.details.reduce((sum, d) => sum + d.total_val, 0) : s.avg_total_val * geocoded.length;
     metricsHtml += `<div class="metric rank-${rank}">
       <div class="medal rank-${rank}">${rank}</div>
-      <div class="metric-text">
-        <div class="metric-value">${escHtml(s.name)}</div>
-        <div class="metric-sub">移動時間：総計${totalVal.toFixed(1)}${unit} / 平均${s.avg_total_val.toFixed(1)}${unit}</div>
-      </div>
+      <div class="metric-value">${escHtml(s.name)}</div>
+      <div class="metric-sub">総計${totalVal.toFixed(1)}${unit} / 平均${s.avg_total_val.toFixed(1)}${unit}</div>
     </div>`;
   });
   document.getElementById('metrics').innerHTML = metricsHtml;
@@ -1875,6 +1878,13 @@ function renderResults() {
   renderDetail(scored, geocoded, unit);
   renderRestaurantTab(scored, geocoded);
   pendingMapData = {scored, geocoded};
+  // Ensure slider toggle is open after search
+  const sliderToggle = document.getElementById('slider-toggle');
+  if (sliderToggle) {
+    sliderToggle.setAttribute('open', '');
+    const arrow = document.getElementById('slider-toggle-arrow');
+    if (arrow) arrow.textContent = '▲';
+  }
   // Preserve current tab on re-search, default to map on first search
   const activeTab = document.querySelector('#result-tabs .tab.active');
   switchTab(activeTab ? activeTab.dataset.tab : 'map');
@@ -1884,11 +1894,21 @@ function renderResults() {
   document.body.classList.add('has-fixed-tabs');
 }
 
-function switchTab(name) {
+function switchTab(name, userClick) {
   document.querySelectorAll('#result-tabs .tab, #fixed-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   ['ranking','map','detail','restaurant'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
   });
+  if (userClick) {
+    // Close slider toggle and scroll to results header
+    const sliderToggle = document.getElementById('slider-toggle');
+    if (sliderToggle) {
+      sliderToggle.removeAttribute('open');
+      const arrow = document.getElementById('slider-toggle-arrow');
+      if (arrow) arrow.textContent = '▼';
+    }
+    document.getElementById('results').scrollIntoView({behavior: 'smooth'});
+  }
   if (name === 'map') {
     if (pendingMapData) {
       const data = pendingMapData;
