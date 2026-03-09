@@ -186,12 +186,12 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 .metrics { display: flex; gap: 10px; margin: 12px 0; flex-wrap: nowrap; }
 .metric { background: #fff; border-radius: var(--radius); padding: 10px 12px; flex: 1; min-width: 0; border: 1px solid var(--border); text-align: center; border-left: 4px solid var(--border); }
 .metric.rank-1 { border-left-color: #B8860B; }
-.metric.rank-2 { border-left-color: #9E9E9E; }
+.metric.rank-2 { border-left-color: #A8B0B8; }
 .metric.rank-3 { border-left-color: #CD7F32; }
-.metric-label { font-size: 11px; font-weight: 700; white-space: nowrap; }
-.metric-label.rank-1 { color: #B8860B; }
-.metric-label.rank-2 { color: #9E9E9E; }
-.metric-label.rank-3 { color: #CD7F32; }
+.medal { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+.medal.rank-1 { background: linear-gradient(135deg, #D4A017, #B8860B); box-shadow: 0 1px 3px rgba(184,134,11,0.3); }
+.medal.rank-2 { background: linear-gradient(135deg, #B8C0C8, #8E959C); box-shadow: 0 1px 3px rgba(142,149,156,0.3); }
+.medal.rank-3 { background: linear-gradient(135deg, #D99A56, #CD7F32); box-shadow: 0 1px 3px rgba(205,127,50,0.3); }
 .metric-value { font-size: 1.1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .metric-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 @media (max-width: 640px) {
@@ -471,12 +471,8 @@ details summary::-webkit-details-marker { display: none; }
 .demo-rank-list { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
 .demo-rank-item { flex: 1; min-width: 100px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); border-left: 4px solid var(--border); text-align: center; background: #fff; }
 .demo-rank-item.rank-1 { border-left-color: #B8860B; }
-.demo-rank-item.rank-2 { border-left-color: #9E9E9E; }
+.demo-rank-item.rank-2 { border-left-color: #A8B0B8; }
 .demo-rank-item.rank-3 { border-left-color: #CD7F32; }
-.demo-rank-num { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-.demo-rank-item.rank-1 .demo-rank-num { color: #B8860B; }
-.demo-rank-item.rank-2 .demo-rank-num { color: #9E9E9E; }
-.demo-rank-item.rank-3 .demo-rank-num { color: #CD7F32; }
 .demo-rank-name { font-size: 15px; font-weight: 700; margin: 2px 0; }
 .demo-rank-time { font-size: 11px; color: var(--text-secondary); }
 .lp-hero-links {
@@ -998,7 +994,7 @@ function renderDemoResults(scored, geocoded) {
   let html = '<div class="demo-rank-list">';
   scored.slice(0, 3).forEach((s, i) => {
     html += `<div class="demo-rank-item rank-${i+1}">
-      <div class="demo-rank-num">${i+1}位</div>
+      <div class="medal rank-${i+1}">${i+1}</div>
       <div class="demo-rank-name">${escHtml(s.name)}</div>
       <div class="demo-rank-time">平均 ${s.avg_total_val.toFixed(1)}分</div>
     </div>`;
@@ -1854,12 +1850,12 @@ function renderResults() {
   const best = scored[0];
   const unit = '分';
 
-  // Metrics — top 3 stations
+  // Metrics — top 3 stations with medal icons
   let metricsHtml = '';
   scored.slice(0, 3).forEach((s, i) => {
     const rank = i + 1;
     metricsHtml += `<div class="metric rank-${rank}">
-      <div class="metric-label rank-${rank}">${rank}位</div>
+      <div class="medal rank-${rank}">${rank}</div>
       <div class="metric-value">${escHtml(s.name)}</div>
       <div class="metric-sub">平均 ${s.avg_total_val.toFixed(1)}${unit}</div>
     </div>`;
@@ -1949,7 +1945,7 @@ function renderRanking(scored, geocoded, unit) {
 // ---------------------------------------------------------------------------
 // Map tab
 // ---------------------------------------------------------------------------
-const STATION_COLORS = ["#B8860B", "#9E9E9E", "#CD7F32"];
+const STATION_COLORS = ["#B8860B", "#8E959C", "#CD7F32"];
 const PERSON_COLORS = ["#1e88e5", "#43a047", "#f4511e", "#8e24aa", "#00acc1", "#c0ca33", "#6d4c41", "#d81b60", "#3949ab", "#00897b", "#ffb300", "#546e7a"];
 
 function renderMap(scored, geocoded) {
