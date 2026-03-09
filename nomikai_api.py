@@ -240,18 +240,20 @@ def _batch_dijkstra(sources, targets):
 # ---------------------------------------------------------------------------
 def _geocode_station(station_name):
     name = station_name.rstrip("駅").strip()
+    # 全角括弧→半角に正規化
+    name = name.replace("（", "(").replace("）", ")")
     if not name:
         return None, None, "", None
     sdb = _station_db()
     ntg = _name_to_gcd()
-    # 完全一致（"京橋（東京）" など表示名そのまま）
+    # 完全一致
     if name in sdb:
         lat, lon = sdb[name]
         gcd = ntg.get(name)
         return lat, lon, f"{name}駅", gcd
-    # 括弧なし名での前方一致（"京橋" → "京橋（...）" の最初のヒット）
+    # 括弧なし名での前方一致("京橋" → "京橋(東京)" の最初のヒット)
     for key in sdb:
-        base = key.split("（")[0]
+        base = key.split("(")[0]
         if base == name:
             lat, lon = sdb[key]
             gcd = ntg.get(key)
@@ -692,7 +694,7 @@ def api_delete_participant(pid: str):
 
 DEMO_PARTICIPANTS = [
     {"name": "Aさん", "pattern": "職場→飲み会→自宅", "work_location": "外苑前", "home_location": "渋谷"},
-    {"name": "Bさん", "pattern": "職場→飲み会→自宅", "work_location": "京橋（東京）", "home_location": "高円寺"},
+    {"name": "Bさん", "pattern": "職場→飲み会→自宅", "work_location": "京橋(東京)", "home_location": "高円寺"},
 ]
 
 
