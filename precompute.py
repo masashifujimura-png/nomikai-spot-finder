@@ -172,7 +172,7 @@ def main():
     for gcd, (name, lat, lon) in gcd_info.items():
         if name in dup_names:
             suffix = gcd_suffix.get(gcd, "")
-            display = f"{name}（{suffix}）" if suffix else name
+            display = f"{name}({suffix})" if suffix else name
         else:
             display = name
         # 表示名がまだ衝突する場合はスキップ（最初の出現を優先）
