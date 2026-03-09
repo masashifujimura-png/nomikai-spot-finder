@@ -416,13 +416,15 @@ details summary::-webkit-details-marker { display: none; }
   padding: 16px 0;
 }
 .lp-hero-visual {
-  flex: 0 0 340px;
+  flex: 0 0 280px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .lp-hero-img {
   display: block;
+  height: 340px;
+  width: auto;
   object-fit: contain;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
 }
@@ -434,7 +436,7 @@ details summary::-webkit-details-marker { display: none; }
   justify-content: center;
 }
 .lp-headline {
-  font-size: 1.8rem;
+  font-size: 2rem;
   line-height: 1.5;
   margin-bottom: 8px;
   font-weight: 900;
@@ -443,7 +445,7 @@ details summary::-webkit-details-marker { display: none; }
   word-break: break-word;
 }
 .lp-headline-sub {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 600;
   line-height: 1.6;
   margin-bottom: 20px;
@@ -514,7 +516,7 @@ details summary::-webkit-details-marker { display: none; }
 }
 .lp-section-title {
   text-align: center;
-  font-size: 1.7rem;
+  font-size: 2rem;
   font-weight: 900;
   margin-bottom: 28px;
   color: var(--text);
@@ -542,18 +544,18 @@ details summary::-webkit-details-marker { display: none; }
 }
 .lp-list-item {
   text-align: center;
-  padding: 32px 24px 28px;
+  padding: 36px 28px 32px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: white;
 }
-.lp-list-icon { margin-bottom: 10px; flex-shrink: 0; }
-.lp-list-icon img { width: 140px !important; height: 140px !important; }
+.lp-list-icon { margin-bottom: 12px; flex-shrink: 0; }
+.lp-list-icon img { width: 160px !important; height: 160px !important; }
 .lp-list-2col .lp-list-item { display: flex; align-items: center; gap: 28px; text-align: left; }
 .lp-list-2col .lp-list-icon { margin-bottom: 0; }
-.lp-list-text h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; line-height: 1.5; }
-.lp-list-pain .lp-list-text h3 { font-size: 1rem; }
-.lp-list-text p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
+.lp-list-text h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; line-height: 1.5; }
+.lp-list-pain .lp-list-text h3 { font-size: 1.1rem; }
+.lp-list-text p { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
 .lp-step-arrow {
   display: flex;
   justify-content: center;
@@ -601,7 +603,7 @@ details summary::-webkit-details-marker { display: none; }
   .lp-section-alt { margin: 0 -12px; }
   .lp-hero-inner { flex-direction: column; gap: 20px; padding: 32px 0; width: 100%; box-sizing: border-box; }
   .lp-hero-visual { flex: 0 0 auto; }
-  .lp-hero-img { max-width: 216px; }
+  .lp-hero-img { height: auto; max-width: 220px; }
   .lp-hero-text { text-align: center; width: 100%; box-sizing: border-box; padding: 0 4px; }
   .lp-headline { font-size: 1.2rem; word-break: keep-all; overflow-wrap: break-word; }
   .lp-headline-sub { font-size: 0.85rem; }
@@ -609,12 +611,12 @@ details summary::-webkit-details-marker { display: none; }
   .lp-section-title { font-size: 1rem; white-space: normal; word-break: keep-all; }
   .lp-list-grid { grid-template-columns: 1fr; max-width: 100%; gap: 16px; }
   .lp-list-grid.lp-list-2col { grid-template-columns: 1fr; }
-  .lp-list-item { display: flex; align-items: center; gap: 12px; padding: 14px; text-align: left; }
-  .lp-list-icon { margin-bottom: 0; flex: 0 0 90px; }
-  .lp-list-icon img { width: 90px !important; height: 90px !important; }
-  .lp-list-text h3 { font-size: 0.88rem; }
-  .lp-list-pain .lp-list-text h3 { font-size: 0.82rem; }
-  .lp-list-text p { font-size: 0.78rem; }
+  .lp-list-item { display: flex; align-items: center; gap: 10px; padding: 14px; text-align: left; }
+  .lp-list-icon { margin-bottom: 0; flex: 0 0 100px; }
+  .lp-list-icon img { width: 100px !important; height: 100px !important; }
+  .lp-list-text h3 { font-size: 0.85rem; }
+  .lp-list-pain .lp-list-text h3 { font-size: 0.8rem; }
+  .lp-list-text p { font-size: 0.75rem; }
   .lp-step-arrow { margin: -4px 0; }
   .lp-section { padding: 32px 0; }
   .lp-section-alt { margin: 0 -12px; padding: 28px 16px; }
@@ -733,7 +735,7 @@ details summary::-webkit-details-marker { display: none; }
     <div class="lp-hero">
       <div class="lp-hero-inner">
         <div class="lp-hero-visual">
-          <img src="/static/hero-map.png" alt="飲み会スポットファインダー" class="lp-hero-img" style="height: 280px; width: auto;">
+          <img src="/static/hero-hand.png" alt="飲み会スポットファインダー" class="lp-hero-img">
         </div>
         <div class="lp-hero-text">
           <h1 class="lp-headline">場所選びがうまくいくと、<br>飲み会はうまくいく。</h1>
