@@ -43,7 +43,7 @@
      crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -79,25 +79,28 @@ h1, h2, h3 { font-weight: 900; }
 }
 .site-header-inner {
   max-width: 960px; margin: 0 auto;
-  display: flex; align-items: center; cursor: pointer;
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
 }
 .site-header-icon {
-  height: 40px;
-  width: 48px;
+  height: 44px;
+  width: 44px;
   object-fit: contain;
   flex-shrink: 0;
 }
 .site-header-name {
-  font-size: 1.3rem;
-  font-weight: 900;
-  color: #4a2d8a;
-  margin-left: 6px;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
   white-space: nowrap;
-  letter-spacing: 0.02em;
 }
+.logo-nomikai { color: #E8730A; }
+.logo-spot { color: #333333; }
+.logo-finder { color: #4A3F8F; }
 @media (max-width: 640px) {
-  .site-header-name { font-size: 1rem; }
-  .site-header-icon { height: 32px; width: 38px; }
+  .site-header-name { font-size: 16px; }
+  .site-header-icon { height: 34px; width: 34px; }
+  .site-header-inner { gap: 10px; }
 }
 .container { max-width: 960px; margin: 0 auto; padding: 0 20px 16px; }
 .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 1100; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
@@ -724,7 +727,7 @@ details summary::-webkit-details-marker { display: none; }
 <div class="site-header">
   <div class="site-header-inner" onclick="location.href='/'">
     <img src="/static/logo-icon.png" alt="" class="site-header-icon">
-    <span class="site-header-name">飲み会スポットファインダー</span>
+    <span class="site-header-name"><span class="logo-nomikai">飲み会</span><span class="logo-spot">スポット</span><br><span class="logo-finder">ファインダー</span></span>
   </div>
 </div>
 <div class="container" id="app">
