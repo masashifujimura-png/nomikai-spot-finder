@@ -475,14 +475,36 @@ details summary::-webkit-details-marker { display: none; }
   text-align: center;
 }
 .btn-cta-hero:hover { opacity: 0.9; }
-.btn-cta-demo {
-  padding: 12px 32px; font-size: 15px; font-weight: 700;
-  background: white; color: var(--primary); border: 2px solid var(--primary);
-  border-radius: 12px; cursor: pointer; transition: all 0.2s;
+.demo-card {
+  position: relative;
+  background: #f8f9fb;
+  border: 2px dashed #d0d5dd;
+  border-radius: 16px;
+  padding: 32px 24px 24px;
+  margin-top: 8px;
 }
-.btn-cta-demo:hover { background: var(--primary); color: white; }
-.demo-wrap { text-align: left; margin-top: 12px; }
-.demo-scenario { font-size: 14px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.6; }
+.demo-badge {
+  position: absolute;
+  top: -13px;
+  left: 24px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 14px;
+  border-radius: 20px;
+}
+.demo-scenario {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  line-height: 1.6;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
 .demo-sliders { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
 .demo-slider-group { flex: 1; min-width: 200px; }
 .demo-slider-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
@@ -623,6 +645,8 @@ details summary::-webkit-details-marker { display: none; }
   .lp-step-arrow { margin: -4px 0; }
   .lp-section { padding: 32px 0; }
   .lp-section-alt { margin: 0 -12px; padding: 28px 16px; }
+  .demo-card { padding: 28px 14px 18px; }
+  .demo-badge { left: 14px; }
 }
 
 /* Map pin markers */
@@ -751,11 +775,10 @@ details summary::-webkit-details-marker { display: none; }
     </div>
 
     <!-- Demo section -->
-    <div class="lp-section" style="text-align:center;padding:24px 0;">
-      <button class="btn-cta-demo" id="btn-demo" onclick="toggleDemo()">デモを閉じる ▲</button>
-      <div id="demo-section">
-        <div class="demo-wrap">
-          <p class="demo-scenario">Aさん（外苑前勤務・渋谷在住）、Bさん（京橋勤務・高円寺在住）の2人で飲み会。最適な駅は？</p>
+    <div class="lp-section" style="padding:24px 0;">
+      <div class="demo-card" id="demo-section">
+        <span class="demo-badge">DEMO</span>
+        <p class="demo-scenario">Aさん（外苑前勤務・渋谷在住）、Bさん（京橋勤務・高円寺在住）の2人で飲み会。最適な駅は？</p>
           <div class="demo-sliders">
             <div class="demo-slider-group">
               <label>職場↔自宅の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">職場から飲み会場所への移動と、飲み会場所から自宅への移動、どちらを重視するか調整できます</span></span></label>
@@ -774,7 +797,6 @@ details summary::-webkit-details-marker { display: none; }
           <div style="margin-top:16px;">
             <button class="btn-cta-hero" onclick="createNomikai()">自分の飲み会で試してみる →</button>
           </div>
-        </div>
       </div>
     </div>
 
@@ -1005,19 +1027,6 @@ const MAP_ICON_BUILDING = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 
 // ---------------------------------------------------------------------------
 let demoMapInstance = null;
 let demoSearchTimer = null;
-
-function toggleDemo() {
-  const sec = document.getElementById('demo-section');
-  const btn = document.getElementById('btn-demo');
-  if (sec.classList.contains('hidden')) {
-    sec.classList.remove('hidden');
-    btn.textContent = 'デモを閉じる ▲';
-    runDemoSearch();
-  } else {
-    sec.classList.add('hidden');
-    btn.textContent = 'まずはデモで体験 ▼';
-  }
-}
 
 function demoBalanceLabel() {
   const v = parseFloat(document.getElementById('demo-balance').value);
