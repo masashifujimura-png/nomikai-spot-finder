@@ -2225,7 +2225,7 @@ function renderDetail(scored, geocoded, unit) {
       <div class="expander-body ${i===0?'open':''}" id="${id}">`;
 
     // Table
-    html += '<p style="font-weight:600;font-size:13px;margin:8px 0 4px;">参加者別移動時間</p>';
+    html += '<p style="font-weight:700;font-size:14px;margin:10px 0 6px;color:var(--text);border-left:3px solid #2563eb;padding-left:8px;">参加者別移動時間</p>';
     html += '<div class="table-wrap"><table><thead><tr><th>名前</th><th>行き(' + unit + ')</th><th>帰り(' + unit + ')</th><th>合計(' + unit + ')</th></tr></thead><tbody>';
     s.details.forEach(d => {
       html += `<tr><td>${escHtml(d.name)}</td><td>${d.work_val.toFixed(1)}</td><td>${d.home_val.toFixed(1)}</td><td>${d.total_val.toFixed(1)}</td></tr>`;
@@ -2252,7 +2252,7 @@ function renderDetail(scored, geocoded, unit) {
 
     // Routes
     if (s.routes) {
-      html += '<p style="font-weight:600;font-size:13px;margin:12px 0 4px;">経路</p>';
+      html += '<p style="font-weight:700;font-size:14px;margin:14px 0 6px;color:var(--text);border-left:3px solid #2563eb;padding-left:8px;">経路</p>';
       s.routes.forEach(r => {
         html += `<div style="margin-bottom:8px;"><strong style="font-size:14px;">${escHtml(r.name)}</strong>`;
         if (r.to_route) {
