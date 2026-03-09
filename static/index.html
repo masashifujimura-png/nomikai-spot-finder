@@ -98,7 +98,12 @@ h1, h2, h3 { font-weight: 900; }
   .site-header-name { font-size: 1rem; }
   .site-header-icon { height: 32px; width: 38px; }
 }
-.container { max-width: 960px; margin: 0 auto; padding: 0 20px 16px; }
+.container { max-width: 960px; margin: 0 auto; padding: 0 20px 16px; min-height: calc(100vh - 60px); }
+.toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 1100; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.tooltip-trigger { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--border); color: var(--text-muted); font-size: 10px; font-weight: 700; cursor: help; margin-left: 4px; position: relative; vertical-align: middle; }
+.tooltip-trigger .tooltip-text { visibility: hidden; opacity: 0; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #333; color: #fff; font-size: 11px; font-weight: 400; padding: 8px 12px; border-radius: 6px; white-space: normal; width: 220px; line-height: 1.5; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: opacity 0.2s; }
+.tooltip-trigger:hover .tooltip-text, .tooltip-trigger:focus .tooltip-text { visibility: visible; opacity: 1; }
 h1 { font-size: 1.8rem; margin-bottom: 4px; }
 h2 { font-size: 1.3rem; margin: 20px 0 12px; }
 h3 { font-size: 1.1rem; margin: 16px 0 8px; }
@@ -278,8 +283,8 @@ td { white-space: nowrap; }
   box-shadow: 0 4px 12px rgba(26,115,232,0.3);
   margin: 20px 0 4px;
 }
-.btn-search-main:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
-.btn-search-main:disabled { background: #93c5fd; box-shadow: none; transform: none; cursor: not-allowed; }
+.btn-search-main:hover:not(.is-disabled):not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(26,115,232,0.4); }
+.btn-search-main:disabled, .btn-search-main.is-disabled { background: #93c5fd; box-shadow: none; transform: none; cursor: not-allowed; }
 
 /* Sidebar (settings panel) */
 .settings-panel {
@@ -730,12 +735,12 @@ details summary::-webkit-details-marker { display: none; }
           <p class="demo-scenario">Aさん（外苑前勤務・渋谷在住）、Bさん（京橋勤務・高円寺在住）の2人で飲み会。最適な駅は？</p>
           <div class="demo-sliders">
             <div class="demo-slider-group">
-              <label>職場↔自宅の重み</label>
+              <label>職場↔自宅の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">職場から飲み会場所への移動と、飲み会場所から自宅への移動、どちらを重視するか調整できます</span></span></label>
               <input type="range" id="demo-balance" min="0" max="1" step="0.1" value="0.5" oninput="demoBalanceLabel();debouncedDemoSearch()">
               <span id="demo-balance-val">職場 50% / 自宅 50%</span>
             </div>
             <div class="demo-slider-group">
-              <label>効率↔公平の重み</label>
+              <label>効率↔公平の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">全員の合計移動時間を短くするか、特定の人だけ遠くならないよう均等さを重視するか調整できます</span></span></label>
               <input type="range" id="demo-fairness" min="0" max="1" step="0.1" value="0.5" oninput="demoFairnessLabel();debouncedDemoSearch()">
               <span id="demo-fairness-val">効率 50% / 公平 50%</span>
             </div>
@@ -866,7 +871,7 @@ details summary::-webkit-details-marker { display: none; }
     </div>
 
     <!-- Main search action -->
-    <button class="btn-search-main" id="btn-search" onclick="searchSpots()" disabled>
+    <button class="btn-search-main is-disabled" id="btn-search" onclick="handleSearchClick()">
       ③ 最適スポットを発見
     </button>
     <p class="caption" id="search-hint" style="text-align:center;"></p>
@@ -884,7 +889,7 @@ details summary::-webkit-details-marker { display: none; }
         </summary>
       <div class="settings-panel">
         <p class="caption" style="margin-bottom:8px;">スライダーを動かすと結果がリアルタイムに変わります</p>
-        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">移動距離の重視ポイント</label>
+        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">職場↔自宅の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">職場から飲み会場所への移動と、飲み会場所から自宅への移動、どちらを重視するか調整できます</span></span></label>
         <div class="range-row">
           <span class="range-edge">職場からの近さ重視</span>
           <input type="range" id="balance" min="0" max="1" step="0.05" value="0.5">
@@ -892,7 +897,7 @@ details summary::-webkit-details-marker { display: none; }
         </div>
         <p class="caption" style="text-align:center;" id="balance-val">職場 50% / 自宅 50%</p>
         <div style="margin-top:12px;"></div>
-        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">全体の最適化方針</label>
+        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:block;">効率↔公平の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">全員の合計移動時間を短くするか、特定の人だけ遠くならないよう均等さを重視するか調整できます</span></span></label>
         <div class="range-row">
           <span class="range-edge">総移動時間の短さ重視</span>
           <input type="range" id="fairness" min="0" max="1" step="0.05" value="0.5">
@@ -938,6 +943,7 @@ details summary::-webkit-details-marker { display: none; }
     <p class="footer-copy">&copy; 2026 飲み会スポットファインダー</p>
   </div>
 </footer>
+<div id="toast" class="toast"></div>
 
 <script>
 // ---------------------------------------------------------------------------
@@ -1356,14 +1362,14 @@ function renderEvent() {
   }).length;
   const incompleteCount = count - readyCount;
   if (readyCount < 2) {
-    btnSearch.disabled = true;
+    btnSearch.classList.add('is-disabled');
     if (count >= 2 && incompleteCount > 0) {
       hint.textContent = `駅情報が入力済みの参加者が${readyCount}人です。あと${2 - readyCount}人以上の駅情報を入力すると検索できます。`;
     } else {
       hint.textContent = `あと${2 - count}人追加すると検索できます`;
     }
   } else {
-    btnSearch.disabled = false;
+    btnSearch.classList.remove('is-disabled');
     hint.textContent = incompleteCount > 0 ? `${incompleteCount}人が駅情報未入力です（未入力の参加者を除いて検索します）` : '';
   }
 
@@ -1818,6 +1824,27 @@ function debouncedReSearch() {
   if (!searchResults) return; // only re-search if results already exist
   clearTimeout(reSearchTimer);
   reSearchTimer = setTimeout(() => searchSpots(true), 400);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function handleSearchClick() {
+  const btn = document.getElementById('btn-search');
+  if (btn.classList.contains('is-disabled')) {
+    const readyCount = participants.filter(p => {
+      const isHr = p.pattern === '自宅→飲み会→自宅';
+      return p.home_location && (isHr || p.work_location);
+    }).length;
+    const need = 2 - readyCount;
+    showToast(need > 0 ? `あと${need}人追加してください` : '駅情報を入力してください');
+    return;
+  }
+  searchSpots();
 }
 
 async function searchSpots(isReSearch = false) {
