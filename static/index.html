@@ -2165,17 +2165,18 @@ function renderRanking(scored, geocoded, unit) {
   let cols = ['順位','駅名'];
   if (!hasPriv) cols.push(`平均(${unit})`, `最大(${unit})`, '偏差');
   geocoded.forEach(g => {
-    cols.push(`${g.name}(行き)`);
-    cols.push(`${g.name}(帰り)`);
+    const lk = g.private ? ` ${lucideIcon('lock',12)}` : '';
+    cols.push(`${g.name}${lk}(行き)`);
+    cols.push(`${g.name}${lk}(帰り)`);
   });
 
-  let html = '<div class="table-wrap"><table><thead><tr>' + cols.map(c => `<th>${escHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
+  let html = '<div class="table-wrap"><table><thead><tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
   scored.forEach((s, i) => {
     let row = `<td>${i+1}</td><td>${escHtml(s.name)}</td>`;
     if (!hasPriv) row += `<td>${s.avg_total_val.toFixed(1)}</td><td>${s.max_person_val.toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td>`;
     geocoded.forEach((g, gi) => {
       if (g.private) {
-        row += `<td colspan="2" style="color:var(--text-muted);text-align:center;">${lucideIcon('lock',12)} 非公開</td>`;
+        row += `<td style="color:var(--text-muted);text-align:center;">—</td><td style="color:var(--text-muted);text-align:center;">—</td>`;
       } else {
         const d = s.details[gi];
         row += `<td>${d.work_val.toFixed(1)}${unit}</td><td>${d.home_val.toFixed(1)}${unit}</td>`;
