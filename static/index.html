@@ -73,8 +73,6 @@
   ]
 }
 </script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1228050934779173"
-     crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -736,11 +734,6 @@ details summary::-webkit-details-marker { display: none; }
 }
 .link-btn:hover { background: var(--primary-dark); }
 
-/* ad placeholder */
-.ad-slot { text-align: center; min-height: 0; overflow: hidden; }
-.ad-slot:empty { display: none; }
-.ad-slot ins.adsbygoogle[data-ad-status="unfilled"] { display: none !important; }
-
 /* Footer */
 .site-footer {
   border-top: 1px solid var(--border);
@@ -1004,7 +997,7 @@ details summary::-webkit-details-marker { display: none; }
       <div class="tab" data-tab="ranking" onclick="switchTab('ranking',true)"><span class="tab-icon"><i data-lucide="trophy"></i></span>ランキング</div>
     </div>
 
-    <div class="ad-slot" id="ad-footer"></div>
+
   </div>
 </div>
 
@@ -1282,33 +1275,6 @@ function injectAdsAndAnalytics() {
     s2.textContent = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${appConfig.ga_id}');`;
     document.head.appendChild(s2);
   }
-  if (appConfig.adsense_client) {
-    const s = document.createElement('script');
-    s.async = true;
-    s.crossOrigin = 'anonymous';
-    s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${appConfig.adsense_client}`;
-    document.head.appendChild(s);
-  }
-}
-
-function renderAd(containerId) {
-  if (!appConfig.adsense_client) return;
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.innerHTML = `
-    <ins class="adsbygoogle" style="display:block"
-      data-ad-client="${appConfig.adsense_client}"
-      data-ad-slot="${containerId}"
-      data-ad-format="auto"
-      data-full-width-responsive="true"></ins>`;
-  try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
-  // Collapse ad slot if no ad fills after timeout
-  setTimeout(() => {
-    const ins = el.querySelector('ins.adsbygoogle');
-    if (ins && (!ins.getAttribute('data-ad-status') || ins.getAttribute('data-ad-status') === 'unfilled' || ins.offsetHeight < 10)) {
-      el.style.display = 'none';
-    }
-  }, 3000);
 }
 
 // ---------------------------------------------------------------------------
@@ -1539,7 +1505,6 @@ function renderEvent() {
     hint.textContent = incompleteCount > 0 ? `${incompleteCount}人が駅情報未入力です(未入力の参加者を除いて検索します)` : '';
   }
 
-  renderAd('ad-footer');
   refreshIcons();
 }
 

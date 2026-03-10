@@ -21,7 +21,6 @@ from pydantic import BaseModel
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 HOTPEPPER_API_KEY = os.environ.get("HOTPEPPER_API_KEY", "")
-ADSENSE_CLIENT = os.environ.get("ADSENSE_CLIENT", "")
 GA_ID = os.environ.get("GA_ID", "")
 
 TRAIN_SPEED_KMH = 30
@@ -627,7 +626,6 @@ def api_stations(q: str = ""):
 def api_config():
     """Return public config for frontend."""
     return {
-        "adsense_client": ADSENSE_CLIENT,
         "ga_id": GA_ID,
         "has_hotpepper": bool(HOTPEPPER_API_KEY),
         "usage_count": _get_usage_count(),
@@ -871,11 +869,6 @@ app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 @app.get("/llms.txt")
 def serve_llms_txt():
     return FileResponse(os.path.join(_static_dir, "llms.txt"), media_type="text/plain; charset=utf-8")
-
-
-@app.get("/ads.txt")
-def serve_ads_txt():
-    return FileResponse(os.path.join(_static_dir, "ads.txt"), media_type="text/plain; charset=utf-8")
 
 
 @app.get("/robots.txt")
