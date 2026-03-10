@@ -878,6 +878,16 @@ def serve_ads_txt():
     return FileResponse(os.path.join(_static_dir, "ads.txt"), media_type="text/plain; charset=utf-8")
 
 
+@app.get("/robots.txt")
+def serve_robots_txt():
+    return FileResponse(os.path.join(_static_dir, "robots.txt"), media_type="text/plain; charset=utf-8")
+
+
+@app.get("/sitemap.xml")
+def serve_sitemap_xml():
+    return FileResponse(os.path.join(_static_dir, "sitemap.xml"), media_type="application/xml; charset=utf-8")
+
+
 @app.get("/")
 @app.get("/{path:path}")
 def serve_spa(path: str = ""):
