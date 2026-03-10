@@ -753,7 +753,7 @@ details summary::-webkit-details-marker { display: none; }
     <div class="lp-section" style="padding:24px 0;">
       <div class="demo-card" id="demo-section">
         <span class="demo-badge">DEMO</span>
-        <p class="demo-scenario">Aさん(外苑前勤務・渋谷在住)、Bさん(京橋勤務・高円寺在住)の2人で飲み会。最適な駅は？<br><span style="font-size:12px;color:var(--text-muted);">※スライダーを動かすと結果がリアルタイムに変わります</span></p>
+        <p class="demo-scenario">Aさん(外苑前勤務・渋谷在住)、Bさん(京橋勤務・高円寺在住)の2人で飲み会。最適な駅は？<br><span style="font-size:12px;color:var(--text-muted);">※スライダーを動かすと結果がリアルタイムに変わります<br>※プライバシーモードの参加者がいる場合、スライダーは使用できません</span></p>
           <div class="demo-sliders">
             <div class="demo-slider-group">
               <label>職場↔自宅の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">職場から飲み会場所への移動と、飲み会場所から自宅への移動、どちらを重視するか調整できます</span></span></label>
@@ -913,6 +913,7 @@ details summary::-webkit-details-marker { display: none; }
           <span id="slider-toggle-arrow">▲</span> スライダーで条件を調整
         </summary>
       <div class="settings-panel">
+        <div id="slider-privacy-msg" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#92400e;"><i data-lucide="lock" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i>プライバシーモードの参加者がいるため、スライダーは使用できません</div>
         <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:4px;">職場↔自宅の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">職場から飲み会場所への移動と、飲み会場所から自宅への移動、どちらを重視するか調整できます</span></span><span class="caption" style="margin-left:auto;font-weight:400;" id="balance-val">職場 50% / 自宅 50%</span></label>
         <div class="range-row">
           <span class="range-edge">職場からの近さ重視</span>
@@ -2057,14 +2058,19 @@ function renderResults() {
   const unit = '分';
 
   // Metrics — top 3 stations with medal icons (vertical layout)
+  const hasPriv = geocoded.some(g => g.private);
   let metricsHtml = '';
   scored.slice(0, 3).forEach((s, i) => {
     const rank = i + 1;
-    const totalVal = s.details ? s.details.reduce((sum, d) => sum + d.total_val, 0) : s.avg_total_val * geocoded.length;
+    let subText = '';
+    if (!hasPriv) {
+      const totalVal = s.details ? s.details.reduce((sum, d) => sum + d.total_val, 0) : s.avg_total_val * geocoded.length;
+      subText = `総計${totalVal.toFixed(1)}${unit} <span class="metric-br">/ </span>平均${s.avg_total_val.toFixed(1)}${unit}`;
+    }
     metricsHtml += `<div class="metric rank-${rank}">
       <div class="medal rank-${rank}">${rank}</div>
       <div class="metric-value">${escHtml(s.name)}</div>
-      <div class="metric-sub">総計${totalVal.toFixed(1)}${unit} <span class="metric-br">/ </span>平均${s.avg_total_val.toFixed(1)}${unit}</div>
+      ${subText ? `<div class="metric-sub">${subText}</div>` : ''}
     </div>`;
   });
   document.getElementById('metrics').innerHTML = metricsHtml;
@@ -2079,6 +2085,23 @@ function renderResults() {
     sliderToggle.setAttribute('open', '');
     const arrow = document.getElementById('slider-toggle-arrow');
     if (arrow) arrow.textContent = '▲';
+  }
+
+  // Disable sliders when private participants exist
+  const balanceEl = document.getElementById('balance');
+  const fairnessEl = document.getElementById('fairness');
+  if (hasPriv) {
+    balanceEl.disabled = true;
+    fairnessEl.disabled = true;
+    balanceEl.style.opacity = '0.4';
+    fairnessEl.style.opacity = '0.4';
+    document.getElementById('slider-privacy-msg').style.display = '';
+  } else {
+    balanceEl.disabled = false;
+    fairnessEl.disabled = false;
+    balanceEl.style.opacity = '';
+    fairnessEl.style.opacity = '';
+    document.getElementById('slider-privacy-msg').style.display = 'none';
   }
 
   // Preserve current tab on re-search, default to map on first search
@@ -2137,22 +2160,26 @@ function switchTab(name, userClick) {
 // Ranking tab
 // ---------------------------------------------------------------------------
 function renderRanking(scored, geocoded, unit) {
-  // Build index of non-private participants
-  const pubIdx = [];
-  geocoded.forEach((g, i) => { if (!g.private) pubIdx.push(i); });
+  const hasPriv = geocoded.some(g => g.private);
 
-  let cols = ['順位','駅名',`平均(${unit})`,`最大(${unit})`,'偏差'];
-  pubIdx.forEach(i => {
-    cols.push(`${geocoded[i].name}(行き)`);
-    cols.push(`${geocoded[i].name}(帰り)`);
+  let cols = ['順位','駅名'];
+  if (!hasPriv) cols.push(`平均(${unit})`, `最大(${unit})`, '偏差');
+  geocoded.forEach(g => {
+    cols.push(`${g.name}(行き)`);
+    cols.push(`${g.name}(帰り)`);
   });
 
   let html = '<div class="table-wrap"><table><thead><tr>' + cols.map(c => `<th>${escHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
   scored.forEach((s, i) => {
-    let row = `<td>${i+1}</td><td>${escHtml(s.name)}</td><td>${s.avg_total_val.toFixed(1)}</td><td>${s.max_person_val.toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td>`;
-    pubIdx.forEach(pi => {
-      const d = s.details[pi];
-      row += `<td>${d.work_val.toFixed(1)}${unit}</td><td>${d.home_val.toFixed(1)}${unit}</td>`;
+    let row = `<td>${i+1}</td><td>${escHtml(s.name)}</td>`;
+    if (!hasPriv) row += `<td>${s.avg_total_val.toFixed(1)}</td><td>${s.max_person_val.toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td>`;
+    geocoded.forEach((g, gi) => {
+      if (g.private) {
+        row += `<td colspan="2" style="color:var(--text-muted);text-align:center;">${lucideIcon('lock',12)} 非公開</td>`;
+      } else {
+        const d = s.details[gi];
+        row += `<td>${d.work_val.toFixed(1)}${unit}</td><td>${d.home_val.toFixed(1)}${unit}</td>`;
+      }
     });
     html += `<tr>${row}</tr>`;
   });
@@ -2319,47 +2346,64 @@ function addPinMarker(map, lat, lon, color, label, icon, isStation, placed, isFi
 // ---------------------------------------------------------------------------
 function renderDetail(scored, geocoded, unit) {
   let html = '';
+  const hasPriv = geocoded.some(g => g.private);
 
   scored.slice(0, 3).forEach((s, i) => {
     const id = `detail-${i}`;
-    const detailTotal = s.details ? s.details.reduce((sum, d) => sum + d.total_val, 0) : s.avg_total_val * geocoded.length;
+    let headerSuffix = '';
+    if (!hasPriv) {
+      const detailTotal = s.details ? s.details.reduce((sum, d) => sum + d.total_val, 0) : s.avg_total_val * geocoded.length;
+      headerSuffix = `(総計${detailTotal.toFixed(1)}${unit} / 平均${s.avg_total_val.toFixed(1)}${unit})`;
+    }
     html += `
       <div class="expander-header" onclick="toggleExpander('${id}')">
-        <span>${i===0?'▼':'▶'}</span> ${i+1}位: ${escHtml(s.name)}(総計${detailTotal.toFixed(1)}${unit} / 平均${s.avg_total_val.toFixed(1)}${unit})
+        <span>${i===0?'▼':'▶'}</span> ${i+1}位: ${escHtml(s.name)}${headerSuffix}
       </div>
       <div class="expander-body ${i===0?'open':''}" id="${id}">`;
 
-    // Filter out private participants
-    const pubDetails = s.details.filter((d, di) => !geocoded[di]?.private);
     const pubRoutes = s.routes ? s.routes.filter(r => !geocoded.find(g => g.name === r.name && g.private)) : [];
+    const lockLabel = `<span style="color:var(--text-muted);">${lucideIcon('lock',12)} 非公開</span>`;
 
-    // Table
+    // Table - show all participants, "非公開" for private
     html += '<p style="font-weight:700;font-size:14px;margin:10px 0 6px;color:var(--text);border-left:3px solid #2563eb;padding-left:8px;">参加者別移動時間</p>';
     html += '<div class="table-wrap"><table><thead><tr><th>名前</th><th>行き(' + unit + ')</th><th>帰り(' + unit + ')</th><th>合計(' + unit + ')</th></tr></thead><tbody>';
-    pubDetails.forEach(d => {
-      html += `<tr><td>${escHtml(d.name)}</td><td>${d.work_val.toFixed(1)}</td><td>${d.home_val.toFixed(1)}</td><td>${d.total_val.toFixed(1)}</td></tr>`;
+    s.details.forEach((d, di) => {
+      if (geocoded[di]?.private) {
+        html += `<tr><td>${escHtml(d.name)} ${lucideIcon('lock',12)}</td><td>${lockLabel}</td><td>${lockLabel}</td><td>${lockLabel}</td></tr>`;
+      } else {
+        html += `<tr><td>${escHtml(d.name)}</td><td>${d.work_val.toFixed(1)}</td><td>${d.home_val.toFixed(1)}</td><td>${d.total_val.toFixed(1)}</td></tr>`;
+      }
     });
     html += '</tbody></table></div>';
 
-    // Bar chart
+    // Bar chart - only public participants (private can't show meaningful bars)
+    const pubDetails = s.details.filter((d, di) => !geocoded[di]?.private);
     const maxTotal = Math.max(...pubDetails.map(d => d.total_val), 1);
     html += '<div style="display:flex;gap:16px;font-size:12px;margin:8px 0 4px;"><span><span style="display:inline-block;width:12px;height:12px;background:#1e88e5;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>職場/自宅→駅</span><span><span style="display:inline-block;width:12px;height:12px;background:#43a047;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>駅→自宅</span></div>';
     html += '<div class="bar-chart">';
-    pubDetails.forEach(d => {
-      const w1 = (d.work_val / maxTotal * 100).toFixed(1);
-      const w2 = (d.home_val / maxTotal * 100).toFixed(1);
-      html += `<div class="bar-row">
-        <span class="bar-name">${escHtml(d.name)}</span>
-        <div class="bar-track">
-          <div class="bar-seg" style="width:${w1}%;background:#1e88e5;"></div>
-          <div class="bar-seg" style="width:${w2}%;background:#43a047;"></div>
-        </div>
-        <span class="bar-val">${d.total_val.toFixed(1)}${unit}</span>
-      </div>`;
+    s.details.forEach((d, di) => {
+      if (geocoded[di]?.private) {
+        html += `<div class="bar-row">
+          <span class="bar-name">${escHtml(d.name)} ${lucideIcon('lock',12)}</span>
+          <div class="bar-track" style="background:#f1f5f9;"><span style="padding:0 8px;color:var(--text-muted);font-size:11px;">非公開</span></div>
+          <span class="bar-val"></span>
+        </div>`;
+      } else {
+        const w1 = (d.work_val / maxTotal * 100).toFixed(1);
+        const w2 = (d.home_val / maxTotal * 100).toFixed(1);
+        html += `<div class="bar-row">
+          <span class="bar-name">${escHtml(d.name)}</span>
+          <div class="bar-track">
+            <div class="bar-seg" style="width:${w1}%;background:#1e88e5;"></div>
+            <div class="bar-seg" style="width:${w2}%;background:#43a047;"></div>
+          </div>
+          <span class="bar-val">${d.total_val.toFixed(1)}${unit}</span>
+        </div>`;
+      }
     });
     html += '</div>';
 
-    // Routes
+    // Routes - only public participants
     if (pubRoutes.length) {
       html += '<p style="font-weight:700;font-size:14px;margin:14px 0 6px;color:var(--text);border-left:3px solid #2563eb;padding-left:8px;">経路</p>';
       pubRoutes.forEach(r => {
@@ -2376,7 +2420,8 @@ function renderDetail(scored, geocoded, unit) {
     html += '</div>';
   });
 
-  // Fairness analysis
+  // Fairness analysis - hide when private participants exist
+  if (!hasPriv) {
   html += '<h3>公平性分析</h3><p class="caption">各駅で最も移動時間が長い人と短い人の差(小さいほど公平)</p>';
   html += '<div class="table-wrap"><table class="fairness-table"><thead><tr><th>駅名</th><th>平均(' + unit + ')</th><th>最短(' + unit + ')</th><th>最長(' + unit + ')</th><th>標準偏差</th></tr></thead><tbody>';
   scored.slice(0, 5).forEach(s => {
@@ -2385,6 +2430,7 @@ function renderDetail(scored, geocoded, unit) {
     html += `<tr><td>${escHtml(s.name)}</td><td>${s.avg_total_val.toFixed(1)}</td><td>${mn.toFixed(1)}</td><td>${mx.toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td></tr>`;
   });
   html += '</tbody></table></div>';
+  } // end if (!hasPriv)
 
   document.getElementById('tab-detail').innerHTML = html;
 }
