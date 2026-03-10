@@ -1405,6 +1405,7 @@ function renderEvent() {
   const baseUrl = location.origin;
   const shareUrl = `${baseUrl}/?event=${code}`;
   const incompleteNames = participants.filter(p => {
+    if (isPrivateParticipant(p)) return false;
     const isHr = p.pattern === '自宅→飲み会→自宅';
     return !p.home_location || (!isHr && !p.work_location);
   }).map(p => p.name);
@@ -1628,7 +1629,7 @@ function renderAddRowDesktop() {
       <button class="btn btn-primary btn-sm" onclick="submitAddRow()">追加</button>
       <button class="btn btn-outline btn-sm" onclick="cancelAddRow()">取消</button>
     </td></tr>
-  <tr class="add-row"><td colspan="5" style="padding-top:0;"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="add-privacy">${lucideIcon('lock',14)} プライバシーモードで登録する</label><div style="font-size:11px;color:var(--text-muted);margin-top:2px;padding-left:20px;">ONにすると、駅名が他の参加者に表示されません。検索結果の計算には含まれます。</div></td></tr>`;
+  <tr class="add-row"><td colspan="5" style="padding-top:0;"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="add-privacy">${lucideIcon('lock',14)} プライバシーモードで登録する</label><div style="font-size:11px;color:var(--text-muted);margin-top:2px;padding-left:20px;">ONにすると、駅名が他の参加者に表示されません。検索結果の計算には含まれます。このタブを閉じると編集できなくなります。</div></td></tr>`;
 }
 
 function renderAddRowMobile() {
@@ -1640,7 +1641,7 @@ function renderAddRowMobile() {
     </select></div>
     <div class="form-group"><label>自宅最寄駅</label>${acInput('add-home-m', 'add-home-list-m', '', '駅名を入力')}</div>
     <div class="form-group" id="add-work-group-m"><label>職場最寄駅</label>${acInput('add-work-m', 'add-work-list-m', '', '駅名を入力')}</div>
-    <div class="form-group"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="add-privacy-m">${lucideIcon('lock',14)} プライバシーモードで登録する</label><div style="font-size:11px;color:var(--text-muted);margin-top:2px;padding-left:20px;">ONにすると、駅名が他の参加者に表示されません。検索結果の計算には含まれます。</div></div>
+    <div class="form-group"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="add-privacy-m">${lucideIcon('lock',14)} プライバシーモードで登録する</label><div style="font-size:11px;color:var(--text-muted);margin-top:2px;padding-left:20px;">ONにすると、駅名が他の参加者に表示されません。検索結果の計算には含まれます。このタブを閉じると編集できなくなります。</div></div>
     <div class="p-card-actions">
       <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitAddRowMobile()">追加</button>
       <button class="btn btn-outline btn-sm" style="flex:1" onclick="cancelAddRow()">取消</button>
