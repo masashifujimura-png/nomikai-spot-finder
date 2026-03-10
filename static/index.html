@@ -1843,10 +1843,14 @@ function startEdit(pid) {
 
   const homeId = `edit-home-${pid}`;
   const workId = `edit-work-${pid}`;
-  acSelectedValues[homeId] = p.home_location || '';
-  acSelectedValues[workId] = p.work_location || '';
-  acSelectedValues[`${homeId}-m`] = p.home_location || '';
-  acSelectedValues[`${workId}-m`] = p.work_location || '';
+  // For own private participants, use sessionStorage data
+  const myData = isMyParticipant(pid) ? getMyParticipantData(pid) : null;
+  const homeVal = (p.is_private && myData) ? myData.home : (p.home_location || '');
+  const workVal = (p.is_private && myData) ? myData.work : (p.work_location || '');
+  acSelectedValues[homeId] = homeVal;
+  acSelectedValues[workId] = workVal;
+  acSelectedValues[`${homeId}-m`] = homeVal;
+  acSelectedValues[`${workId}-m`] = workVal;
 
   renderParticipantTable();
   // Setup mobile autocomplete
