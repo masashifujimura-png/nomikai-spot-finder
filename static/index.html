@@ -976,26 +976,37 @@ let participants = [];
 let searchResults = null;
 
 // Privacy mode helpers
-// sessionStorage stores IDs of private participants added by this tab (for edit permission)
-function getMyPrivateIds() {
-  if (!currentEvent) return [];
-  try { return JSON.parse(sessionStorage.getItem('priv_ids_' + currentEvent._code) || '[]'); } catch(e) { return []; }
+// sessionStorage stores data for participants added/edited by this tab
+// Format: { participantId: { work: "駅名", home: "駅名" }, ... }
+function getPrivacyStore() {
+  if (!currentEvent) return {};
+  try { return JSON.parse(sessionStorage.getItem('priv_' + currentEvent._code) || '{}'); } catch(e) { return {}; }
 }
-function addMyPrivateId(id) {
+function setPrivacyStore(store) {
   if (!currentEvent) return;
-  const ids = getMyPrivateIds();
-  if (!ids.includes(id)) { ids.push(id); sessionStorage.setItem('priv_ids_' + currentEvent._code, JSON.stringify(ids)); }
+  sessionStorage.setItem('priv_' + currentEvent._code, JSON.stringify(store));
 }
-function removeMyPrivateId(id) {
-  if (!currentEvent) return;
-  const ids = getMyPrivateIds().filter(x => x !== id);
-  sessionStorage.setItem('priv_ids_' + currentEvent._code, JSON.stringify(ids));
+function storeMyParticipant(id, work, home) {
+  const store = getPrivacyStore();
+  store[id] = { work: work || '', home: home || '' };
+  setPrivacyStore(store);
+}
+function removeMyParticipant(id) {
+  const store = getPrivacyStore();
+  delete store[id];
+  setPrivacyStore(store);
+}
+function getMyParticipantData(id) {
+  return getPrivacyStore()[id] || null;
+}
+function isMyParticipant(id) {
+  return !!getPrivacyStore()[id];
 }
 function isPrivateParticipant(p) {
   return p.is_private === true;
 }
 function isMyPrivateParticipant(p) {
-  return isPrivateParticipant(p) && getMyPrivateIds().includes(p.id);
+  return isPrivateParticipant(p) && isMyParticipant(p.id);
 }
 function hasAnyPrivateParticipant() {
   return participants.some(isPrivateParticipant);
@@ -1509,24 +1520,28 @@ function renderParticipantTable() {
   participants.forEach(p => {
     const pid = p.id;
     const priv = isPrivateParticipant(p);
-    const myPriv = isMyPrivateParticipant(p);
-    const canEdit = !priv || myPriv;
+    const isMine = isMyParticipant(pid);
+    const canEdit = !priv || isMine;
+    // For own private participants, use sessionStorage data for display
+    const myData = isMine ? getMyParticipantData(pid) : null;
+    const displayP = (priv && myData) ? {...p, work_location: myData.work, home_location: myData.home} : p;
     if (editingId === pid && canEdit) {
-      dt += renderEditRowDesktop(p);
+      dt += renderEditRowDesktop(displayP);
     } else {
       const isHr = p.pattern === '自宅→飲み会→自宅';
       const patternDisp = isHr ? '自宅→飲み会→自宅' : '職場→飲み会→自宅';
       let homeCell, workCell, incomplete = false;
-      if (priv && !myPriv) {
+      if (priv && !isMine) {
         const lockLabel = `${lucideIcon('lock',14)} <span style="color:var(--text-muted);">非公開</span>`;
         homeCell = lockLabel;
         workCell = isHr ? '―' : lockLabel;
       } else {
-        const workDisp = isHr ? '―' : escHtml(p.work_location || '');
-        const noHome = !p.home_location;
-        const noWork = !isHr && !p.work_location;
+        const dp = displayP;
+        const workDisp = isHr ? '―' : escHtml(dp.work_location || '');
+        const noHome = !dp.home_location;
+        const noWork = !isHr && !dp.work_location;
         incomplete = noHome || noWork;
-        homeCell = noHome ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : escHtml(p.home_location);
+        homeCell = noHome ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : escHtml(dp.home_location);
         workCell = isHr ? '―' : (noWork ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : workDisp);
       }
       dt += `<tr${incomplete ? ' style="background:#fff8e1;"' : ''}>
@@ -1554,23 +1569,26 @@ function renderParticipantTable() {
   participants.forEach(p => {
     const pid = p.id;
     const priv = isPrivateParticipant(p);
-    const myPriv = isMyPrivateParticipant(p);
-    const canEdit = !priv || myPriv;
+    const isMine = isMyParticipant(pid);
+    const canEdit = !priv || isMine;
+    const myData = isMine ? getMyParticipantData(pid) : null;
+    const displayP = (priv && myData) ? {...p, work_location: myData.work, home_location: myData.home} : p;
     if (editingId === pid && canEdit) {
-      mb += renderEditRowMobile(p);
+      mb += renderEditRowMobile(displayP);
     } else {
       const isHr = p.pattern === '自宅→飲み会→自宅';
       let homeDisp, workDisp, incomplete = false;
-      if (priv && !myPriv) {
+      if (priv && !isMine) {
         const lockLabel = `${lucideIcon('lock',12)} 非公開`;
         homeDisp = lockLabel;
         workDisp = isHr ? '(自宅から)' : lockLabel;
       } else {
-        const noHome = !p.home_location;
-        const noWork = !isHr && !p.work_location;
+        const dp = displayP;
+        const noHome = !dp.home_location;
+        const noWork = !isHr && !dp.work_location;
         incomplete = noHome || noWork;
-        homeDisp = noHome ? '<span style="color:var(--warn)">未入力</span>' : escHtml(p.home_location);
-        workDisp = isHr ? '(自宅から)' : (noWork ? '<span style="color:var(--warn)">未入力</span>' : escHtml(p.work_location));
+        homeDisp = noHome ? '<span style="color:var(--warn)">未入力</span>' : escHtml(dp.home_location);
+        workDisp = isHr ? '(自宅から)' : (noWork ? '<span style="color:var(--warn)">未入力</span>' : escHtml(dp.work_location));
       }
       mb += `<div class="p-card"${incomplete ? ' style="border-color:var(--warn);background:#fff8e1;"' : ''}><strong>${escHtml(p.name)}</strong>${priv ? ` ${lucideIcon('lock',12)}` : ''}${incomplete ? ' <span style="color:var(--warn);font-size:12px;">⚠ 駅情報が未入力</span>' : ''}
         <div class="caption" style="margin-top:4px;">自宅: ${homeDisp} / 職場: ${workDisp}</div>
@@ -1651,6 +1669,7 @@ function renderAddRowMobile() {
 function renderEditRowDesktop(p) {
   const pid = p.id;
   const isHr = p.pattern === '自宅→飲み会→自宅';
+  const priv = p.is_private === true;
   const homeId = `edit-home-${pid}`;
   const workId = `edit-work-${pid}`;
   return `<tr style="background:#fffde7;">
@@ -1664,12 +1683,14 @@ function renderEditRowDesktop(p) {
     <td class="actions-cell">
       <button class="btn btn-primary btn-sm" onclick="saveParticipant('${pid}')">保存</button>
       <button class="btn btn-outline btn-sm" onclick="cancelEdit()">取消</button>
-    </td></tr>`;
+    </td></tr>
+  <tr style="background:#fffde7;"><td colspan="5" style="padding-top:0;"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="edit-privacy-${pid}" ${priv?'checked':''}>${lucideIcon('lock',14)} プライバシーモード</label></td></tr>`;
 }
 
 function renderEditRowMobile(p) {
   const pid = p.id;
   const isHr = p.pattern === '自宅→飲み会→自宅';
+  const priv = p.is_private === true;
   const homeId = `edit-home-${pid}`;
   const workId = `edit-work-${pid}`;
   return `<div class="p-card" style="border:2px solid var(--warn);background:#fffde7;">
@@ -1680,6 +1701,7 @@ function renderEditRowMobile(p) {
     </select></div>
     <div class="form-group"><label>自宅最寄駅</label>${acInput(`${homeId}-m`, `edit-home-list-${pid}-m`, p.home_location||'', '駅名を入力')}</div>
     <div class="form-group ${isHr?'hidden':''}" id="edit-work-group-m-${pid}"><label>職場最寄駅</label>${acInput(`${workId}-m`, `edit-work-list-${pid}-m`, p.work_location||'', '駅名を入力')}</div>
+    <div class="form-group"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="edit-privacy-m-${pid}" ${priv?'checked':''}>${lucideIcon('lock',14)} プライバシーモード</label></div>
     <div class="p-card-actions">
       <button class="btn btn-primary btn-sm" style="flex:1" onclick="saveParticipantMobile('${pid}')">保存</button>
       <button class="btn btn-outline btn-sm" style="flex:1" onclick="cancelEdit()">取消</button>
@@ -1762,8 +1784,8 @@ async function submitAddRow() {
       }),
     });
     const created = await res.json();
-    if (isPrivate && created.id) {
-      addMyPrivateId(created.id);
+    if (created.id) {
+      storeMyParticipant(created.id, isHr ? '' : work, home);
     }
     addingRow = false;
     searchResults = null;
@@ -1799,8 +1821,8 @@ async function submitAddRowMobile() {
       }),
     });
     const created = await res.json();
-    if (isPrivate && created.id) {
-      addMyPrivateId(created.id);
+    if (created.id) {
+      storeMyParticipant(created.id, isHr ? '' : work, home);
     }
     addingRow = false;
     searchResults = null;
@@ -1840,7 +1862,7 @@ function cancelEdit() {
 async function deleteParticipant(id) {
   if (!confirm('この参加者を削除しますか？')) return;
   try {
-    removeMyPrivateId(id);
+    removeMyParticipant(id);
     await fetch(`/api/participants/${id}`, {method: 'DELETE'});
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
@@ -1858,6 +1880,7 @@ async function saveParticipant(id) {
   const home = getStationValue(homeId);
   const work = getStationValue(workId);
   const isHr = pattern === '自宅→飲み会→自宅';
+  const isPrivate = document.getElementById(`edit-privacy-${id}`)?.checked || false;
 
   if (!name) return alert('名前を入力してください。');
   if (!home) return alert('自宅の最寄駅を選択してください。');
@@ -1871,8 +1894,10 @@ async function saveParticipant(id) {
         name, pattern,
         work_location: isHr ? '' : work,
         home_location: home,
+        is_private: isPrivate,
       }),
     });
+    storeMyParticipant(id, isHr ? '' : work, home);
     editingId = null;
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
@@ -1891,6 +1916,7 @@ async function saveParticipantMobile(id) {
   const home = getStationValue(homeId);
   const work = getStationValue(workId);
   const isHr = pattern === '自宅→飲み会→自宅';
+  const isPrivate = document.getElementById(`edit-privacy-m-${id}`)?.checked || false;
 
   if (!name) return alert('名前を入力してください。');
   if (!home) return alert('自宅の最寄駅を選択してください。');
@@ -1904,8 +1930,10 @@ async function saveParticipantMobile(id) {
         name, pattern,
         work_location: isHr ? '' : work,
         home_location: home,
+        is_private: isPrivate,
       }),
     });
+    storeMyParticipant(id, isHr ? '' : work, home);
     editingId = null;
     searchResults = null;
     document.getElementById('results').classList.add('hidden');

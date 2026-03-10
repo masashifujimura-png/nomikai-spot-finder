@@ -577,6 +577,7 @@ class UpdateParticipantReq(BaseModel):
     pattern: str
     work_location: str = ""
     home_location: str = ""
+    is_private: bool = False
 
 
 class SearchReq(BaseModel):
@@ -690,6 +691,7 @@ def api_update_participant(pid: str, req: UpdateParticipantReq):
         "pattern": req.pattern,
         "work_location": req.work_location,
         "home_location": req.home_location,
+        "is_private": req.is_private,
     })
     return rows[0] if rows else {"ok": True}
 
