@@ -2361,7 +2361,6 @@ function renderDetail(scored, geocoded, unit) {
       </div>
       <div class="expander-body ${i===0?'open':''}" id="${id}">`;
 
-    const pubRoutes = s.routes ? s.routes.filter(r => !geocoded.find(g => g.name === r.name && g.private)) : [];
     const lockLabel = `<span style="color:var(--text-muted);">${lucideIcon('lock',12)} 非公開</span>`;
 
     // Table - show all participants, "非公開" for private
@@ -2403,10 +2402,11 @@ function renderDetail(scored, geocoded, unit) {
     });
     html += '</div>';
 
-    // Routes - only public participants
-    if (pubRoutes.length) {
+    // Routes - show all non-private participants
+    if (s.routes && s.routes.length) {
       html += '<p style="font-weight:700;font-size:14px;margin:14px 0 6px;color:var(--text);border-left:3px solid #2563eb;padding-left:8px;">経路</p>';
-      pubRoutes.forEach(r => {
+      s.routes.forEach((r, ri) => {
+        if (geocoded[ri]?.private) return;
         html += `<div style="margin-bottom:8px;"><strong style="font-size:14px;">${escHtml(r.name)}</strong>`;
         if (r.to_route) {
           html += `<div class="route-text" style="margin-left:12px;">${escHtml(r.from_label)}→飲み会｜${escHtml(r.to_route)}(${r.to_time}${unit})</div>`;
