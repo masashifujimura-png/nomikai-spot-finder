@@ -167,6 +167,11 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
   padding: 8px 12px; cursor: pointer; font-size: 14px;
 }
 .autocomplete-list div:hover, .autocomplete-list div.highlighted { background: var(--bg-secondary); }
+.autocomplete-wrap input.ac-selected { border-color: #1a73e8 !important; background: #f0f6ff; }
+.autocomplete-wrap input.ac-unselected { border-color: #e8a01a !important; }
+.autocomplete-wrap input.ac-error { border-color: #d93025 !important; background: #fef0ef; }
+@keyframes ac-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+.ac-shake { animation: ac-shake 0.3s ease; }
 
 /* Cards */
 .card {
@@ -1285,6 +1290,9 @@ function setupAutocomplete(inputId, listId) {
 
   input.addEventListener('input', () => {
     acSelectedValues[inputId] = '';
+    input.classList.remove('ac-selected', 'ac-error');
+    if (input.value.trim()) input.classList.add('ac-unselected');
+    else input.classList.remove('ac-unselected');
     clearTimeout(acTimers[inputId]);
     const q = input.value.trim();
     if (q.length < 1) { list.classList.add('hidden'); return; }
@@ -1318,9 +1326,20 @@ function updateHighlight(items, idx) {
 }
 
 function selectStation(inputId, listId, name) {
-  document.getElementById(inputId).value = name;
+  const inp = document.getElementById(inputId);
+  inp.value = name;
   document.getElementById(listId).classList.add('hidden');
   acSelectedValues[inputId] = name;
+  inp.classList.remove('ac-unselected', 'ac-error');
+  inp.classList.add('ac-selected');
+}
+
+function shakeInput(inputId) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.classList.remove('ac-unselected');
+  inp.classList.add('ac-error', 'ac-shake');
+  inp.addEventListener('animationend', () => inp.classList.remove('ac-shake'), { once: true });
 }
 
 function getStationValue(inputId) {
@@ -1656,8 +1675,8 @@ function renderAddRowDesktop() {
       <option value="職場→飲み会→自宅">職場→飲み会→自宅</option>
       <option value="自宅→飲み会→自宅">自宅→飲み会→自宅</option>
     </select></td>
-    <td>${acInput('add-home', 'add-home-list', '', '駅名を入力')}</td>
-    <td id="add-work-cell">${acInput('add-work', 'add-work-list', '', '駅名を入力')}</td>
+    <td>${acInput('add-home', 'add-home-list', '', '駅名を入力して選択')}</td>
+    <td id="add-work-cell">${acInput('add-work', 'add-work-list', '', '駅名を入力して選択')}</td>
     <td class="actions-cell">
       <button class="btn btn-primary btn-sm" onclick="submitAddRow()">追加</button>
       <button class="btn btn-outline btn-sm" onclick="cancelAddRow()">取消</button>
@@ -1672,8 +1691,8 @@ function renderAddRowMobile() {
       <option value="職場→飲み会→自宅">職場→飲み会→自宅</option>
       <option value="自宅→飲み会→自宅">自宅→飲み会→自宅</option>
     </select></div>
-    <div class="form-group"><label>自宅最寄駅</label>${acInput('add-home-m', 'add-home-list-m', '', '駅名を入力')}</div>
-    <div class="form-group" id="add-work-group-m"><label>職場最寄駅</label>${acInput('add-work-m', 'add-work-list-m', '', '駅名を入力')}</div>
+    <div class="form-group"><label>自宅最寄駅</label>${acInput('add-home-m', 'add-home-list-m', '', '駅名を入力して選択')}</div>
+    <div class="form-group" id="add-work-group-m"><label>職場最寄駅</label>${acInput('add-work-m', 'add-work-list-m', '', '駅名を入力して選択')}</div>
     <div class="form-group"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="add-privacy-m">${lucideIcon('lock',14)} プライバシーモードで登録する</label><div style="font-size:11px;color:var(--text-muted);margin-top:2px;padding-left:20px;">ONにすると、駅名が他の参加者に表示されません。検索結果の計算には含まれます。このタブを閉じると編集できなくなります。</div></div>
     <div class="p-card-actions">
       <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitAddRowMobile()">追加</button>
@@ -1693,8 +1712,8 @@ function renderEditRowDesktop(p) {
       <option value="職場→飲み会→自宅" ${!isHr?'selected':''}>職場→飲み会→自宅</option>
       <option value="自宅→飲み会→自宅" ${isHr?'selected':''}>自宅→飲み会→自宅</option>
     </select></td>
-    <td>${acInput(homeId, `edit-home-list-${pid}`, p.home_location||'', '駅名を入力')}</td>
-    <td id="edit-work-cell-${pid}">${isHr ? '<span style="color:var(--text-muted)">―</span>' : acInput(workId, `edit-work-list-${pid}`, p.work_location||'', '駅名を入力')}</td>
+    <td>${acInput(homeId, `edit-home-list-${pid}`, p.home_location||'', '駅名を入力して選択')}</td>
+    <td id="edit-work-cell-${pid}">${isHr ? '<span style="color:var(--text-muted)">―</span>' : acInput(workId, `edit-work-list-${pid}`, p.work_location||'', '駅名を入力して選択')}</td>
     <td class="actions-cell">
       <button class="btn btn-primary btn-sm" onclick="saveParticipant('${pid}')">保存</button>
       <button class="btn btn-outline btn-sm" onclick="cancelEdit()">取消</button>
@@ -1714,8 +1733,8 @@ function renderEditRowMobile(p) {
       <option value="職場→飲み会→自宅" ${!isHr?'selected':''}>職場→飲み会→自宅</option>
       <option value="自宅→飲み会→自宅" ${isHr?'selected':''}>自宅→飲み会→自宅</option>
     </select></div>
-    <div class="form-group"><label>自宅最寄駅</label>${acInput(`${homeId}-m`, `edit-home-list-${pid}-m`, p.home_location||'', '駅名を入力')}</div>
-    <div class="form-group ${isHr?'hidden':''}" id="edit-work-group-m-${pid}"><label>職場最寄駅</label>${acInput(`${workId}-m`, `edit-work-list-${pid}-m`, p.work_location||'', '駅名を入力')}</div>
+    <div class="form-group"><label>自宅最寄駅</label>${acInput(`${homeId}-m`, `edit-home-list-${pid}-m`, p.home_location||'', '駅名を入力して選択')}</div>
+    <div class="form-group ${isHr?'hidden':''}" id="edit-work-group-m-${pid}"><label>職場最寄駅</label>${acInput(`${workId}-m`, `edit-work-list-${pid}-m`, p.work_location||'', '駅名を入力して選択')}</div>
     <div class="form-group"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="edit-privacy-m-${pid}" ${priv?'checked':''}>${lucideIcon('lock',14)} プライバシーモード</label></div>
     <div class="p-card-actions">
       <button class="btn btn-primary btn-sm" style="flex:1" onclick="saveParticipantMobile('${pid}')">保存</button>
@@ -1747,7 +1766,7 @@ function toggleAddWorkCol() {
   if (isHr) {
     cell.innerHTML = '<span style="color:var(--text-muted)">―</span>';
   } else {
-    cell.innerHTML = acInput('add-work', 'add-work-list', '', '駅名を入力');
+    cell.innerHTML = acInput('add-work', 'add-work-list', '', '駅名を入力して選択');
     acSelectedValues['add-work'] = '';
     setupAutocomplete('add-work', 'add-work-list');
   }
@@ -1765,7 +1784,7 @@ function toggleEditWorkCol(pid) {
   if (isHr) {
     cell.innerHTML = '<span style="color:var(--text-muted)">―</span>';
   } else {
-    cell.innerHTML = acInput(workId, `edit-work-list-${pid}`, '', '駅名を入力');
+    cell.innerHTML = acInput(workId, `edit-work-list-${pid}`, '', '駅名を入力して選択');
     acSelectedValues[workId] = '';
     setupAutocomplete(workId, `edit-work-list-${pid}`);
   }
@@ -1785,6 +1804,10 @@ async function submitAddRow() {
   const isPrivate = document.getElementById('add-privacy')?.checked || false;
 
   if (!name) return alert('名前を入力してください。');
+  let hasErr = false;
+  if (!home) { shakeInput('add-home'); hasErr = true; }
+  if (!isHr && !work) { shakeInput('add-work'); hasErr = true; }
+  if (hasErr) return;
 
   try {
     const res = await fetch('/api/participants', {
@@ -1822,6 +1845,10 @@ async function submitAddRowMobile() {
   const isPrivate = document.getElementById('add-privacy-m')?.checked || false;
 
   if (!name) return alert('名前を入力してください。');
+  let hasErr = false;
+  if (!home) { shakeInput('add-home-m'); hasErr = true; }
+  if (!isHr && !work) { shakeInput('add-work-m'); hasErr = true; }
+  if (hasErr) return;
 
   try {
     const res = await fetch('/api/participants', {
@@ -1868,6 +1895,11 @@ function startEdit(pid) {
   acSelectedValues[`${workId}-m`] = workVal;
 
   renderParticipantTable();
+  // Mark pre-filled inputs as selected
+  [homeId, workId, `${homeId}-m`, `${workId}-m`].forEach(iid => {
+    const el = document.getElementById(iid);
+    if (el && acSelectedValues[iid]) el.classList.add('ac-selected');
+  });
   // Setup mobile autocomplete
   setupAutocomplete(`${homeId}-m`, `edit-home-list-${pid}-m`);
   setupAutocomplete(`${workId}-m`, `edit-work-list-${pid}-m`);
@@ -1902,8 +1934,10 @@ async function saveParticipant(id) {
   const isPrivate = document.getElementById(`edit-privacy-${id}`)?.checked || false;
 
   if (!name) return alert('名前を入力してください。');
-  if (!home) return alert('自宅の最寄駅を選択してください。');
-  if (!isHr && !work) return alert('職場の最寄駅を選択してください。');
+  let hasErr = false;
+  if (!home) { shakeInput(homeId); hasErr = true; }
+  if (!isHr && !work) { shakeInput(workId); hasErr = true; }
+  if (hasErr) return;
 
   try {
     await fetch(`/api/participants/${id}`, {
@@ -1938,8 +1972,10 @@ async function saveParticipantMobile(id) {
   const isPrivate = document.getElementById(`edit-privacy-m-${id}`)?.checked || false;
 
   if (!name) return alert('名前を入力してください。');
-  if (!home) return alert('自宅の最寄駅を選択してください。');
-  if (!isHr && !work) return alert('職場の最寄駅を選択してください。');
+  let hasErr = false;
+  if (!home) { shakeInput(homeId); hasErr = true; }
+  if (!isHr && !work) { shakeInput(workId); hasErr = true; }
+  if (hasErr) return;
 
   try {
     await fetch(`/api/participants/${id}`, {
