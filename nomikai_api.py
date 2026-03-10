@@ -270,6 +270,7 @@ def geocode_participant(p):
         "pattern": p.get("pattern", TRIP_PATTERNS[0]),
         "work_station": None, "work_lat": None, "work_lon": None, "work_label": None, "work_gcd": None,
         "home_station": None, "home_lat": None, "home_lon": None, "home_label": None, "home_gcd": None,
+        "_pid": p.get("id", ""),
     }
     is_home_round = entry["pattern"] == TRIP_PATTERNS[1]
 
@@ -568,6 +569,7 @@ class AddParticipantReq(BaseModel):
     pattern: str
     work_location: str = ""
     home_location: str = ""
+    is_private: bool = False
 
 
 class UpdateParticipantReq(BaseModel):
@@ -660,6 +662,11 @@ def api_get_event(code: str):
     participants = _sb_request("GET", "participants", params={
         "select": "*", "event_id": f"eq.{event['id']}", "order": "created_at",
     })
+    # Mask private participant locations in API response
+    for p in participants:
+        if p.get("is_private"):
+            p["work_location"] = ""
+            p["home_location"] = ""
     return {"event": event, "participants": participants}
 
 
@@ -671,6 +678,7 @@ def api_add_participant(req: AddParticipantReq):
         "pattern": req.pattern,
         "work_location": req.work_location,
         "home_location": req.home_location,
+        "is_private": req.is_private,
     })
     return rows[0]
 
@@ -745,6 +753,9 @@ def api_search(req: SearchReq):
     })
     if len(participants) < 2:
         raise HTTPException(status_code=400, detail="2人以上の参加者が必要です")
+
+    # Track private participant IDs for response masking
+    private_ids = {p["id"] for p in participants if p.get("is_private")}
 
     geocoded = []
     for p in participants:
@@ -822,12 +833,13 @@ def api_search(req: SearchReq):
             {
                 "name": g["name"],
                 "pattern": g["pattern"],
-                "work_lat": g.get("work_lat"),
-                "work_lon": g.get("work_lon"),
-                "work_station": g.get("work_station"),
-                "home_lat": g.get("home_lat"),
-                "home_lon": g.get("home_lon"),
-                "home_station": g.get("home_station"),
+                "work_lat": None if g.get("_pid") in private_ids else g.get("work_lat"),
+                "work_lon": None if g.get("_pid") in private_ids else g.get("work_lon"),
+                "work_station": None if g.get("_pid") in private_ids else g.get("work_station"),
+                "home_lat": None if g.get("_pid") in private_ids else g.get("home_lat"),
+                "home_lon": None if g.get("_pid") in private_ids else g.get("home_lon"),
+                "home_station": None if g.get("_pid") in private_ids else g.get("home_station"),
+                "private": g.get("_pid") in private_ids,
             }
             for g in geocoded
         ],

@@ -974,6 +974,33 @@ details summary::-webkit-details-marker { display: none; }
 let currentEvent = null;
 let participants = [];
 let searchResults = null;
+
+// Privacy mode helpers
+// sessionStorage stores IDs of private participants added by this tab (for edit permission)
+function getMyPrivateIds() {
+  if (!currentEvent) return [];
+  try { return JSON.parse(sessionStorage.getItem('priv_ids_' + currentEvent._code) || '[]'); } catch(e) { return []; }
+}
+function addMyPrivateId(id) {
+  if (!currentEvent) return;
+  const ids = getMyPrivateIds();
+  if (!ids.includes(id)) { ids.push(id); sessionStorage.setItem('priv_ids_' + currentEvent._code, JSON.stringify(ids)); }
+}
+function removeMyPrivateId(id) {
+  if (!currentEvent) return;
+  const ids = getMyPrivateIds().filter(x => x !== id);
+  sessionStorage.setItem('priv_ids_' + currentEvent._code, JSON.stringify(ids));
+}
+function isPrivateParticipant(p) {
+  return p.is_private === true;
+}
+function isMyPrivateParticipant(p) {
+  return isPrivateParticipant(p) && getMyPrivateIds().includes(p.id);
+}
+function hasAnyPrivateParticipant() {
+  return participants.some(isPrivateParticipant);
+}
+
 let hpResults = null;
 let hpPage = 0;
 let mapInstance = null;
@@ -1415,6 +1442,7 @@ function renderEvent() {
   const btnSearch = document.getElementById('btn-search');
   const hint = document.getElementById('search-hint');
   const readyCount = participants.filter(p => {
+    if (isPrivateParticipant(p)) return true;
     const isHr = p.pattern === '自宅→飲み会→自宅';
     return p.home_location && (isHr || p.work_location);
   }).length;
@@ -1479,24 +1507,34 @@ function renderParticipantTable() {
 
   participants.forEach(p => {
     const pid = p.id;
-    if (editingId === pid) {
+    const priv = isPrivateParticipant(p);
+    const myPriv = isMyPrivateParticipant(p);
+    const canEdit = !priv || myPriv;
+    if (editingId === pid && canEdit) {
       dt += renderEditRowDesktop(p);
     } else {
       const isHr = p.pattern === '自宅→飲み会→自宅';
-      const workDisp = isHr ? '―' : escHtml(p.work_location || '');
       const patternDisp = isHr ? '自宅→飲み会→自宅' : '職場→飲み会→自宅';
-      const noHome = !p.home_location;
-      const noWork = !isHr && !p.work_location;
-      const incomplete = noHome || noWork;
-      const homeCell = noHome ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : escHtml(p.home_location);
-      const workCell = isHr ? '―' : (noWork ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : workDisp);
+      let homeCell, workCell, incomplete = false;
+      if (priv && !myPriv) {
+        const lockLabel = `${lucideIcon('lock',14)} <span style="color:var(--text-muted);">非公開</span>`;
+        homeCell = lockLabel;
+        workCell = isHr ? '―' : lockLabel;
+      } else {
+        const workDisp = isHr ? '―' : escHtml(p.work_location || '');
+        const noHome = !p.home_location;
+        const noWork = !isHr && !p.work_location;
+        incomplete = noHome || noWork;
+        homeCell = noHome ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : escHtml(p.home_location);
+        workCell = isHr ? '―' : (noWork ? '<span style="color:var(--warn);font-size:12px;">未入力</span>' : workDisp);
+      }
       dt += `<tr${incomplete ? ' style="background:#fff8e1;"' : ''}>
-        <td><strong>${escHtml(p.name)}</strong>${incomplete ? ' <span style="color:var(--warn);font-size:11px;">⚠</span>' : ''}</td>
+        <td><strong>${escHtml(p.name)}</strong>${priv ? ` ${lucideIcon('lock',12)}` : ''}${incomplete ? ' <span style="color:var(--warn);font-size:11px;">⚠</span>' : ''}</td>
         <td style="font-size:12px;color:var(--text-muted);white-space:nowrap">${patternDisp}</td>
         <td>${homeCell}</td>
         <td>${workCell}</td>
         <td class="actions-cell">
-          <button class="btn btn-outline btn-sm" onclick="startEdit('${pid}')">編集</button>
+          ${canEdit ? `<button class="btn btn-outline btn-sm" onclick="startEdit('${pid}')">編集</button>` : ''}
           <button class="btn btn-danger btn-sm" onclick="deleteParticipant('${pid}')">削除</button>
         </td></tr>`;
     }
@@ -1514,19 +1552,29 @@ function renderParticipantTable() {
   let mb = '<div class="ptbl-mobile">';
   participants.forEach(p => {
     const pid = p.id;
-    if (editingId === pid) {
+    const priv = isPrivateParticipant(p);
+    const myPriv = isMyPrivateParticipant(p);
+    const canEdit = !priv || myPriv;
+    if (editingId === pid && canEdit) {
       mb += renderEditRowMobile(p);
     } else {
       const isHr = p.pattern === '自宅→飲み会→自宅';
-      const noHome = !p.home_location;
-      const noWork = !isHr && !p.work_location;
-      const incomplete = noHome || noWork;
-      const homeDisp = noHome ? '<span style="color:var(--warn)">未入力</span>' : escHtml(p.home_location);
-      const workDisp = isHr ? '(自宅から)' : (noWork ? '<span style="color:var(--warn)">未入力</span>' : escHtml(p.work_location));
-      mb += `<div class="p-card"${incomplete ? ' style="border-color:var(--warn);background:#fff8e1;"' : ''}><strong>${escHtml(p.name)}</strong>${incomplete ? ' <span style="color:var(--warn);font-size:12px;">⚠ 駅情報が未入力</span>' : ''}
+      let homeDisp, workDisp, incomplete = false;
+      if (priv && !myPriv) {
+        const lockLabel = `${lucideIcon('lock',12)} 非公開`;
+        homeDisp = lockLabel;
+        workDisp = isHr ? '(自宅から)' : lockLabel;
+      } else {
+        const noHome = !p.home_location;
+        const noWork = !isHr && !p.work_location;
+        incomplete = noHome || noWork;
+        homeDisp = noHome ? '<span style="color:var(--warn)">未入力</span>' : escHtml(p.home_location);
+        workDisp = isHr ? '(自宅から)' : (noWork ? '<span style="color:var(--warn)">未入力</span>' : escHtml(p.work_location));
+      }
+      mb += `<div class="p-card"${incomplete ? ' style="border-color:var(--warn);background:#fff8e1;"' : ''}><strong>${escHtml(p.name)}</strong>${priv ? ` ${lucideIcon('lock',12)}` : ''}${incomplete ? ' <span style="color:var(--warn);font-size:12px;">⚠ 駅情報が未入力</span>' : ''}
         <div class="caption" style="margin-top:4px;">自宅: ${homeDisp} / 職場: ${workDisp}</div>
         <div class="p-card-actions">
-          <button class="btn btn-outline btn-sm" onclick="startEdit('${pid}')">編集</button>
+          ${canEdit ? `<button class="btn btn-outline btn-sm" onclick="startEdit('${pid}')">編集</button>` : ''}
           <button class="btn btn-danger btn-sm" onclick="deleteParticipant('${pid}')">削除</button>
         </div></div>`;
     }
@@ -1579,7 +1627,8 @@ function renderAddRowDesktop() {
     <td class="actions-cell">
       <button class="btn btn-primary btn-sm" onclick="submitAddRow()">追加</button>
       <button class="btn btn-outline btn-sm" onclick="cancelAddRow()">取消</button>
-    </td></tr>`;
+    </td></tr>
+  <tr class="add-row"><td colspan="5" style="padding-top:0;"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="add-privacy">${lucideIcon('lock',14)} プライバシーモードで登録する</label><div style="font-size:11px;color:var(--text-muted);margin-top:2px;padding-left:20px;">ONにすると、駅名が他の参加者に表示されません。検索結果の計算には含まれます。</div></td></tr>`;
 }
 
 function renderAddRowMobile() {
@@ -1591,6 +1640,7 @@ function renderAddRowMobile() {
     </select></div>
     <div class="form-group"><label>自宅最寄駅</label>${acInput('add-home-m', 'add-home-list-m', '', '駅名を入力')}</div>
     <div class="form-group" id="add-work-group-m"><label>職場最寄駅</label>${acInput('add-work-m', 'add-work-list-m', '', '駅名を入力')}</div>
+    <div class="form-group"><label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-muted);"><input type="checkbox" id="add-privacy-m">${lucideIcon('lock',14)} プライバシーモードで登録する</label><div style="font-size:11px;color:var(--text-muted);margin-top:2px;padding-left:20px;">ONにすると、駅名が他の参加者に表示されません。検索結果の計算には含まれます。</div></div>
     <div class="p-card-actions">
       <button class="btn btn-primary btn-sm" style="flex:1" onclick="submitAddRowMobile()">追加</button>
       <button class="btn btn-outline btn-sm" style="flex:1" onclick="cancelAddRow()">取消</button>
@@ -1694,11 +1744,12 @@ async function submitAddRow() {
   const home = getStationValue('add-home');
   const work = getStationValue('add-work');
   const isHr = pattern === '自宅→飲み会→自宅';
+  const isPrivate = document.getElementById('add-privacy')?.checked || false;
 
   if (!name) return alert('名前を入力してください。');
 
   try {
-    await fetch('/api/participants', {
+    const res = await fetch('/api/participants', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -1706,8 +1757,13 @@ async function submitAddRow() {
         name, pattern,
         work_location: isHr ? '' : work,
         home_location: home,
+        is_private: isPrivate,
       }),
     });
+    const created = await res.json();
+    if (isPrivate && created.id) {
+      addMyPrivateId(created.id);
+    }
     addingRow = false;
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
@@ -1725,11 +1781,12 @@ async function submitAddRowMobile() {
   const home = getStationValue('add-home-m');
   const work = getStationValue('add-work-m');
   const isHr = pattern === '自宅→飲み会→自宅';
+  const isPrivate = document.getElementById('add-privacy-m')?.checked || false;
 
   if (!name) return alert('名前を入力してください。');
 
   try {
-    await fetch('/api/participants', {
+    const res = await fetch('/api/participants', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -1737,8 +1794,13 @@ async function submitAddRowMobile() {
         name, pattern,
         work_location: isHr ? '' : work,
         home_location: home,
+        is_private: isPrivate,
       }),
     });
+    const created = await res.json();
+    if (isPrivate && created.id) {
+      addMyPrivateId(created.id);
+    }
     addingRow = false;
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
@@ -1777,6 +1839,7 @@ function cancelEdit() {
 async function deleteParticipant(id) {
   if (!confirm('この参加者を削除しますか？')) return;
   try {
+    removeMyPrivateId(id);
     await fetch(`/api/participants/${id}`, {method: 'DELETE'});
     searchResults = null;
     document.getElementById('results').classList.add('hidden');
@@ -1896,6 +1959,7 @@ function handleSearchClick() {
   const btn = document.getElementById('btn-search');
   if (btn.classList.contains('is-disabled')) {
     const readyCount = participants.filter(p => {
+      if (isPrivateParticipant(p)) return true;
       const isHr = p.pattern === '自宅→飲み会→自宅';
       return p.home_location && (isHr || p.work_location);
     }).length;
@@ -1983,6 +2047,7 @@ function renderResults() {
     const arrow = document.getElementById('slider-toggle-arrow');
     if (arrow) arrow.textContent = '▲';
   }
+
   // Preserve current tab on re-search, default to map on first search
   const activeTab = document.querySelector('#result-tabs .tab.active');
   switchTab(activeTab ? activeTab.dataset.tab : 'map');
@@ -2039,16 +2104,21 @@ function switchTab(name, userClick) {
 // Ranking tab
 // ---------------------------------------------------------------------------
 function renderRanking(scored, geocoded, unit) {
+  // Build index of non-private participants
+  const pubIdx = [];
+  geocoded.forEach((g, i) => { if (!g.private) pubIdx.push(i); });
+
   let cols = ['順位','駅名',`平均(${unit})`,`最大(${unit})`,'偏差'];
-  geocoded.forEach(g => {
-    cols.push(`${g.name}(行き)`);
-    cols.push(`${g.name}(帰り)`);
+  pubIdx.forEach(i => {
+    cols.push(`${geocoded[i].name}(行き)`);
+    cols.push(`${geocoded[i].name}(帰り)`);
   });
 
   let html = '<div class="table-wrap"><table><thead><tr>' + cols.map(c => `<th>${escHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
   scored.forEach((s, i) => {
     let row = `<td>${i+1}</td><td>${escHtml(s.name)}</td><td>${s.avg_total_val.toFixed(1)}</td><td>${s.max_person_val.toFixed(1)}</td><td>${s.std_dev.toFixed(1)}</td>`;
-    s.details.forEach(d => {
+    pubIdx.forEach(pi => {
+      const d = s.details[pi];
       row += `<td>${d.work_val.toFixed(1)}${unit}</td><td>${d.home_val.toFixed(1)}${unit}</td>`;
     });
     html += `<tr>${row}</tr>`;
@@ -2102,6 +2172,7 @@ function renderMap(scored, geocoded) {
 
   // Participants (work=400, home=500 — below stations but home above work)
   geocoded.forEach((g, pi) => {
+    if (g.private) return; // Skip private participants on map
     const c = PERSON_COLORS[pi % PERSON_COLORS.length];
     if (g.work_lat != null) {
       addPinMarker(map, g.work_lat, g.work_lon, c, `${g.name} 職場`, MAP_ICON_BUILDING, false, placed, false, null, 400);
@@ -2119,6 +2190,7 @@ function renderMap(scored, geocoded) {
     legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;">${lucideIcon('beer',14)}<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${STATION_COLORS[i]};margin:0 4px;"></span>${i+1}位: ${escHtml(s.name)}</span>`;
   });
   geocoded.forEach((g, pi) => {
+    if (g.private) return; // Skip private participants in legend
     const c = PERSON_COLORS[pi % PERSON_COLORS.length];
     legendHtml += `<span style="display:inline-flex;align-items:center;margin-right:12px;white-space:nowrap;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:4px;"></span>${escHtml(g.name)}(${lucideIcon('building-2',12)}職場 ${lucideIcon('home',12)}自宅)</span>`;
   });
@@ -2224,19 +2296,23 @@ function renderDetail(scored, geocoded, unit) {
       </div>
       <div class="expander-body ${i===0?'open':''}" id="${id}">`;
 
+    // Filter out private participants
+    const pubDetails = s.details.filter((d, di) => !geocoded[di]?.private);
+    const pubRoutes = s.routes ? s.routes.filter(r => !geocoded.find(g => g.name === r.name && g.private)) : [];
+
     // Table
     html += '<p style="font-weight:700;font-size:14px;margin:10px 0 6px;color:var(--text);border-left:3px solid #2563eb;padding-left:8px;">参加者別移動時間</p>';
     html += '<div class="table-wrap"><table><thead><tr><th>名前</th><th>行き(' + unit + ')</th><th>帰り(' + unit + ')</th><th>合計(' + unit + ')</th></tr></thead><tbody>';
-    s.details.forEach(d => {
+    pubDetails.forEach(d => {
       html += `<tr><td>${escHtml(d.name)}</td><td>${d.work_val.toFixed(1)}</td><td>${d.home_val.toFixed(1)}</td><td>${d.total_val.toFixed(1)}</td></tr>`;
     });
     html += '</tbody></table></div>';
 
     // Bar chart
-    const maxTotal = Math.max(...s.details.map(d => d.total_val), 1);
+    const maxTotal = Math.max(...pubDetails.map(d => d.total_val), 1);
     html += '<div style="display:flex;gap:16px;font-size:12px;margin:8px 0 4px;"><span><span style="display:inline-block;width:12px;height:12px;background:#1e88e5;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>職場/自宅→駅</span><span><span style="display:inline-block;width:12px;height:12px;background:#43a047;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>駅→自宅</span></div>';
     html += '<div class="bar-chart">';
-    s.details.forEach(d => {
+    pubDetails.forEach(d => {
       const w1 = (d.work_val / maxTotal * 100).toFixed(1);
       const w2 = (d.home_val / maxTotal * 100).toFixed(1);
       html += `<div class="bar-row">
@@ -2251,9 +2327,9 @@ function renderDetail(scored, geocoded, unit) {
     html += '</div>';
 
     // Routes
-    if (s.routes) {
+    if (pubRoutes.length) {
       html += '<p style="font-weight:700;font-size:14px;margin:14px 0 6px;color:var(--text);border-left:3px solid #2563eb;padding-left:8px;">経路</p>';
-      s.routes.forEach(r => {
+      pubRoutes.forEach(r => {
         html += `<div style="margin-bottom:8px;"><strong style="font-size:14px;">${escHtml(r.name)}</strong>`;
         if (r.to_route) {
           html += `<div class="route-text" style="margin-left:12px;">${escHtml(r.from_label)}→飲み会｜${escHtml(r.to_route)}(${r.to_time}${unit})</div>`;

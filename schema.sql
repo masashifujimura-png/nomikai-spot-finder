@@ -16,6 +16,7 @@ create table participants (
   pattern text not null default '職場→飲み会→自宅',
   work_location text default '',
   home_location text default '',
+  is_private boolean default false,
   created_at timestamptz default now()
 );
 
