@@ -635,10 +635,13 @@ details summary::-webkit-details-marker { display: none; }
   border-top: 14px solid var(--primary);
 }
 
-/* Usage count */
-.usage-count-section { text-align: center; padding: 20px 16px; }
-.usage-count-text { font-size: 15px; color: var(--text-muted); }
-.usage-count-text strong { font-size: 20px; color: var(--text); font-weight: 700; }
+/* Usage count (hero & bottom) */
+.usage-count-inline { text-align: center; margin-top: 12px; display: none; }
+.usage-count-inline .usage-count-text { font-size: 13px; color: rgba(255,255,255,0.75); }
+.usage-count-inline .usage-count-text strong { font-size: 16px; color: #fff; font-weight: 700; }
+.usage-count-bottom { text-align: center; margin-top: 12px; display: none; }
+.usage-count-bottom .usage-count-text { font-size: 14px; color: var(--text-muted); }
+.usage-count-bottom .usage-count-text strong { font-size: 18px; color: var(--text); font-weight: 700; }
 
 /* Bottom CTA */
 .lp-bottom-cta {
@@ -777,6 +780,9 @@ details summary::-webkit-details-marker { display: none; }
           <div class="lp-create-form">
             <button class="btn-cta-hero" onclick="createNomikai()" id="btn-create">登録不要・完全無料ですぐ始める →</button>
           </div>
+          <div class="usage-count-inline" id="usage-count-hero">
+            <p class="usage-count-text">これまでに<strong id="usage-count-hero-num">0</strong>件の飲み会をサポート</p>
+          </div>
         </div>
       </div>
     </div>
@@ -899,16 +905,14 @@ details summary::-webkit-details-marker { display: none; }
       </div>
     </div>
 
-    <!-- Usage count -->
-    <div id="usage-count-section" class="usage-count-section" style="display:none;">
-      <p class="usage-count-text">これまでに<strong id="usage-count-num">0</strong>件の飲み会の場所決めをサポートしました</p>
-    </div>
-
     <!-- Bottom CTA -->
     <div class="lp-section lp-section-alt">
       <h2 class="lp-section-title">場所選びから始まる、楽しい飲み会を。</h2>
       <div class="lp-bottom-cta">
         <button class="btn-cta-bottom" onclick="createNomikaiBottom()">登録不要・完全無料ですぐ始める →</button>
+      </div>
+      <div class="usage-count-bottom" id="usage-count-bottom">
+        <p class="usage-count-text">これまでに<strong id="usage-count-bottom-num">0</strong>件の飲み会をサポート</p>
       </div>
     </div>
 
@@ -1239,8 +1243,11 @@ function renderDemoMap(scored, geocoded) {
     appConfig = await r.json();
     injectAdsAndAnalytics();
     if (appConfig.usage_count >= 100) {
-      document.getElementById('usage-count-num').textContent = appConfig.usage_count.toLocaleString();
-      document.getElementById('usage-count-section').style.display = '';
+      var countStr = appConfig.usage_count.toLocaleString();
+      document.getElementById('usage-count-hero-num').textContent = countStr;
+      document.getElementById('usage-count-hero').style.display = '';
+      document.getElementById('usage-count-bottom-num').textContent = countStr;
+      document.getElementById('usage-count-bottom').style.display = '';
     }
   } catch(e) {}
 

@@ -21,13 +21,22 @@ Dockerfile.nomikai    # Dockerビルド定義
 render.yaml           # Renderデプロイ設定
 requirements-nomikai.txt  # Python依存パッケージ
 statione.csv / join.csv / line.csv  # 駅データCSV
+nomikai.png           # OGP/共有用画像
 static/
   index.html          # フロントエンド SPA (HTML + CSS + JS 全て)
-  logo-icon.png       # ヘッダーロゴ
-  hero-hand.png       # ヒーロー画像 (スマホ持ち手)
   privacy.html        # プライバシーポリシー
   terms.html          # 利用規約
-  llms.txt / ads.txt  # SEO/広告用
+  # LP (ランディングページ) 用画像
+  hero-bg.jpg / hero-hand.png / hero-phone.png / hero-map.png  # ヒーローセクション
+  pain-1-far.png / pain-2-where.png / pain-3-tired.png / pain-privacy.png  # 課題セクション
+  step-1-create.png / step-2-share.png / step-3-find.png  # 使い方ステップ
+  feature-1-slider.png / feature-2-map.png / feature-3-reserve.png / feature-4-privacy.png  # 機能紹介
+  # アイコン・ロゴ
+  logo-icon.png       # ヘッダーロゴ
+  favicon.ico / favicon.png  # ファビコン
+  nomikai.png / nomikai_wide.png  # OGP・共有用画像
+  # SEO
+  robots.txt / sitemap.xml / llms.txt
 ```
 
 ## アーキテクチャ
