@@ -44,6 +44,28 @@ static/
 - スコアリング: 職場→駅、駅→自宅の移動時間の加重合計 + 公平性(標準偏差)ペナルティ
 - 地図: Leaflet + CARTO タイル、ピン型カスタムマーカー (職場=ビル、自宅=家、候補駅=ビール)
 - イベント共有: 6文字ランダムコードでURL共有、複数人が同時編集可能
+- Social Proof: 利用件数(usage_count)をヒーロー・最下部CTAの両方に表示 (100件以上で表示)
+
+## APIエンドポイント
+- `GET /api/stations` - 駅名オートコンプリート
+- `GET /api/config` - クライアント設定 (GA_ID, usage_count等)
+- `POST /api/events` - イベント作成
+- `PATCH /api/events/{code}` - イベント更新
+- `GET /api/events/{code}` - イベント取得
+- `POST /api/participants` - 参加者追加
+- `PATCH /api/participants/{pid}` - 参加者更新
+- `DELETE /api/participants/{pid}` - 参加者削除
+- `POST /api/demo-search` - デモ用検索
+- `POST /api/search` - 最適駅検索
+- `POST /api/restaurants` - ホットペッパー飲食店検索
+
+## LP構成 (index.html ランディングページ部分)
+1. ヒーロー (キャッチコピー + CTA + 利用件数)
+2. デモ (インタラクティブに重み調整→結果表示)
+3. Pain points (幹事の悩み4つ)
+4. 2ステップ説明 (駅入力→結果+予約)
+5. 機能紹介 (スライダー、可視化、予約連携、プライバシー)
+6. Bottom CTA (CTA + 利用件数)
 
 ## デプロイ方法
 ```bash
