@@ -1245,11 +1245,11 @@ function renderDemoMap(scored, geocoded) {
     if (appConfig.usage_count >= 100) {
       var countStr = appConfig.usage_count.toLocaleString();
       document.getElementById('usage-count-hero-num').textContent = countStr;
-      document.getElementById('usage-count-hero').style.display = '';
+      document.getElementById('usage-count-hero').style.display = 'block';
       document.getElementById('usage-count-bottom-num').textContent = countStr;
-      document.getElementById('usage-count-bottom').style.display = '';
+      document.getElementById('usage-count-bottom').style.display = 'block';
     }
-  } catch(e) {}
+  } catch(e) { console.error('init config error:', e); }
 
   const params = new URLSearchParams(location.search);
   const code = params.get('event');
