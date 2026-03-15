@@ -2136,38 +2136,36 @@ function renderSummary(summary, targetId) {
   const el = document.getElementById(targetId);
   if (!el) return;
   if (!summary) { el.innerHTML = ''; return; }
-  const e = summary.efficiency;
+  const w = summary.work;
+  const h = summary.home;
   const f = summary.fairness;
-  const b = summary.balanced;
   const isDemo = targetId === 'demo-summary';
 
-  // Check how many are the same station
-  const names = new Set([e.name, f.name, b.name]);
+  const names = new Set([w.name, h.name, f.name]);
   let html = '<div class="summary-report"><h3>おすすめサマリー</h3>';
   if (names.size === 1) {
     html += `<div class="summary-single">
       <div class="summary-label">全条件でベスト</div>
-      <div class="summary-station">${escHtml(e.name)}</div>
-      <div class="summary-desc">効率・公平どちらの観点でも最適な駅です</div>
+      <div class="summary-station">${escHtml(w.name)}</div>
+      <div class="summary-desc">どの観点でも最適な駅です</div>
     </div>`;
   } else {
     html += '<div class="summary-cards">';
+    // balance=0 → work100%, balance=1 → home100%
     const cards = [
-      {label: 'とにかく近い駅なら', data: e, desc: `平均${e.avg_total_val.toFixed(1)}分`, hi: false, fairness: 0},
-      {label: '全員フェアに行くなら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, hi: false, fairness: 1},
-      {label: 'バランスで選ぶなら', data: b, desc: `平均${b.avg_total_val.toFixed(1)}分 / 偏差${b.std_dev.toFixed(1)}`, hi: true, fairness: 0.5},
+      {label: '早く行ける場所がいいなら', data: w, desc: `行き平均${w.avg_work.toFixed(1)}分`, balance: 0, fairness: 0},
+      {label: '早く帰りたいなら', data: h, desc: `帰り平均${h.avg_home.toFixed(1)}分`, balance: 1, fairness: 0},
+      {label: 'みんな納得の駅なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, balance: 0.5, fairness: 1},
     ];
-    // Deduplicate: if two share the same station, merge labels
+    // Deduplicate
     const merged = [];
     const used = new Set();
     for (let i = 0; i < cards.length; i++) {
       if (used.has(i)) continue;
-      const c = {...cards[i], labels: [cards[i].label], fairnesses: [cards[i].fairness]};
+      const c = {...cards[i], labels: [cards[i].label]};
       for (let j = i + 1; j < cards.length; j++) {
         if (!used.has(j) && cards[j].data.name === cards[i].data.name) {
           c.labels.push(cards[j].label);
-          c.fairnesses.push(cards[j].fairness);
-          if (cards[j].hi) c.hi = true;
           used.add(j);
         }
       }
@@ -2176,8 +2174,7 @@ function renderSummary(summary, targetId) {
     }
     merged.forEach(c => {
       const labelText = c.labels.join(' / ');
-      const clickFairness = c.fairnesses[0];
-      html += `<div class="summary-card${c.hi ? ' highlight' : ''}" data-fairness="${clickFairness}" data-demo="${isDemo}" style="cursor:pointer;" onclick="applySummaryPreset(this)">
+      html += `<div class="summary-card" data-balance="${c.balance}" data-fairness="${c.fairness}" data-demo="${isDemo}" style="cursor:pointer;" onclick="applySummaryPreset(this)">
         <div class="summary-label">${escHtml(labelText)}</div>
         <div class="summary-station">${escHtml(c.data.name)}</div>
         <div class="summary-desc">${c.desc}</div>
@@ -2190,6 +2187,7 @@ function renderSummary(summary, targetId) {
 }
 
 function applySummaryPreset(cardEl) {
+  const balance = parseFloat(cardEl.dataset.balance);
   const fairness = parseFloat(cardEl.dataset.fairness);
   const isDemo = cardEl.dataset.demo === 'true';
 
@@ -2198,14 +2196,18 @@ function applySummaryPreset(cardEl) {
   cardEl.classList.add('highlight');
 
   if (isDemo) {
-    const slider = document.getElementById('demo-fairness');
-    slider.value = fairness;
+    document.getElementById('demo-balance').value = balance;
+    document.getElementById('demo-fairness').value = fairness;
+    demoBalanceLabel();
     demoFairnessLabel();
     debouncedDemoSearch();
   } else {
-    const slider = document.getElementById('fairness');
-    if (slider.disabled) return;
-    slider.value = fairness;
+    const balanceEl = document.getElementById('balance');
+    const fairnessEl = document.getElementById('fairness');
+    if (balanceEl.disabled || fairnessEl.disabled) return;
+    balanceEl.value = balance;
+    fairnessEl.value = fairness;
+    updateBalanceLabel();
     updateFairnessLabel();
     debouncedReSearch();
   }

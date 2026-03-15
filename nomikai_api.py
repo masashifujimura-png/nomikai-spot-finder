@@ -454,20 +454,32 @@ def score_stations(stations, participants, work_weight, home_weight, fairness_we
 
 
 def _build_summary(scored):
-    """Build a 3-pattern summary from scored stations."""
+    """Build a 3-scenario summary: work-focused, home-focused, fairness."""
     if not scored:
         return None
-    def _pick(s):
-        return {"name": s["name"], "avg_total_val": s["avg_total_val"], "std_dev": s["std_dev"]}
+    def _pick(s, extra=None):
+        r = {"name": s["name"], "avg_total_val": s["avg_total_val"], "std_dev": s["std_dev"]}
+        if extra:
+            r.update(extra)
+        return r
 
-    efficiency_best = min(scored, key=lambda x: sum(d["total_val"] for d in x["details"]))
-    fairness_best = min(scored, key=lambda x: x["std_dev"])
-    balanced_best = scored[0]  # already sorted by total_cost (current fairness_weight)
+    n = len(scored[0]["details"]) if scored[0].get("details") else 1
+
+    # 早く行ける場所: work_val の合計が最小
+    work_best = min(scored, key=lambda x: sum(d["work_val"] for d in x["details"]))
+    avg_work = sum(d["work_val"] for d in work_best["details"]) / n
+
+    # 早く帰りたい: home_val の合計が最小
+    home_best = min(scored, key=lambda x: sum(d["home_val"] for d in x["details"]))
+    avg_home = sum(d["home_val"] for d in home_best["details"]) / n
+
+    # みんな納得: std_dev が最小
+    fair_best = min(scored, key=lambda x: x["std_dev"])
 
     return {
-        "efficiency": _pick(efficiency_best),
-        "fairness": _pick(fairness_best),
-        "balanced": _pick(balanced_best),
+        "work": _pick(work_best, {"avg_work": round(avg_work, 1)}),
+        "home": _pick(home_best, {"avg_home": round(avg_home, 1)}),
+        "fairness": _pick(fair_best),
     }
 
 
