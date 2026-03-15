@@ -453,6 +453,24 @@ def score_stations(stations, participants, work_weight, home_weight, fairness_we
     return scored
 
 
+def _build_summary(scored):
+    """Build a 3-pattern summary from scored stations."""
+    if not scored:
+        return None
+    def _pick(s):
+        return {"name": s["name"], "avg_total_val": s["avg_total_val"], "std_dev": s["std_dev"]}
+
+    efficiency_best = min(scored, key=lambda x: sum(d["total_val"] for d in x["details"]))
+    fairness_best = min(scored, key=lambda x: x["std_dev"])
+    balanced_best = scored[0]  # already sorted by total_cost (current fairness_weight)
+
+    return {
+        "efficiency": _pick(efficiency_best),
+        "fairness": _pick(fairness_best),
+        "balanced": _pick(balanced_best),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Route formatting
 # ---------------------------------------------------------------------------
@@ -730,6 +748,7 @@ def api_demo_search(req: DemoSearchReq):
 
     return {
         "scored": top_stations,
+        "summary": _build_summary(scored),
         "geocoded": [
             {
                 "name": g["name"],
@@ -829,6 +848,7 @@ def api_search(req: SearchReq):
 
     return {
         "scored": top_stations,
+        "summary": _build_summary(scored),
         "geocoded": [
             {
                 "name": g["name"],

@@ -256,6 +256,23 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
   .metric-br { display: block; height: 0; overflow: hidden; }
 }
 
+/* Summary report */
+.summary-report { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+.summary-report h3 { font-size: 14px; margin: 0 0 10px; color: var(--primary); }
+.summary-cards { display: flex; gap: 8px; }
+.summary-card { flex: 1; min-width: 0; background: #fff; border-radius: var(--radius); padding: 10px 12px; border: 1px solid var(--border); }
+.summary-card.highlight { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+.summary-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+.summary-station { font-size: 1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.summary-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+.summary-single { text-align: center; padding: 12px; }
+.summary-single .summary-station { font-size: 1.1rem; }
+@media (max-width: 640px) {
+  .summary-cards { flex-direction: column; }
+  .summary-card { padding: 8px 10px; }
+  .summary-station { font-size: 0.9rem; }
+}
+
 /* Table */
 .table-wrap { overflow-x: auto; margin: 8px 0; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -808,6 +825,7 @@ details summary::-webkit-details-marker { display: none; }
               <span id="demo-fairness-val">効率 50% / 公平 50%</span>
             </div>
           </div>
+          <div id="demo-summary"></div>
           <div id="demo-results"></div>
           <div id="demo-map-container" style="height:360px;border-radius:var(--radius);margin:8px 0;"></div>
           <div id="demo-legend-wrap"></div>
@@ -959,6 +977,7 @@ details summary::-webkit-details-marker { display: none; }
     <div id="results" class="hidden">
       <hr class="divider">
       <h2>検索結果</h2>
+      <div id="summary-report"></div>
       <div class="metrics" id="metrics"></div>
 
       <!-- Settings sliders (inside results) -->
@@ -1144,6 +1163,7 @@ async function runDemoSearch() {
       }),
     });
     const data = await r.json();
+    renderSummary(data.summary, 'demo-summary');
     renderDemoResults(data.scored, data.geocoded);
   } catch(e) {
     document.getElementById('demo-results').innerHTML = '<p style="color:red;">デモデータの取得に失敗しました。</p>';
@@ -2109,6 +2129,63 @@ async function searchSpots(isReSearch = false) {
 }
 
 // ---------------------------------------------------------------------------
+// Summary report
+// ---------------------------------------------------------------------------
+function renderSummary(summary, targetId) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  if (!summary) { el.innerHTML = ''; return; }
+  const e = summary.efficiency;
+  const f = summary.fairness;
+  const b = summary.balanced;
+
+  // Check how many are the same station
+  const names = new Set([e.name, f.name, b.name]);
+  let html = '<div class="summary-report"><h3>おすすめサマリー</h3>';
+  if (names.size === 1) {
+    html += `<div class="summary-single">
+      <div class="summary-label">全条件でベスト</div>
+      <div class="summary-station">${escHtml(e.name)}</div>
+      <div class="summary-desc">効率・公平どちらの観点でも最適な駅です</div>
+    </div>`;
+  } else {
+    html += '<div class="summary-cards">';
+    const cards = [
+      {label: '効率重視なら', data: e, desc: `平均${e.avg_total_val.toFixed(1)}分`, hi: false},
+      {label: '公平重視なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, hi: false},
+      {label: 'バランス型', data: b, desc: `平均${b.avg_total_val.toFixed(1)}分 / 偏差${b.std_dev.toFixed(1)}`, hi: true},
+    ];
+    // Deduplicate: if two share the same station, merge labels
+    const merged = [];
+    const used = new Set();
+    for (let i = 0; i < cards.length; i++) {
+      if (used.has(i)) continue;
+      const c = {...cards[i], labels: [cards[i].label]};
+      for (let j = i + 1; j < cards.length; j++) {
+        if (!used.has(j) && cards[j].data.name === cards[i].data.name) {
+          c.labels.push(cards[j].label);
+          if (cards[j].hi) c.hi = true;
+          used.add(j);
+        }
+      }
+      merged.push(c);
+      used.add(i);
+    }
+    merged.forEach(c => {
+      const labelText = c.labels.join(' / ');
+      html += `<div class="summary-card${c.hi ? ' highlight' : ''}">
+        <div class="summary-label">${escHtml(labelText)}</div>
+        <div class="summary-station">${escHtml(c.data.name)}</div>
+        <div class="summary-desc">${c.desc}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ---------------------------------------------------------------------------
 // Render results
 // ---------------------------------------------------------------------------
 function renderResults() {
@@ -2116,6 +2193,9 @@ function renderResults() {
   const geocoded = searchResults.geocoded;
   const best = scored[0];
   const unit = '分';
+
+  // Summary report
+  renderSummary(searchResults.summary, 'summary-report');
 
   // Metrics — top 3 stations with medal icons (vertical layout)
   const hasPriv = geocoded.some(g => g.private);
@@ -2245,7 +2325,7 @@ function renderRanking(scored, geocoded, unit) {
     html += `<tr>${row}</tr>`;
   });
   html += '</tbody></table></div>';
-  html += '<p class="caption">※移動時間は主要路線の駅間所要時間をベースに推定。乗換待ち時間等により実際とは異なる場合があります。</p>';
+  html += '<p class="caption">※移動時間は駅間の直線距離と平均速度から推定した概算値です。実際のダイヤや乗換時間とは異なる場合があります。</p>';
   html += `<div class="settings-panel" style="margin-top:16px;">
     <h3>ランキングのしくみ</h3>
     <p class="caption" style="line-height:1.8;">
