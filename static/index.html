@@ -1134,6 +1134,7 @@ function buildPinSvg(color, iconPath, w, h) {
 // ---------------------------------------------------------------------------
 let demoMapInstance = null;
 let demoSearchTimer = null;
+let demoSummaryRendered = false;
 
 function demoBalanceLabel() {
   const v = parseFloat(document.getElementById('demo-balance').value);
@@ -1162,7 +1163,10 @@ async function runDemoSearch() {
       }),
     });
     const data = await r.json();
-    renderSummary(data.summary, 'demo-summary');
+    if (!demoSummaryRendered) {
+      renderSummary(data.summary, 'demo-summary');
+      demoSummaryRendered = true;
+    }
     renderDemoResults(data.scored, data.geocoded);
   } catch(e) {
     document.getElementById('demo-results').innerHTML = '<p style="color:red;">デモデータの取得に失敗しました。</p>';
@@ -2112,7 +2116,7 @@ async function searchSpots(isReSearch = false) {
       return;
     }
     searchResults = await r.json();
-    renderResults();
+    renderResults(isReSearch);
     document.getElementById('results').classList.remove('hidden');
     if (!isReSearch) {
       document.getElementById('results').scrollIntoView({behavior: 'smooth'});
@@ -2147,7 +2151,7 @@ function renderSummary(summary, targetId) {
     {label: 'みんな納得の駅なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, balance: 0.5, fairness: 1},
   ];
   cards.forEach(c => {
-    html += `<div class="summary-card" style="cursor:pointer;" data-lat="${c.data.lat}" data-lon="${c.data.lon}" data-demo="${isDemo}" onclick="focusSummaryStation(this)">
+    html += `<div class="summary-card" style="cursor:pointer;" data-balance="${c.balance}" data-fairness="${c.fairness}" data-demo="${isDemo}" onclick="applySummaryPreset(this)">
       <div class="summary-label">${escHtml(c.label)}</div>
       <div class="summary-station">${escHtml(c.data.name)}</div>
       <div class="summary-desc">${c.desc}</div>
@@ -2158,37 +2162,46 @@ function renderSummary(summary, targetId) {
   el.innerHTML = html;
 }
 
-function focusSummaryStation(cardEl) {
-  const lat = parseFloat(cardEl.dataset.lat);
-  const lon = parseFloat(cardEl.dataset.lon);
+function applySummaryPreset(cardEl) {
+  const balance = parseFloat(cardEl.dataset.balance);
+  const fairness = parseFloat(cardEl.dataset.fairness);
   const isDemo = cardEl.dataset.demo === 'true';
 
-  // Highlight selected card
+  // Highlight selected card only
   cardEl.closest('.summary-cards').querySelectorAll('.summary-card').forEach(c => c.classList.remove('selected'));
   cardEl.classList.add('selected');
 
-  const map = isDemo ? demoMapInstance : mapInstance;
-  if (map) {
-    map.setView([lat, lon], 14, {animate: true});
-  }
-
-  // For main results, switch to map tab
-  if (!isDemo) {
-    switchTab('map', true);
+  if (isDemo) {
+    document.getElementById('demo-balance').value = balance;
+    document.getElementById('demo-fairness').value = fairness;
+    demoBalanceLabel();
+    demoFairnessLabel();
+    debouncedDemoSearch();
+  } else {
+    const balanceEl = document.getElementById('balance');
+    const fairnessEl = document.getElementById('fairness');
+    if (balanceEl.disabled || fairnessEl.disabled) return;
+    balanceEl.value = balance;
+    fairnessEl.value = fairness;
+    updateBalanceLabel();
+    updateFairnessLabel();
+    debouncedReSearch();
   }
 }
 
 // ---------------------------------------------------------------------------
 // Render results
 // ---------------------------------------------------------------------------
-function renderResults() {
+function renderResults(isReSearch = false) {
   const scored = searchResults.scored;
   const geocoded = searchResults.geocoded;
   const best = scored[0];
   const unit = '分';
 
-  // Summary report
-  renderSummary(searchResults.summary, 'summary-report');
+  // Summary report — only render on first search, not on re-search
+  if (!isReSearch) {
+    renderSummary(searchResults.summary, 'summary-report');
+  }
 
   // Metrics — top 3 stations with medal icons (vertical layout)
   const hasPriv = geocoded.some(g => g.private);
