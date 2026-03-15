@@ -458,7 +458,7 @@ def _build_summary(scored):
     if not scored:
         return None
     def _pick(s, extra=None):
-        r = {"name": s["name"], "avg_total_val": s["avg_total_val"], "std_dev": s["std_dev"]}
+        r = {"name": s["name"], "lat": s["lat"], "lon": s["lon"], "avg_total_val": s["avg_total_val"], "std_dev": s["std_dev"]}
         if extra:
             r.update(extra)
         return r
