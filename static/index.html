@@ -261,6 +261,7 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 .summary-report h3 { font-size: 14px; margin: 0 0 10px; color: var(--primary); }
 .summary-cards { display: flex; gap: 8px; }
 .summary-card { flex: 1; min-width: 0; background: #fff; border-radius: var(--radius); padding: 10px 12px; border: 1px solid var(--border); }
+.summary-card:hover { border-color: var(--primary); background: #f8faff; }
 .summary-card.highlight { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .summary-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
 .summary-station { font-size: 1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2138,6 +2139,7 @@ function renderSummary(summary, targetId) {
   const e = summary.efficiency;
   const f = summary.fairness;
   const b = summary.balanced;
+  const isDemo = targetId === 'demo-summary';
 
   // Check how many are the same station
   const names = new Set([e.name, f.name, b.name]);
@@ -2151,19 +2153,20 @@ function renderSummary(summary, targetId) {
   } else {
     html += '<div class="summary-cards">';
     const cards = [
-      {label: '効率重視なら', data: e, desc: `平均${e.avg_total_val.toFixed(1)}分`, hi: false},
-      {label: '公平重視なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, hi: false},
-      {label: 'バランス型', data: b, desc: `平均${b.avg_total_val.toFixed(1)}分 / 偏差${b.std_dev.toFixed(1)}`, hi: true},
+      {label: 'とにかく近い駅なら', data: e, desc: `平均${e.avg_total_val.toFixed(1)}分`, hi: false, fairness: 0},
+      {label: '全員フェアに行くなら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, hi: false, fairness: 1},
+      {label: 'バランスで選ぶなら', data: b, desc: `平均${b.avg_total_val.toFixed(1)}分 / 偏差${b.std_dev.toFixed(1)}`, hi: true, fairness: 0.5},
     ];
     // Deduplicate: if two share the same station, merge labels
     const merged = [];
     const used = new Set();
     for (let i = 0; i < cards.length; i++) {
       if (used.has(i)) continue;
-      const c = {...cards[i], labels: [cards[i].label]};
+      const c = {...cards[i], labels: [cards[i].label], fairnesses: [cards[i].fairness]};
       for (let j = i + 1; j < cards.length; j++) {
         if (!used.has(j) && cards[j].data.name === cards[i].data.name) {
           c.labels.push(cards[j].label);
+          c.fairnesses.push(cards[j].fairness);
           if (cards[j].hi) c.hi = true;
           used.add(j);
         }
@@ -2173,7 +2176,8 @@ function renderSummary(summary, targetId) {
     }
     merged.forEach(c => {
       const labelText = c.labels.join(' / ');
-      html += `<div class="summary-card${c.hi ? ' highlight' : ''}">
+      const clickFairness = c.fairnesses[0];
+      html += `<div class="summary-card${c.hi ? ' highlight' : ''}" data-fairness="${clickFairness}" data-demo="${isDemo}" style="cursor:pointer;" onclick="applySummaryPreset(this)">
         <div class="summary-label">${escHtml(labelText)}</div>
         <div class="summary-station">${escHtml(c.data.name)}</div>
         <div class="summary-desc">${c.desc}</div>
@@ -2183,6 +2187,28 @@ function renderSummary(summary, targetId) {
   }
   html += '</div>';
   el.innerHTML = html;
+}
+
+function applySummaryPreset(cardEl) {
+  const fairness = parseFloat(cardEl.dataset.fairness);
+  const isDemo = cardEl.dataset.demo === 'true';
+
+  // Highlight selected card
+  cardEl.closest('.summary-cards').querySelectorAll('.summary-card').forEach(c => c.classList.remove('highlight'));
+  cardEl.classList.add('highlight');
+
+  if (isDemo) {
+    const slider = document.getElementById('demo-fairness');
+    slider.value = fairness;
+    demoFairnessLabel();
+    debouncedDemoSearch();
+  } else {
+    const slider = document.getElementById('fairness');
+    if (slider.disabled) return;
+    slider.value = fairness;
+    updateFairnessLabel();
+    debouncedReSearch();
+  }
 }
 
 // ---------------------------------------------------------------------------
