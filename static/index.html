@@ -261,8 +261,6 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 .summary-report h3 { font-size: 14px; margin: 0 0 10px; color: var(--primary); }
 .summary-cards { display: flex; gap: 8px; }
 .summary-card { flex: 1; min-width: 0; background: #fff; border-radius: var(--radius); padding: 10px 12px; border: 1px solid var(--border); }
-.summary-card:hover { border-color: var(--primary); background: #f8faff; }
-.summary-card.highlight { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .summary-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
 .summary-station { font-size: 1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .summary-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
@@ -980,9 +978,9 @@ details summary::-webkit-details-marker { display: none; }
       <div class="metrics" id="metrics"></div>
 
       <!-- Settings sliders (inside results) -->
-      <details id="slider-toggle" open style="margin:16px 0;">
+      <details id="slider-toggle" style="margin:16px 0;">
         <summary class="slider-toggle-summary">
-          <span id="slider-toggle-arrow">▲</span> スライダーで条件を調整
+          <span id="slider-toggle-arrow">▼</span> カスタム設定
         </summary>
       <div class="settings-panel">
         <div id="slider-privacy-msg" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#92400e;"><i data-lucide="lock" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i>プライバシーモードの参加者がいるため、スライダーは使用できません</div>
@@ -2147,7 +2145,7 @@ function renderSummary(summary, targetId) {
     {label: 'みんな納得の駅なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, balance: 0.5, fairness: 1},
   ];
   cards.forEach(c => {
-    html += `<div class="summary-card" data-balance="${c.balance}" data-fairness="${c.fairness}" data-demo="${isDemo}" style="cursor:pointer;" onclick="applySummaryPreset(this)">
+    html += `<div class="summary-card">
       <div class="summary-label">${escHtml(c.label)}</div>
       <div class="summary-station">${escHtml(c.data.name)}</div>
       <div class="summary-desc">${c.desc}</div>
@@ -2158,32 +2156,6 @@ function renderSummary(summary, targetId) {
   el.innerHTML = html;
 }
 
-function applySummaryPreset(cardEl) {
-  const balance = parseFloat(cardEl.dataset.balance);
-  const fairness = parseFloat(cardEl.dataset.fairness);
-  const isDemo = cardEl.dataset.demo === 'true';
-
-  // Highlight selected card
-  cardEl.closest('.summary-cards').querySelectorAll('.summary-card').forEach(c => c.classList.remove('highlight'));
-  cardEl.classList.add('highlight');
-
-  if (isDemo) {
-    document.getElementById('demo-balance').value = balance;
-    document.getElementById('demo-fairness').value = fairness;
-    demoBalanceLabel();
-    demoFairnessLabel();
-    debouncedDemoSearch();
-  } else {
-    const balanceEl = document.getElementById('balance');
-    const fairnessEl = document.getElementById('fairness');
-    if (balanceEl.disabled || fairnessEl.disabled) return;
-    balanceEl.value = balance;
-    fairnessEl.value = fairness;
-    updateBalanceLabel();
-    updateFairnessLabel();
-    debouncedReSearch();
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Render results
@@ -2219,13 +2191,6 @@ function renderResults() {
   renderDetail(scored, geocoded, unit);
   renderRestaurantTab(scored, geocoded);
   pendingMapData = {scored, geocoded};
-  // Ensure slider toggle is open after search
-  const sliderToggle = document.getElementById('slider-toggle');
-  if (sliderToggle) {
-    sliderToggle.setAttribute('open', '');
-    const arrow = document.getElementById('slider-toggle-arrow');
-    if (arrow) arrow.textContent = '▲';
-  }
 
   // Disable sliders when private participants exist
   const balanceEl = document.getElementById('balance');
