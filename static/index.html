@@ -266,8 +266,6 @@ input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px 
 .summary-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
 .summary-station { font-size: 1rem; font-weight: 700; color: #1a3a6b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .summary-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
-.summary-single { text-align: center; padding: 12px; }
-.summary-single .summary-station { font-size: 1.1rem; }
 @media (max-width: 640px) {
   .summary-cards { flex-direction: column; }
   .summary-card { padding: 8px 10px; }
@@ -2141,47 +2139,21 @@ function renderSummary(summary, targetId) {
   const f = summary.fairness;
   const isDemo = targetId === 'demo-summary';
 
-  const names = new Set([w.name, h.name, f.name]);
   let html = '<div class="summary-report"><h3>おすすめサマリー</h3>';
-  if (names.size === 1) {
-    html += `<div class="summary-single">
-      <div class="summary-label">全条件でベスト</div>
-      <div class="summary-station">${escHtml(w.name)}</div>
-      <div class="summary-desc">どの観点でも最適な駅です</div>
+  html += '<div class="summary-cards">';
+  const cards = [
+    {label: '早く行ける場所がいいなら', data: w, desc: `行き平均${w.avg_work.toFixed(1)}分`, balance: 0, fairness: 0},
+    {label: '早く帰りたいなら', data: h, desc: `帰り平均${h.avg_home.toFixed(1)}分`, balance: 1, fairness: 0},
+    {label: 'みんな納得の駅なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, balance: 0.5, fairness: 1},
+  ];
+  cards.forEach(c => {
+    html += `<div class="summary-card" data-balance="${c.balance}" data-fairness="${c.fairness}" data-demo="${isDemo}" style="cursor:pointer;" onclick="applySummaryPreset(this)">
+      <div class="summary-label">${escHtml(c.label)}</div>
+      <div class="summary-station">${escHtml(c.data.name)}</div>
+      <div class="summary-desc">${c.desc}</div>
     </div>`;
-  } else {
-    html += '<div class="summary-cards">';
-    // balance=0 → work100%, balance=1 → home100%
-    const cards = [
-      {label: '早く行ける場所がいいなら', data: w, desc: `行き平均${w.avg_work.toFixed(1)}分`, balance: 0, fairness: 0},
-      {label: '早く帰りたいなら', data: h, desc: `帰り平均${h.avg_home.toFixed(1)}分`, balance: 1, fairness: 0},
-      {label: 'みんな納得の駅なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, balance: 0.5, fairness: 1},
-    ];
-    // Deduplicate
-    const merged = [];
-    const used = new Set();
-    for (let i = 0; i < cards.length; i++) {
-      if (used.has(i)) continue;
-      const c = {...cards[i], labels: [cards[i].label]};
-      for (let j = i + 1; j < cards.length; j++) {
-        if (!used.has(j) && cards[j].data.name === cards[i].data.name) {
-          c.labels.push(cards[j].label);
-          used.add(j);
-        }
-      }
-      merged.push(c);
-      used.add(i);
-    }
-    merged.forEach(c => {
-      const labelText = c.labels.join(' / ');
-      html += `<div class="summary-card" data-balance="${c.balance}" data-fairness="${c.fairness}" data-demo="${isDemo}" style="cursor:pointer;" onclick="applySummaryPreset(this)">
-        <div class="summary-label">${escHtml(labelText)}</div>
-        <div class="summary-station">${escHtml(c.data.name)}</div>
-        <div class="summary-desc">${c.desc}</div>
-      </div>`;
-    });
-    html += '</div>';
-  }
+  });
+  html += '</div>';
   html += '</div>';
   el.innerHTML = html;
 }
