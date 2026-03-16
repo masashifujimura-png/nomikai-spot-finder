@@ -453,34 +453,43 @@ def score_stations(stations, participants, work_weight, home_weight, fairness_we
     return scored
 
 
-def _build_summary(scored):
-    """Build a 3-scenario summary: work-focused, home-focused, fairness."""
-    if not scored:
+def _build_summary(all_stations, participants):
+    """Build a 3-scenario summary by scoring with each weight combo."""
+    if not all_stations or not participants:
         return None
+
     def _pick(s, extra=None):
-        r = {"name": s["name"], "lat": s["lat"], "lon": s["lon"], "avg_total_val": s["avg_total_val"], "std_dev": s["std_dev"]}
+        r = {"name": s["name"], "lat": s["lat"], "lon": s["lon"],
+             "avg_total_val": s["avg_total_val"], "std_dev": s["std_dev"]}
         if extra:
             r.update(extra)
         return r
 
-    n = len(scored[0]["details"]) if scored[0].get("details") else 1
+    scenarios = [
+        ("work",  1, 0, 0),    # 早く行ける場所
+        ("home",  0, 1, 0),    # 早く帰りたい
+        ("fairness", 0.5, 0.5, 1),  # みんな納得
+    ]
+    result = {}
+    for key, ww, hw, fw in scenarios:
+        filtered = _prefilter_stations(all_stations, participants, ww, hw, top_n=30)
+        scored = score_stations(filtered, participants, ww, hw, fairness_weight=fw)
+        if not scored:
+            continue
+        best = scored[0]
+        n = len(best["details"]) if best.get("details") else 1
+        if key == "work":
+            avg_work = sum(d["work_val"] for d in best["details"]) / n
+            result["work"] = _pick(best, {"avg_work": round(avg_work, 1)})
+        elif key == "home":
+            avg_home = sum(d["home_val"] for d in best["details"]) / n
+            result["home"] = _pick(best, {"avg_home": round(avg_home, 1)})
+        else:
+            result["fairness"] = _pick(best)
 
-    # 早く行ける場所: work_val の合計が最小
-    work_best = min(scored, key=lambda x: sum(d["work_val"] for d in x["details"]))
-    avg_work = sum(d["work_val"] for d in work_best["details"]) / n
-
-    # 早く帰りたい: home_val の合計が最小
-    home_best = min(scored, key=lambda x: sum(d["home_val"] for d in x["details"]))
-    avg_home = sum(d["home_val"] for d in home_best["details"]) / n
-
-    # みんな納得: std_dev が最小
-    fair_best = min(scored, key=lambda x: x["std_dev"])
-
-    return {
-        "work": _pick(work_best, {"avg_work": round(avg_work, 1)}),
-        "home": _pick(home_best, {"avg_home": round(avg_home, 1)}),
-        "fairness": _pick(fair_best),
-    }
+    if len(result) < 3:
+        return None
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -747,11 +756,11 @@ def api_demo_search(req: DemoSearchReq):
     if len(geocoded) < 2:
         raise HTTPException(status_code=400, detail="デモデータのジオコードに失敗しました")
 
-    stations = find_candidate_stations(geocoded)
-    if not stations:
+    all_stations = find_candidate_stations(geocoded)
+    if not all_stations:
         raise HTTPException(status_code=400, detail="周辺に駅が見つかりませんでした")
 
-    stations = _prefilter_stations(stations, geocoded, req.work_weight, req.home_weight, top_n=30)
+    stations = _prefilter_stations(all_stations, geocoded, req.work_weight, req.home_weight, top_n=30)
     scored = score_stations(stations, geocoded, req.work_weight, req.home_weight,
                             fairness_weight=req.fairness_weight)
 
@@ -760,7 +769,7 @@ def api_demo_search(req: DemoSearchReq):
 
     return {
         "scored": top_stations,
-        "summary": _build_summary(scored),
+        "summary": _build_summary(all_stations, geocoded),
         "geocoded": [
             {
                 "name": g["name"],
@@ -797,11 +806,11 @@ def api_search(req: SearchReq):
     if len(geocoded) < 2:
         raise HTTPException(status_code=400, detail="場所を特定できた参加者が2人未満です")
 
-    stations = find_candidate_stations(geocoded)
-    if not stations:
+    all_stations = find_candidate_stations(geocoded)
+    if not all_stations:
         raise HTTPException(status_code=400, detail="周辺に駅が見つかりませんでした")
 
-    stations = _prefilter_stations(stations, geocoded, req.work_weight, req.home_weight, top_n=30)
+    stations = _prefilter_stations(all_stations, geocoded, req.work_weight, req.home_weight, top_n=30)
     scored = score_stations(stations, geocoded, req.work_weight, req.home_weight,
                             fairness_weight=req.fairness_weight)
 
@@ -860,7 +869,7 @@ def api_search(req: SearchReq):
 
     return {
         "scored": top_stations,
-        "summary": _build_summary(scored),
+        "summary": _build_summary(all_stations, geocoded),
         "geocoded": [
             {
                 "name": g["name"],
