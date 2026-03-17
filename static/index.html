@@ -820,8 +820,8 @@ details summary::-webkit-details-marker { display: none; }
             </div>
             <div class="demo-slider-group">
               <label>効率↔公平の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">全員の合計移動時間を短くするか、特定の人だけ遠くならないよう均等さを重視するか調整できます</span></span></label>
-              <input type="range" id="demo-fairness" min="0" max="1" step="0.1" value="0.5" oninput="demoFairnessLabel();debouncedDemoSearch()">
-              <span id="demo-fairness-val">効率 50% / 公平 50%</span>
+              <input type="range" id="demo-fairness" min="0" max="1" step="0.1" value="1" oninput="demoFairnessLabel();debouncedDemoSearch()">
+              <span id="demo-fairness-val">効率 0% / 公平 100%</span>
             </div>
           </div>
           <div id="demo-summary"></div>
@@ -993,10 +993,10 @@ details summary::-webkit-details-marker { display: none; }
           <span class="range-edge">自宅への帰りやすさ</span>
         </div>
         <div style="margin-top:10px;"></div>
-        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:4px;">効率↔公平の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">全員の合計移動時間を短くするか、特定の人だけ遠くならないよう均等さを重視するか調整できます</span></span><span class="caption" style="margin-left:auto;font-weight:400;" id="fairness-val">効率 50% / 公平 50%</span></label>
+        <label style="font-size:13px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:4px;">効率↔公平の重み<span class="tooltip-trigger" tabindex="0">？<span class="tooltip-text">全員の合計移動時間を短くするか、特定の人だけ遠くならないよう均等さを重視するか調整できます</span></span><span class="caption" style="margin-left:auto;font-weight:400;" id="fairness-val">効率 0% / 公平 100%</span></label>
         <div class="range-row">
           <span class="range-edge">総移動時間の短さ</span>
-          <input type="range" id="fairness" min="0" max="1" step="0.05" value="0.5">
+          <input type="range" id="fairness" min="0" max="1" step="0.05" value="1">
           <span class="range-edge">移動時間の偏りの少なさ</span>
         </div>
       </div>
@@ -2146,9 +2146,9 @@ function renderSummary(summary, targetId) {
   let html = '<div class="summary-report"><h3>おすすめサマリー</h3>';
   html += '<div class="summary-cards">';
   const cards = [
+    {label: 'みんな納得の駅なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, balance: 0.5, fairness: 1},
     {label: '早く行ける場所がいいなら', data: w, desc: `行き平均${w.avg_work.toFixed(1)}分`, balance: 0, fairness: 0},
     {label: '早く帰りたいなら', data: h, desc: `帰り平均${h.avg_home.toFixed(1)}分`, balance: 1, fairness: 0},
-    {label: 'みんな納得の駅なら', data: f, desc: `偏差${f.std_dev.toFixed(1)}`, balance: 0.5, fairness: 1},
   ];
   cards.forEach(c => {
     html += `<div class="summary-card" style="cursor:pointer;" data-balance="${c.balance}" data-fairness="${c.fairness}" data-demo="${isDemo}" onclick="applySummaryPreset(this)">
@@ -2160,6 +2160,12 @@ function renderSummary(summary, targetId) {
   html += '</div>';
   html += '</div>';
   el.innerHTML = html;
+
+  // デフォルトで「みんな納得の駅なら」(最初のカード)を選択状態にする
+  const firstCard = el.querySelector('.summary-card');
+  if (firstCard) {
+    firstCard.classList.add('selected');
+  }
 }
 
 function applySummaryPreset(cardEl) {
